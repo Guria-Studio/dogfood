@@ -20,7 +20,7 @@ Encuentra bugs y fricción. **No valida mercado**: eso solo se consigue con usua
 ## Componentes
 - Generador de personas.
 - Escenarios con criterio de éxito.
-- Agente navegador.
+- Agente navegador (web) y agente de chat (WhatsApp vía webhooks de WAHA simulados).
 - Detector de errores.
 - Reporte: issues y opinión.
 - Evaluación de costo y consistencia.
@@ -29,6 +29,10 @@ Encuentra bugs y fricción. **No valida mercado**: eso solo se consigue con usua
 Ver [adr/0001-stack.md](adr/0001-stack.md).
 
 ## Objetivos
-- Primero: la app de barberías (agenda-barberia).
-- Después: Showly y agndaZAP.
+- Primero: **Showly** (repo `agndaZAP`). Es agendamiento por WhatsApp con recordatorios anti no-show. Tiene cuatro superficies:
+  - el bot de WhatsApp para el paciente;
+  - el panel web de recepción;
+  - la página pública `/agendar/[clinicSlug]`;
+  - el panel de operador `/admin`.
+- Después: agenda-barberia.
 - Integración futura: cada deploy de rama en Coolify dispara una corrida antes de producción.

@@ -4,7 +4,7 @@
 - El repo es privado: `hectorcanaimero/dogfood`, en `/mnt/storage/project/dogfood`.
 - Se construye con orch: PRD → arquitectura → specs → `orch atomize` → `orch run`.
 - La documentación va en español.
-- El primer objetivo es agenda-barberia.
+- El primer objetivo es Showly (repo `agndaZAP`, `/mnt/storage/project/agndaZAP`). Después viene agenda-barberia.
 - El stack está en `docs/adr/0001-stack.md`.
 
 ## Pendiente
