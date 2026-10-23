@@ -1,7 +1,10 @@
 """Orquestador de una corrida: entorno → datos → personas → asignación → ejecuciones → detectores."""
 
+import asyncio
 import logging
 import secrets
+import time
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -20,18 +23,30 @@ from dogfood.dominio import (
     DatasetSintetico,
     Ejecucion,
     Escenario,
-    Idioma,
     Instancia,
-    Intencion,
     Persona,
 )
 from dogfood.llm import ContadorUso, cliente_para, completar_json
 from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
+from dogfood.objetivos.predicts import cuentas
+from dogfood.personas.generador import generar as generar_personas
 
 log = logging.getLogger("dogfood")
 
 FECHA_MAX = date(2026, 6, 30)
+ESPERA_MEMORIA_S = 300
+
+
+def memoria_disponible_gb() -> float:
+    for linea in Path("/proc/meminfo").read_text().splitlines():
+        if linea.startswith("MemAvailable:"):
+            return int(linea.split()[1]) / 1024**2
+    return float("inf")  # ponytail: sin MemAvailable (no Linux) no se frena
+
+
+class ErrorMemoria(Exception):
+    pass
 
 
 @dataclass
@@ -51,23 +66,13 @@ class Opciones:
     objetivo_obj: Objetivo | None = None
     llm: Any = None
     juez: Any = None
-
-
-def persona_por_defecto(semilla: int, i: int) -> Persona:
-    """Persona fija y válida. ponytail: F2.4.T1 la reemplaza por el generador."""
-    return Persona(
-        id=f"P{i + 1}",
-        nombre=f"Persona {i + 1}",
-        email=f"persona{i + 1}-{semilla}@dogfood.example.com",  # EmailStr de predicts rechaza .test
-        contrasena=f"Dogfood-{semilla}-{i + 1}!",
-        empresa=f"Empresa {i + 1}",
-        rubro="farmacia",
-        idioma=Idioma.pt_BR,
-        destreza=5,
-        paciencia=5,
-        intencion=Intencion.analisis_completo,
-        semilla=semilla + i,
-    )
+    concurrencia: int | None = None  # por defecto, la de la config
+    idiomas: dict[str, float] | None = None
+    # Inyectables de la espera de memoria y del registro (tests).
+    memoria_gb: Callable[[], float] = memoria_disponible_gb
+    reloj: Callable[[], float] = time.monotonic
+    dormir: Callable[[float], Awaitable[None]] = asyncio.sleep
+    confirmar: Callable[[Instancia, Persona], str | None] | None = None
 
 
 def _clave(e: Escenario) -> str:
@@ -116,7 +121,7 @@ async def correr(op: Opciones) -> Corrida:
             for ds in (_dataset(e, semilla, almacen, corrida.id) for e in todos if e.datos)
         }
 
-        personas = [persona_por_defecto(semilla, i) for i in range(op.personas)]
+        personas = generar_personas(op.personas, semilla, op.idiomas)
         almacen.guardar_personas(corrida.id, personas)
         pares = esc.asignar(personas, todos, semilla) * op.repeat
 
@@ -125,9 +130,27 @@ async def correr(op: Opciones) -> Corrida:
         async def juez(prompt, esquema):
             return await completar_json("juez", prompt, esquema, cfg, contador)
 
-        ejecuciones: list[Ejecucion] = []
-        for n, (persona, escenario) in enumerate(pares, 1):  # ponytail: serie hasta F2.4
+        confirmar = op.confirmar or (
+            cuentas.confirmar_registro if objetivo.nombre == "predicts" else None
+        )
+        sem = asyncio.Semaphore(op.concurrencia or cfg.concurrencia)
+        resultados: dict[int, Ejecucion] = {}
+
+        async def esperar_memoria() -> None:
+            desde = op.reloj()
+            while op.memoria_gb() < cfg.memoria_libre_min_gb:
+                if op.reloj() - desde >= ESPERA_MEMORIA_S:
+                    raise ErrorMemoria
+                await op.dormir(5)
+
+        async def una(n: int, persona: Persona, escenario: Escenario) -> None:
+            if op.tope_usd is not None and sum(u.costo_usd for u in contador.usos) >= op.tope_usd:
+                return
+            await esperar_memoria()
             ds = datasets[_clave(escenario)] if escenario.datos else None
+            extra = {}
+            if objetivo.nombre == "predicts" and escenario.id == "recuperar-contrasena":
+                extra["herramientas_extra"] = cuentas.herramientas_extra(instancia, persona)
             e = await navegador.ejecutar(
                 persona,
                 escenario,
@@ -138,12 +161,41 @@ async def correr(op: Opciones) -> Corrida:
                 op.juez or juez,
                 objetivo=objetivo,
                 contador=contador,
+                **extra,
             )
+            if escenario.carril == "login_fallido":
+                esperados = [r for r in e.red if r.estado == 429 and "/auth/login" in r.url]
+                if esperados:
+                    e.red = [r for r in e.red if r not in esperados]
+                    e.notas.append(f"429 esperado en /auth/login ({len(esperados)})")
+            if confirmar:
+                try:
+                    e.empresa_id = await asyncio.to_thread(confirmar, instancia, persona)
+                except Exception:
+                    log.exception("no pude confirmar el registro de %s", persona.id)
             almacen.guardar_ejecucion(corrida.id, e)
-            ejecuciones.append(e)
-            if op.tope_usd is not None and sum(u.costo_usd for u in contador.usos) >= op.tope_usd:
-                log.warning("tope de %s USD alcanzado; corto la corrida", op.tope_usd)
-                break
+            resultados[n] = e
+
+        async def con_cupo(*args) -> None:
+            async with sem:
+                await una(*args)
+
+        numeradas = [(n, p, e) for n, (p, e) in enumerate(pares, 1)]
+        normales = [t for t in numeradas if t[2].carril != "login_fallido"]
+        tareas = [asyncio.ensure_future(con_cupo(*t)) for t in normales]
+        try:
+            await asyncio.gather(*tareas)
+            for t in numeradas:  # al final y de a una: el rate limit del login es global
+                if t[2].carril == "login_fallido":
+                    await una(*t)
+        except BaseException:
+            for t in tareas:
+                t.cancel()
+            await asyncio.gather(*tareas, return_exceptions=True)
+            raise
+        ejecuciones = [resultados[n] for n in sorted(resultados)]
+        if op.tope_usd is not None and len(ejecuciones) < len(numeradas):
+            log.warning("tope de %s USD alcanzado; corto la corrida", op.tope_usd)
 
         logs = objetivo.logs(instancia, corrida.inicio)
         for servicio, texto in logs.items():
@@ -160,6 +212,10 @@ async def correr(op: Opciones) -> Corrida:
             logs=logs,
         )
         almacen.guardar_hallazgos(corrida.id, deteccion.ejecutar_detectores(ctx))
+    except ErrorMemoria:
+        log.error("memoria libre bajo el mínimo por %s s; aborto la corrida", ESPERA_MEMORIA_S)
+        corrida.parametros["motivo"] = "memoria"
+        estado = "error"
     except Exception:
         log.exception("la corrida %s falló", corrida.id)
         estado = "error"
