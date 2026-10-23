@@ -171,7 +171,7 @@ carril: normal            # normal | login_fallido
 ### Issue publicado
 - **Título:** `[dogfood][<gravedad>] <pantalla>: <titulo>`.
 - **Etiquetas:** `dogfood`, `dogfood:<tipo>`, `gravedad:<gravedad>`.
-- **Cuerpo:** pasos, esperado/obtenido, evidencia (capturas como enlaces a un release de assets del repo dogfood, o incrustadas en texto si son logs), comando de replay y un comentario oculto `<!-- dogfood:huella=<sha1> -->`.
+- **Cuerpo:** pasos, esperado/obtenido, evidencia **en texto** (extractos de log, eventos de red, el texto visible de la pantalla y las primeras filas del CSV que lo provoca), la ruta local de las capturas (`runs/<corrida>/…`), el comando de replay y un comentario oculto `<!-- dogfood:huella=<sha1> -->`. En la v1 no se suben imágenes: el repo dogfood es privado y `gh` no sube adjuntos. Ver D14.
 - **Deduplicación:** `gh issue list -R <repo> --label dogfood --state open --search "dogfood:huella=<sha1> in:body"`. Si hay coincidencia, se comenta la nueva ocurrencia.
 
 ### CLI
@@ -208,6 +208,7 @@ dogfood replay <hallazgo_id|ejecucion_id>
 - **D10 — Almacén en archivos más SQLite.** Elegido porque no agrega un servicio. Descartado: Postgres.
 - **D11 — Slack por incoming webhook.** Descartado: el gateway de Hermes, porque dogfood no debe depender de él.
 - **D12 — Costo de la instancia.** El costo propio de dogfood se mide exacto en `uso_llm`. El de predicts (Jev y 9router) se *estima* contando filas de `decisiones_jev` y plantillas generadas en su Postgres, y en el reporte se marca como estimado. Descartado: la API de uso de 9router, que no está documentada.
+- **D14 — Evidencia sin imágenes en la v1.** El issue lleva evidencia en texto, más la ruta local de las capturas y el replay. Descartados: un release de assets en el repo privado dogfood, que en un issue público no se ve; y una rama de evidencias en predicts, que lo ensucia. Pendiente para v2: un bucket o la API de uploads de GitHub.
 - **D13 — CI sin docker.** Los tests unitarios usan fakes del `Objetivo` y del LLM. Los de integración llevan la marca `integracion` y se excluyen por defecto (`addopts = -m "not integracion"`). Las tareas que los escriben los corren a mano en el server.
 
 ## Riesgos
