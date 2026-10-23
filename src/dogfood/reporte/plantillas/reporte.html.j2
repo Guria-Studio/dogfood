@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Reporte de opinión — {{ corrida.objetivo }}</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:60rem;margin:2rem auto;padding:0 1rem;line-height:1.5}
+table{border-collapse:collapse;margin:.5rem 0}td,th{border:1px solid #ccc;padding:.25rem .6rem;text-align:left}
+img{max-width:160px;border:1px solid #ccc;margin:.25rem}blockquote{margin:.2rem 1rem;color:#444}
+</style>
+</head>
+<body>
+<h1>Reporte de opinión de usuarios — {{ corrida.objetivo }} ({{ corrida.ref }})</h1>
+<p>Corrida <code>{{ corrida.id }}</code> · commit <code>{{ corrida.commit }}</code></p>
+
+<h2>1. Resumen</h2>
+{% if redaccion.resumen %}<p>{{ redaccion.resumen }}</p>{% endif %}
+<ul>
+<li>Personas: {{ n_personas }}</li>
+<li>Duración: {{ duracion_min }} min</li>
+<li>Costo de dogfood: US$ {{ costo_dogfood_usd }}</li>
+<li>Costo de predicts (<strong>estimado</strong>): US$ {{ costo_predicts_usd }} ({{ uso_ia.decisiones_jev }} decisiones de Jev, {{ uso_ia.plantillas }} plantillas generadas)</li>
+</ul>
+<table><tr><th>Escenario</th><th>Ejecuciones</th><th>Éxito</th></tr>
+{% for s in escenarios %}<tr><td>{{ s.id }}</td><td>{{ s.ejecuciones }}</td><td>{{ s.exito_pct }} %</td></tr>
+{% endfor %}</table>
+<p><strong>Hallazgos por gravedad:</strong> {% for k, v in por_gravedad.items() %}{{ k }}: {{ v }}{{ ", " if not loop.last }}{% else %}ninguno{% endfor %}</p>
+<p><strong>Hallazgos por tipo:</strong> {% for k, v in por_tipo.items() %}{{ k }}: {{ v }}{{ ", " if not loop.last }}{% else %}ninguno{% endfor %}</p>
+<ul>{% for h in hallazgos %}<li><a href="{{ h.issue }}">{{ h.titulo }}</a> ({{ h.gravedad }}, {{ h.tipo }})</li>{% endfor %}</ul>
+
+<h2>2. Por pantalla</h2>
+{% for p in pantallas %}
+<h3>{{ p.pantalla }}</h3>
+<p>{{ p.fricciones }} fricciones de {{ p.personas_con_friccion }} personas; {{ p.personas_exito }} personas la cruzaron en ejecuciones exitosas (lo que funcionó).</p>
+{% if redaccion.pantallas.get(p.pantalla) %}<p>{{ redaccion.pantallas[p.pantalla] }}</p>{% endif %}
+<ul>{% for g in p.grupos %}<li><strong>{{ g.categoria }}</strong> — {{ g.resumen }} ({{ g.personas }} personas)
+{% for c in g.citas %}<blockquote>«{{ c }}»</blockquote>{% endfor %}
+{% if g.captura %}<a href="{{ g.captura }}"><img src="{{ g.captura }}" alt="captura"></a>{% endif %}</li>
+{% endfor %}</ul>
+{% endfor %}
+
+<h2>3. Por tipo de usuario</h2>
+{% if redaccion.usuarios %}<p>{{ redaccion.usuarios }}</p>{% endif %}
+{% for titulo, filas in (("Destreza", por_destreza), ("Idioma", por_idioma), ("Rubro", por_rubro)) %}
+<h4>{{ titulo }}</h4>
+<table><tr><th>Grupo</th><th>Personas</th><th>Ejecuciones</th><th>Éxito</th><th>Fricciones</th></tr>
+{% for f in filas %}<tr><td>{{ f.grupo }}</td><td>{{ f.personas }}</td><td>{{ f.ejecuciones }}</td><td>{{ f.exito_pct }} %</td><td>{{ f.fricciones }}</td></tr>
+{% endfor %}</table>
+{% endfor %}
+
+<h2>4. Hallazgos sin publicar</h2>
+{% for titulo, lista in (("Solo reporte", solo_reporte), ("Bajo el umbral (" ~ umbral ~ ")", bajo_umbral), ("Bloqueados por redacción", bloqueados)) %}
+<h4>{{ titulo }}</h4>
+<ul>{% for h in lista %}<li>{{ h.titulo }} ({{ h.gravedad }}, {{ h.tipo }}, {{ h.pantalla }})
+{% for c in h.capturas %}<img src="{{ c }}" alt="captura">{% endfor %}</li>
+{% else %}<li>ninguno</li>{% endfor %}</ul>
+{% endfor %}
+</body>
+</html>

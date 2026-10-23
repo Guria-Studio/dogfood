@@ -1,0 +1,68 @@
+# Reporte de opinión de usuarios — {{ corrida.objetivo }} ({{ corrida.ref }})
+
+Corrida `{{ corrida.id }}` · commit `{{ corrida.commit }}`
+
+## 1. Resumen
+
+{% if redaccion.resumen %}{{ redaccion.resumen }}
+
+{% endif -%}
+- Personas: {{ n_personas }}
+- Duración: {{ duracion_min }} min
+- Costo de dogfood: US$ {{ costo_dogfood_usd }}
+- Costo de predicts (**estimado**): US$ {{ costo_predicts_usd }} ({{ uso_ia.decisiones_jev }} decisiones de Jev, {{ uso_ia.plantillas }} plantillas generadas)
+
+**Tasa de éxito por escenario**
+
+| Escenario | Ejecuciones | Éxito |
+|---|---|---|
+{% for s in escenarios -%}
+| {{ s.id }} | {{ s.ejecuciones }} | {{ s.exito_pct }} % |
+{% endfor %}
+**Hallazgos por gravedad:** {% for k, v in por_gravedad.items() %}{{ k }}: {{ v }}{{ ", " if not loop.last }}{% else %}ninguno{% endfor %}
+
+**Hallazgos por tipo:** {% for k, v in por_tipo.items() %}{{ k }}: {{ v }}{{ ", " if not loop.last }}{% else %}ninguno{% endfor %}
+
+{% for h in hallazgos -%}
+- [{{ h.titulo }}]({{ h.issue }}) ({{ h.gravedad }}, {{ h.tipo }})
+{% endfor %}
+## 2. Por pantalla
+
+{% for p in pantallas -%}
+### {{ p.pantalla }}
+
+{{ p.fricciones }} fricciones de {{ p.personas_con_friccion }} personas; {{ p.personas_exito }} personas la cruzaron en ejecuciones exitosas (lo que funcionó).
+{% if redaccion.pantallas.get(p.pantalla) %}
+{{ redaccion.pantallas[p.pantalla] }}
+{% endif %}
+{% for g in p.grupos -%}
+- **{{ g.categoria }}** — {{ g.resumen }} ({{ g.personas }} personas){% for c in g.citas %}
+  - «{{ c }}»{% endfor %}{% if g.captura %}
+  - ![captura]({{ g.captura }}){% endif %}
+{% endfor %}
+{% endfor %}
+## 3. Por tipo de usuario
+
+{% if redaccion.usuarios %}{{ redaccion.usuarios }}
+
+{% endif -%}
+{% for titulo, filas in (("Destreza", por_destreza), ("Idioma", por_idioma), ("Rubro", por_rubro)) -%}
+**{{ titulo }}**
+
+| Grupo | Personas | Ejecuciones | Éxito | Fricciones |
+|---|---|---|---|---|
+{% for f in filas -%}
+| {{ f.grupo }} | {{ f.personas }} | {{ f.ejecuciones }} | {{ f.exito_pct }} % | {{ f.fricciones }} |
+{% endfor %}
+{% endfor -%}
+## 4. Hallazgos sin publicar
+
+{% for titulo, lista in (("Solo reporte", solo_reporte), ("Bajo el umbral (" ~ umbral ~ ")", bajo_umbral), ("Bloqueados por redacción", bloqueados)) -%}
+**{{ titulo }}**
+
+{% for h in lista -%}
+- {{ h.titulo }} ({{ h.gravedad }}, {{ h.tipo }}, {{ h.pantalla }})
+{% else -%}
+- ninguno
+{% endfor %}
+{% endfor -%}
