@@ -3,6 +3,7 @@
 import logging
 import os
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from dotenv import dotenv_values
@@ -33,6 +34,7 @@ class Tolerancias(BaseModel):
 class Config(BaseModel):
     roles: dict[str, list[str]]
     precios_usd_por_millon: dict[str, Precio] = Field(default_factory=dict)
+    asignacion_modelos: Literal["rotar", "primero"] = "primero"
     concurrencia: int = 5
     tope_usd: float | None = None
     umbral_publicar: str = "media"

@@ -27,7 +27,7 @@ from dogfood.dominio import (
     Instancia,
     Persona,
 )
-from dogfood.llm import ContadorUso, cliente_para, completar_json
+from dogfood.llm import ContadorUso, cliente_para, completar_json, indice_modelo
 from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
@@ -128,7 +128,8 @@ async def correr(op: Opciones) -> Corrida:
         almacen.guardar_personas(corrida.id, personas)
         pares = esc.asignar(personas, todos, semilla) * op.repeat
 
-        llm = op.llm or cliente_para("persona", cfg=cfg)
+        def llm_de(n: int):
+            return op.llm or cliente_para("persona", indice_modelo("persona", n, semilla, cfg), cfg)
 
         async def juez(prompt, esquema):
             return await completar_json("juez", prompt, esquema, cfg, contador)
@@ -161,7 +162,7 @@ async def correr(op: Opciones) -> Corrida:
                 instancia,
                 ds,
                 almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}"),
-                llm,
+                llm_de(n),
                 op.juez or juez,
                 objetivo=objetivo,
                 contador=contador,
@@ -254,6 +255,7 @@ async def correr(op: Opciones) -> Corrida:
                 cfg=cfg,
                 costo_dogfood_usd=costo,
                 uso_ia=uso_ia,
+                usos=contador.usos,
                 issues={r.huella: r.issue_url for r in publicados if r.issue_url},
                 bloqueados={r.huella for r in publicados if r.accion == "bloqueado_por_redaccion"},
             )
