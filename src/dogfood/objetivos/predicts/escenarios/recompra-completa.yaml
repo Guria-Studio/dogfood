@@ -1,0 +1,13 @@
+id: recompra-completa
+titulo: Análisis de recompra completo
+superficies: [registro, subir, mapeo, calidad, analisis, resultados, exportar]
+persona_compatible: {intencion: [analisis_completo, explorar], destreza_min: 1}
+datos: {perfil: farmacia, clientes: 300, defectos: []}
+objetivo: >
+  Crea una cuenta con "Crear cuenta", sube el CSV de ventas en "Subir dataset",
+  revisa el mapeo y pulsa "Confirmar e iniciar ingesta". Cuando termine la ingesta
+  elige "Recordatorios de recompra", pulsa "Lanzar análisis" y, en los resultados,
+  pulsa "Exportar CSV" en la pestaña "Recordatorios".
+criterio_exito: Se descargó un CSV de recordatorios con al menos una fila.
+max_pasos: 60
+carril: normal

@@ -1,0 +1,14 @@
+id: agente-analista
+titulo: Preguntarle tres cosas al agente analista
+superficies: [registro, subir, mapeo, calidad, agente]
+persona_compatible: {intencion: [explorar, analisis_completo], destreza_min: 2}
+datos: {perfil: farmacia, clientes: 300, defectos: []}
+objetivo: >
+  Crea una cuenta, sube el CSV y confirma el mapeo. Cuando el dataset esté listo abre
+  "Preguntarle al agente" y haz tres preguntas sobre tus datos, escribiéndolas en "Tu
+  pregunta" (puedes partir de las "Preguntas sugeridas") y pulsando "Preguntar".
+criterio_exito: >
+  La pantalla del agente muestra tres respuestas, cada una con "Cómo lo calculé",
+  y ningún mensaje de error.
+max_pasos: 70
+carril: normal

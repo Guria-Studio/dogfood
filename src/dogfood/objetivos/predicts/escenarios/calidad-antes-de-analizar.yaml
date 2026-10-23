@@ -1,0 +1,14 @@
+id: calidad-antes-de-analizar
+titulo: Revisar la calidad antes de analizar
+superficies: [registro, subir, mapeo, calidad, analisis]
+persona_compatible: {intencion: [analisis_completo, explorar], destreza_min: 2}
+datos: {perfil: farmacia, clientes: 250, defectos: []}
+objetivo: >
+  Crea una cuenta, sube el CSV y confirma el mapeo. En "Calidad del dataset" lee el
+  "Informe de calidad" (filas, clientes, duplicados exactos y "Qué puedes analizar")
+  y revisa "Productos a revisar" antes de pulsar "Continuar a análisis".
+criterio_exito: >
+  Se vio el "Informe de calidad" con sus tarjetas y se llegó a "Elegir análisis"
+  mediante "Continuar a análisis".
+max_pasos: 60
+carril: normal

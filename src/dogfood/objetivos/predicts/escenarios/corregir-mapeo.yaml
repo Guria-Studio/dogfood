@@ -1,0 +1,14 @@
+id: corregir-mapeo
+titulo: Corregir el mapeo sugerido
+superficies: [registro, subir, mapeo, calidad]
+persona_compatible: {intencion: [analisis_completo, confundirse], destreza_min: 2}
+datos: {perfil: farmacia, clientes: 200, defectos: []}
+objetivo: >
+  Crea una cuenta y sube el CSV. En "Mapear columnas" cambia al menos un "Campo interno"
+  sugerido por otro que tenga más sentido para esa columna (por ejemplo una columna
+  marcada "Revisar"), y pulsa "Confirmar e iniciar ingesta".
+criterio_exito: >
+  Se confirmó el mapeo con al menos una columna distinta de la sugerida y se llega a
+  "Calidad del dataset" sin error de mapeo.
+max_pasos: 60
+carril: normal

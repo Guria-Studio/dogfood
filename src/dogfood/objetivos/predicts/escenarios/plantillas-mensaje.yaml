@@ -1,0 +1,13 @@
+id: plantillas-mensaje
+titulo: Editar una plantilla de mensaje
+superficies: [resultados, mensajes]
+persona_compatible: {intencion: [analisis_completo], destreza_min: 3}
+datos: {perfil: farmacia, clientes: 300, defectos: []}
+objetivo: >
+  Con un análisis ya terminado, abre la pestaña "Mensajes" de los resultados, pulsa
+  "Editar" en una plantilla, cambia el texto y pulsa "Guardar".
+criterio_exito: >
+  La plantilla editada muestra en pantalla el texto nuevo tras "Guardar" y sigue
+  mostrándolo al recargar la pestaña "Mensajes".
+max_pasos: 70
+carril: normal
