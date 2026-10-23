@@ -1,0 +1,14 @@
+id: explorar-universo
+titulo: Mirar el universo de clientes y volver
+superficies: [resultados, universo]
+persona_compatible: {intencion: [explorar, confundirse], destreza_min: 1}
+datos: {perfil: farmacia, clientes: 300, defectos: []}
+objetivo: >
+  Con un análisis ya terminado, abre "Ver universo de clientes", mira los puntos,
+  prueba "Filtrar por estado", abre el historial de un cliente con "Cerrar" al final,
+  y vuelve a los resultados. No cambies nada.
+criterio_exito: >
+  Se vio "Universo de clientes" con puntos, se abrió un "Historial de" cliente y se
+  volvió a la pantalla de resultados sin error.
+max_pasos: 30
+carril: normal

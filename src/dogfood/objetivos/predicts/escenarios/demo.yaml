@@ -1,0 +1,12 @@
+id: demo
+titulo: Probar con datos de ejemplo
+superficies: [inicio, demo, analisis, resultados]
+persona_compatible: {intencion: [explorar, confundirse, analisis_completo], destreza_min: 1}
+objetivo: >
+  Crea una cuenta y, en vez de subir un archivo propio, pulsa "Probar con datos de
+  ejemplo". Espera a que termine "Preparando la demo" y mira los resultados del análisis.
+criterio_exito: >
+  Se ven los resultados del análisis de demostración, con la pestaña "Recordatorios"
+  mostrando filas.
+max_pasos: 40
+carril: normal

@@ -1,0 +1,12 @@
+id: recuperar-contrasena
+titulo: Recuperar la contraseña
+superficies: [login, recuperar]
+persona_compatible: {intencion: [confundirse, explorar], destreza_min: 1}
+objetivo: >
+  Estás en "Iniciar sesión" y no recuerdas tu contraseña. Pulsa "¿Olvidaste tu
+  contraseña?", escribe tu correo en "Recuperar contraseña" y pulsa "Enviar instrucciones".
+criterio_exito: >
+  Se ve el texto "Si el correo existe, te enviamos instrucciones para restablecer tu
+  contraseña." y hay un enlace "Volver a iniciar sesión".
+max_pasos: 15
+carril: normal

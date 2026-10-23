@@ -1,0 +1,14 @@
+id: ofertas-con-lista
+titulo: Ofertas con lista de ofertas propia
+superficies: [registro, subir, mapeo, calidad, analisis, resultados, exportar]
+persona_compatible: {intencion: [analisis_completo], destreza_min: 3}
+datos: {perfil: farmacia, clientes: 300, defectos: []}
+objetivo: >
+  Crea una cuenta, sube el CSV de ventas y confirma el mapeo. En "Elegir análisis"
+  marca "Ofertas", sube también un CSV con columnas producto_id,descuento en "Lista de
+  ofertas (opcional)", pulsa "Lanzar análisis" y exporta el CSV de la pestaña "Ofertas".
+criterio_exito: >
+  Aparece el aviso "productos cargados" tras subir la lista y se descargó un CSV de
+  ofertas con al menos una fila.
+max_pasos: 70
+carril: normal

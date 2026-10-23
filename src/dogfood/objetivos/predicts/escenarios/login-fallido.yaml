@@ -1,0 +1,14 @@
+id: login-fallido
+titulo: Contraseña incorrecta tres veces y después acceso
+superficies: [login, inicio]
+persona_compatible: {intencion: [confundirse, romper, explorar], destreza_min: 1}
+objetivo: >
+  Con una cuenta ya creada, en "Iniciar sesión" escribe tu correo con una contraseña
+  equivocada y pulsa "Iniciar sesión"; repítelo tres veces en total. Después escribe la
+  contraseña correcta y entra.
+criterio_exito: >
+  Cada intento fallido muestra "El correo o la contraseña son incorrectos." (o el aviso
+  de "Demasiados intentos") y el intento con la contraseña correcta llega a "Hola,"
+  en el inicio.
+max_pasos: 25
+carril: login_fallido
