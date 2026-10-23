@@ -31,7 +31,7 @@ def test_run_help() -> None:
 
 
 def test_stub_sale_con_2() -> None:
-    r = runner.invoke(app, ["runs"])
+    r = runner.invoke(app, ["replay", "x"])
     assert r.exit_code == 2 and "no implementado todavía" in r.output
 
 
