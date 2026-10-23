@@ -1,9 +1,21 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
+      "Edit",
+      "Write",
+      "Read",
+      "Glob",
+      "Grep",
+      "WebFetch",
       "mcp__orch",
       "Bash(scripts/task-finish.sh:*)",
       "Bash(scripts/task-block.sh:*)"
+    ],
+    "additionalDirectories": [
+      "/mnt/storage/project/predicts",
+      "/home/knaimero/.cache/dogfood",
+      "/home/knaimero/.config/dogfood"
     ]
   }
 }
