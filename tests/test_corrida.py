@@ -160,3 +160,15 @@ def test_misma_semilla_misma_asignacion(tmp_path, fake):
         ).fetchall()
 
     assert asignacion("uno") == asignacion("dos")
+
+
+@pytest.fixture(autouse=True)
+def _sin_cierre(monkeypatch):
+    # El cierre (docker, gh, Slack, LLM) tiene sus tests en test_corrida_cierre.py.
+    async def generar(*a, destino, **k):
+        return destino / "reporte.md", destino / "reporte.html"
+
+    monkeypatch.setattr("dogfood.corrida.opinion.contar_uso_ia", lambda i: None)
+    monkeypatch.setattr("dogfood.corrida.issues.publicar", lambda *a, **k: [])
+    monkeypatch.setattr("dogfood.corrida.opinion.generar", generar)
+    monkeypatch.setattr("dogfood.corrida.slack.avisar", lambda *a, **k: True)
