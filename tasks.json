@@ -1,0 +1,17 @@
+{
+  "meta": {
+    "default_cheap_model": "claude/claude-haiku-5-5",
+    "default_premium_model": "claude/claude-opus-5-5",
+    "default_standard_model": "claude/claude-sonnet-5-5",
+    "project": "dogfood",
+    "generatedAt": "2026-10-23",
+    "note": "Tasks are generated from specs/ with `orch atomize --apply`."
+  },
+  "phases": [
+    {
+      "id": 0,
+      "name": "F0 — Base"
+    }
+  ],
+  "tasks": []
+}
