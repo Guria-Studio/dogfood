@@ -10,8 +10,683 @@
   "phases": [
     {
       "id": 0,
-      "name": "F0 — Base"
+      "name": "F0 — Base y contratos"
+    },
+    {
+      "id": 1,
+      "name": "F1 — Una persona de punta a punta (M1)"
+    },
+    {
+      "id": 2,
+      "name": "F2 — Población y datos del mundo real (M2)"
+    },
+    {
+      "id": 3,
+      "name": "F3 — Detección (M3)"
+    },
+    {
+      "id": 4,
+      "name": "F4 — Issues y reporte (M4)"
+    },
+    {
+      "id": 5,
+      "name": "F5 — Modelos y consistencia (M5)"
     }
   ],
-  "tasks": []
+  "tasks": [
+    {
+      "id": "F0.1.T1",
+      "phase": 0,
+      "title": "Dependencias, layout y CI",
+      "description": "Deja el proyecto listo para que ninguna tarea posterior tenga que tocar `pyproject.toml` ni `uv.lock`. Varias tareas agregando dependencias en paralelo chocan en el lockfile, así que aquí se agregan **todas** las del MVP de una vez.\n\nDependencias de ejecución (con `uv add`): `pydantic>=2`, `typer`, `pyyaml`, `httpx`, `browser-use` (la misma línea 0.13 que está instalada como herramienta en el server), `playwright`, `jinja2`, `numpy`, `python-dotenv`. Dependencias de desarrollo: `pytest`, `pytest-asyncio`, `ruff` y `respx`.\n\nEn `pyproject.toml`:\n- el script de consola `dogfood = \"dogfood.cli:main\"`;\n- en `[tool.pytest.ini_options]`, el marcador `integracion` («necesita docker, predicts y credenciales reales»), `addopts = \"-m 'not integracion'\"` y `asyncio_mode = \"auto\"`;\n- en `[tool.ruff]`, `line-length = 100` y `target-version = \"py313\"`.\n\nCrea `dogfood.example.yaml`, la configuración de ejemplo descrita en la sección *Componentes → Núcleo* de la arquitectura:\n- `roles`: `persona`, `juez`, `dedupe`, `redactor`, cada uno con una lista de modelos de 9router. Usa ids reales, por ejemplo `ag/gemini-3.8-flash` para `persona` y `ag/claude-sonnet-5-5-medium` para `juez` y `redactor`;\n- `precios_usd_por_millon` por modelo;\n- `concurrencia: 5`, `tope_usd: null`, `umbral_publicar: media`;\n- `repo_issues: hectorcanaimero/predicts`;\n- `tolerancias` del oráculo, con los valores de la decisión D4;\n- `memoria_libre_min_gb: 2`.\n\nAgrega `runs/` y `dogfood.yaml` a `.gitignore` (lo local no se commitea). En `.github/workflows/orch-ci.yml` mantén `runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}` y los pasos de ruff y pytest que ya existen. No crees código de dominio aquí.\n\nDone when: `uv sync --frozen`, `uv run ruff check .`, `uv run ruff format --check .` y `uv run pytest` pasan, y `tests/test_layout.py` comprueba:\n- que `import browser_use, playwright, typer, jinja2, numpy` funciona;\n- que `dogfood.example.yaml` se parsea y tiene los cuatro roles;\n- que el marcador `integracion` está registrado.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Setup mecánico, pero hay que elegir versiones compatibles y no se puede equivocar.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 2.0,
+      "files": [
+        "pyproject.toml",
+        "uv.lock",
+        ".gitignore",
+        ".github/workflows/orch-ci.yml",
+        "dogfood.example.yaml",
+        "tests/test_layout.py"
+      ],
+      "specRef": "f0-base.md#F0.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T2",
+      "phase": 0,
+      "title": "Modelos de dominio",
+      "description": "Implementa `src/dogfood/dominio.py` exactamente como lo fija la arquitectura (secciones *Componentes → Núcleo*, *Modelo de datos* e *Interfaces*). Son modelos Pydantic v2, sin lógica de negocio. Este archivo es el contrato que usan todas las fases; piensa los nombres y los tipos con cuidado, porque después no se cambian.\n\nModelos y enums:\n- `Idioma` (`pt-BR`, `es`), `Intencion` (`analisis_completo`, `explorar`, `solo_exportar`, `confundirse`, `romper`), `Gravedad` (`critica`, `alta`, `media`, `baja`, ordenable) y `TipoHallazgo` (`tecnico`, `logica`, `aislamiento`, `regla`, `friccion`);\n- `Persona`: id, nombre, email, contrasena, empresa, rubro, idioma, destreza (1–5), paciencia (1–5), intencion, estilo (lista de rasgos) y semilla;\n- `Escenario`: los campos del YAML de *Interfaces → Escenario YAML*, con `carril` en `normal` o `login_fallido`;\n- `DatasetSintetico`: id, perfil, ruta_csv, ruta_verdad, defectos, n_clientes, n_filas y semilla;\n- `Paso`: n, url, pantalla, accion, captura, texto_visible (el texto del DOM recortado a 4.000 caracteres) y ts;\n- `EventoRed`: metodo, url, estado y ms;\n- `EventoConsola`: nivel, texto, url;\n- `Friccion`: texto, severidad, pantalla, captura y cita;\n- `Ejecucion`: id, persona_id, escenario_id, dataset_id (opcional), modelo, estado (`ok`, `fallo`, `rendido`, `error`), pasos, red, consola, fricciones, descargas, exito, motivo_juez, duracion_s, ruta_historial, empresa_id (opcional, lo llena la corrida) y notas (lista de textos, por ejemplo «429 esperado»);\n- `Evidencia`: tipo (`captura`, `log`, `red`, `csv`, `texto`), ruta y extracto;\n- `Hallazgo`: los campos de *Interfaces → Hallazgo*, más `solo_reporte: bool = False` (va al reporte de opinión, pero no se publica como issue) y `ocurrencias: int = 1`, con un método `calcular_huella(firma: str) -> str` (sha1 de `tipo|pantalla|firma`);\n- `UsoLlm`: rol, modelo, tokens_in, tokens_out, costo_usd y ejecucion_id;\n- `Corrida`: id, objetivo, ref, commit, semilla, inicio, fin, estado y parametros;\n- `Instancia`: base_url, api_url, proyecto_compose, commit y parametros;\n- `ContextoDeteccion`: un dataclass con los campos de *Interfaces*; `cliente_api` es un `Callable`.\n\nDone when: estos tests pasan en `tests/test_dominio.py`:\n- una `Persona` con destreza 6 se rechaza;\n- `Gravedad.alta > Gravedad.media`;\n- un `Escenario` cargado desde el YAML de ejemplo de la arquitectura valida;\n- `Hallazgo.calcular_huella` es estable: misma entrada, misma huella; distinto tipo, distinta huella;\n- todos los modelos van y vuelven por JSON sin pérdida.",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Contrato central del que dependen todas las tareas; un error aquí se propaga.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/dominio.py",
+        "tests/test_dominio.py"
+      ],
+      "specRef": "f0-base.md#F0.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T3",
+      "phase": 0,
+      "title": "Almacén de corridas",
+      "description": "Implementa `src/dogfood/almacen.py` según *Modelo de datos* de la arquitectura:\n- la carpeta por corrida `runs/<corrida_id>/`, con su estructura completa de subcarpetas y los helpers para rutas;\n- el índice SQLite `runs/dogfood.db`, con **todas** las tablas del MVP (`corridas`, `personas`, `ejecuciones`, `hallazgos`, `uso_llm`), creado en una sola migración, versionado con `PRAGMA user_version = 1`.\n\nAPI sugerida: `Almacen(raiz: Path)` con `nueva_corrida(corrida)`, `guardar_personas`, `guardar_ejecucion`, `guardar_hallazgos`, `registrar_uso(UsoLlm, corrida_id)`, `cerrar_corrida(id, estado, costo)`, `listar_corridas() -> list[ResumenCorrida]` (con costo total y n_hallazgos) y `hallazgo(id)` / `ejecucion(id)` para el replay. Las fases siguientes **no** cambian el esquema.\n\nDone when: estos tests pasan en `tests/test_almacen.py`, usando `tmp_path`:\n- crear una corrida crea la carpeta con sus subcarpetas y una fila;\n- guardar dos ejecuciones y tres hallazgos se refleja en `listar_corridas` con n_hallazgos=3;\n- `registrar_uso` suma el costo en el resumen;\n- abrir un almacén existente no recrea las tablas ni pierde datos;\n- `user_version` es 1.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Persistencia simple pero central; standard alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T2"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/almacen.py",
+        "tests/test_almacen.py"
+      ],
+      "specRef": "f0-base.md#F0.1.T3",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T4",
+      "phase": 0,
+      "title": "Configuración y LLM por rol",
+      "description": "Implementa `src/dogfood/config.py` y `src/dogfood/llm.py` (arquitectura: *Componentes → Núcleo* e *Interfaces → Secretos*).\n\n`config.py`:\n- carga `dogfood.yaml`; si no existe, usa `dogfood.example.yaml` y avisa;\n- carga los `.env` de `~/.config/dogfood/` (la ruta se puede cambiar con `DOGFOOD_CONFIG_DIR`, para los tests);\n- expone un objeto `Config` tipado;\n- `Config.secreto(nombre)` falla con un mensaje que nombra el archivo y la variable que faltan, **sin imprimir nunca un valor**;\n- `repr(Config)` y los logs muestran los secretos como `***`.\n\n`llm.py`:\n- `cliente_para(rol: str, indice: int = 0)` devuelve un chat model de browser-use (`browser_use.llm.ChatOpenAI` con `base_url` de 9router) para el rol `persona`, y un cliente para `juez`, `dedupe` y `redactor`;\n- un `ContadorUso` que, a partir de la respuesta (usage), crea `UsoLlm` con el costo de la tabla de precios. Un modelo sin precio registra costo 0 y avisa una sola vez;\n- `completar_json(rol, prompt, esquema: type[BaseModel])` para el juez y el redactor, con salida estructurada `json_schema` (gotcha de 9router: no usar `tool_choice` forzado; ver `/mnt/storage/project/agndaZAP/docs/notas/2026-09-23-9router-gotchas.md`).\n\nDone when: estos tests pasan en `tests/test_config_llm.py`, con `respx` en lugar de la red:\n- un secreto faltante da un error que nombra el archivo, sin valores;\n- `repr` no contiene la API key;\n- `cliente_para(\"persona\")` usa el primer modelo del rol;\n- `ContadorUso` calcula el costo con la tabla;\n- `completar_json` envía `response_format` con `json_schema` y parsea la respuesta.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Integración conocida (OpenAI compatible) con un cuidado puntual con los secretos.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T2"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/config.py",
+        "src/dogfood/llm.py",
+        "tests/test_config_llm.py"
+      ],
+      "specRef": "f0-base.md#F0.1.T4",
+      "comments": []
+    },
+    {
+      "id": "F0.1.T5",
+      "phase": 0,
+      "title": "CLI y registros",
+      "description": "Crea los registros de *Interfaces → Registros* de la arquitectura, para que las tareas paralelas no editen archivos centrales.\n\n1. `src/dogfood/cli.py`: una app Typer con `main()`, que monta `comandos.env`, `comandos.datos`, `comandos.personas`, `comandos.run`, `comandos.runs` y `comandos.replay`. Cada comando es un archivo `src/dogfood/comandos/<x>.py` que expone `app: typer.Typer`. Créalos todos como **stubs** que imprimen «no implementado todavía» y salen con código 2, con los argumentos de *Interfaces → CLI* ya declarados.\n2. `src/dogfood/objetivos/base.py`: el protocolo `Objetivo` exactamente como en la arquitectura. `src/dogfood/objetivos/__init__.py`: `OBJETIVOS = {\"predicts\": \"dogfood.objetivos.predicts:PredictsObjetivo\"}` y `cargar_objetivo(nombre)`, que importa perezosamente y da un error claro si el objetivo no existe. **No** crees `objetivos/predicts/`, que es de F1.1.T1.\n3. `src/dogfood/deteccion/__init__.py`: `DETECTORES` y `ejecutar_detectores(ctx) -> list[Hallazgo]`. Si un detector lanza una excepción, la convierte en un hallazgo `tecnico` de gravedad `baja` con el título «detector X falló» y sigue con los demás. Crea `deteccion/tecnicos.py`, `deteccion/friccion.py` y `deteccion/objetivo.py` como stubs con `def detectar(ctx) -> list[Hallazgo]: return []`.\n4. Borra la función `main` de `src/dogfood/__init__.py` (queda solo `__version__`) y actualiza `tests/test_smoke.py` si hace falta.\n\nDone when: estos tests pasan en `tests/test_cli_registros.py`:\n- `dogfood --help` lista los seis comandos;\n- `dogfood run --help` muestra `--seed` y `--concurrencia`;\n- `cargar_objetivo(\"x\")` da un error que lista los objetivos válidos;\n- `ejecutar_detectores` con un detector que lanza una excepción devuelve un hallazgo de baja gravedad y los hallazgos de los demás.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Andamiaje con contratos claros.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T2"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "src/dogfood/__init__.py",
+        "src/dogfood/cli.py",
+        "src/dogfood/comandos/__init__.py",
+        "src/dogfood/comandos/env.py",
+        "src/dogfood/comandos/datos.py",
+        "src/dogfood/comandos/personas.py",
+        "src/dogfood/comandos/run.py",
+        "src/dogfood/comandos/runs.py",
+        "src/dogfood/comandos/replay.py",
+        "src/dogfood/objetivos/__init__.py",
+        "src/dogfood/objetivos/base.py",
+        "src/dogfood/deteccion/__init__.py",
+        "src/dogfood/deteccion/tecnicos.py",
+        "src/dogfood/deteccion/friccion.py",
+        "src/dogfood/deteccion/objetivo.py",
+        "tests/test_cli_registros.py",
+        "tests/test_smoke.py"
+      ],
+      "specRef": "f0-base.md#F0.1.T5",
+      "comments": []
+    },
+    {
+      "id": "F0.2.T1",
+      "phase": 0,
+      "title": "Prerrequisitos del operador",
+      "description": "Escribe `docs/ops/prerequisitos.md` (en español) con todo lo que Héctor tiene que tener en el server antes de una corrida real:\n- `~/.config/dogfood/router.env` (`ROUTER_BASE_URL`, `ROUTER_API_KEY`);\n- `~/.config/dogfood/predicts.env` (`ROUTER_*`, `ROUTER_MODEL`, `TYPESAFE_API_KEY`, `TYPESAFE_MODEL`), que se puede copiar de `/mnt/storage/project/predicts/deploy/.env`;\n- `~/.config/dogfood/slack.env` (`SLACK_WEBHOOK_URL`, y cómo crear un incoming webhook);\n- `gh auth status` con permiso para crear issues en `hectorcanaimero/predicts`;\n- docker con compose v2;\n- los Chromium de Playwright (`uv run playwright install chromium`);\n- `dogfood.yaml` copiado desde `dogfood.example.yaml`;\n- puertos libres: 18080, 18100 y 54330.\n\nPara cada punto, qué fase lo necesita y cómo verificarlo con un comando. No pongas valores de secretos. Sin tests: es documentación.\n\nDone when: el archivo existe, cubre cada punto de arriba con su comando de verificación, y `uv run pytest` sigue pasando.",
+      "model": "claude/claude-haiku-5-5",
+      "reason": "Documentación mecánica.",
+      "status": "backlog",
+      "dependencies": [],
+      "estimateHours": 1.0,
+      "files": [
+        "docs/ops/prerequisitos.md"
+      ],
+      "specRef": "f0-base.md#F0.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.1.T1",
+      "phase": 1,
+      "title": "Instancia aislada de predicts",
+      "description": "Crea el paquete `src/dogfood/objetivos/predicts/` e implementa el entorno (arquitectura: decisión D3, *Interfaces → Protocolo Objetivo*, FR-1 a FR-4).\n\n1. `__init__.py`: `PredictsObjetivo`, que implementa el protocolo de `objetivos/base.py`. `escenarios()` lee los YAML de `objetivos/predicts/escenarios/` con `dogfood.escenarios.cargar` si ese módulo existe, y si no devuelve `[]` (lo trae F1.3.T1). `verificadores()` devuelve `[oraculo.verificar, aislamiento.verificar, reglas.verificar]`.\n2. Crea como **stubs** los módulos que llenan tareas posteriores; cada uno con su firma y un `return []` o un `NotImplementedError` documentado:\n   - `cliente.py`: `PredictsCliente`;\n   - `cuentas.py`;\n   - `oraculo.py`, `aislamiento.py` y `reglas.py`, con `def verificar(ctx) -> list[Hallazgo]`;\n   - `escenarios/.gitkeep`.\n3. `entorno.py`:\n   - `preparar(ref, corrida)` crea o actualiza un `git worktree` de `/mnt/storage/project/predicts` (la ruta se puede cambiar en `dogfood.yaml`) en `~/.cache/dogfood/predicts/<ref>`, en el commit de `ref`;\n   - escribe un `docker-compose.override.yml` propio en la carpeta de la corrida, con web en 18080, api en 18100, postgres en 54330, `CORS_ORIGENES=http://localhost:18080` y `ENTORNO=dev`;\n   - pasa las variables de `~/.config/dogfood/predicts.env` por `--env-file`;\n   - corre `docker compose -p dogfood-predicts -f <worktree>/deploy/docker-compose.yml -f <override> up -d --build --wait`;\n   - espera a que `GET http://localhost:18080/api/salud` responda 200 (timeout configurable, 10 minutos por defecto);\n   - devuelve una `Instancia` con el commit y los parámetros efectivos (`MIN_COMPRAS`, `HORIZONTE_DIAS`, `VENTANA_VALIDACION_SEMANAS`, `CONFIANZA_MAPEO` y `CONFIANZA_JEV`, leídos del compose y del env).\n   - `destruir()` hace `down -v --remove-orphans` sobre ese proyecto.\n   - `logs(instancia, desde)` devuelve el texto de `docker compose logs --since` de `api` y `worker`.\n   - **Nunca** toques el proyecto de compose `predicts` ni el puerto 8080.\n4. `url_permitida(url, instancia)` acepta solo URLs con el origen exacto de `base_url` o de `api_url`.\n5. `pantallas.py`: `pantalla(url)` mapea las rutas del panel (`web/src/routes/`: `login`, `registro`, `recuperar`, `restablecer`, `inicio`, `proyectos`, `datasets/...`, `analisis/...`, `demo`) a nombres estables (`registro`, `subir`, `mapeo`, `calidad`, `analisis`, `resultados`, `universo`, `agente`, `mensajes`, `productos`, `exportar`, `demo`). Lee los archivos de rutas de predicts para no inventar ninguna; una URL desconocida da `otra`.\n6. `comandos/env.py`: implementa `dogfood env up|down --target predicts [--ref main]` con el objetivo del registro, e imprime las URLs.\n\nSi `~/.config/dogfood/predicts.env` no existe, `preparar` falla con el mensaje de `docs/ops/prerequisitos.md` y nombra el archivo.\n\nDone when: estos tests pasan.\n- En `tests/test_predicts_entorno.py` (unitarios, con `subprocess` falseado):\n  - el comando de compose usa `-p dogfood-predicts` y nunca `-p predicts`;\n  - el override tiene los puertos 18080, 18100 y 54330;\n  - `url_permitida` rechaza `http://localhost:8080/` y acepta `http://localhost:18080/api/x`;\n  - sin `predicts.env`, el error nombra el archivo;\n  - `pantalla(\"/datasets/abc/mapeo\")` da `mapeo`.\n- En `tests/integracion/test_predicts_entorno.py` (marcado `integracion`): `env up` y luego `/api/salud` dan 200, y `env down` no deja contenedores del proyecto. Córrelo a mano en el server antes de terminar. Si falta `~/.config/dogfood/predicts.env`, bloquea la tarea con `scripts/task-block.sh` explicando qué falta.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Orquestación de docker y git con cuidado de no tocar la instancia del dueño.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T4",
+        "F0.1.T5"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/__init__.py",
+        "src/dogfood/objetivos/predicts/entorno.py",
+        "src/dogfood/objetivos/predicts/pantallas.py",
+        "src/dogfood/objetivos/predicts/cliente.py",
+        "src/dogfood/objetivos/predicts/cuentas.py",
+        "src/dogfood/objetivos/predicts/oraculo.py",
+        "src/dogfood/objetivos/predicts/aislamiento.py",
+        "src/dogfood/objetivos/predicts/reglas.py",
+        "src/dogfood/objetivos/predicts/escenarios/.gitkeep",
+        "src/dogfood/comandos/env.py",
+        "tests/test_predicts_entorno.py",
+        "tests/integracion/test_predicts_entorno.py"
+      ],
+      "specRef": "f1-una-persona.md#F1.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.2.T1",
+      "phase": 1,
+      "title": "Generador de ventas sintéticas con verdad conocida",
+      "description": "Implementa `src/dogfood/datos/generador.py` y `src/dogfood/datos/perfiles.py` (arquitectura: *Componentes → Datos sintéticos*, *Modelo de datos → verdad.json*, FR-5, NFR-7).\n\n`perfiles.py` define los rubros farmacia, pet shop, cosmética, café, e-commerce y agencia. Cada uno trae:\n- un catálogo de 20 a 60 productos con nombre en pt-BR y en es, SKU y EAN-13 válido;\n- un precio;\n- un rango de ciclo verdadero en días (por ejemplo, farmacia 20–35 y café 10–20);\n- una proporción de productos durables, que no se recompran.\n\n`generador.py`, `generar(perfil, n_clientes, semilla, fecha_max, meses=12) -> DatasetSintetico`:\n- por cliente, elige 1 a 6 productos;\n- a cada par le asigna un `ciclo_real_dias` del rango del producto, con variación por cliente;\n- simula las compras con intervalos log-normales (`sigma_log` por producto entre 0.15 y 0.4);\n- un 10 % de los clientes abandona desde una fecha;\n- un 15 % de los pares tiene menos de 3 compras;\n- agrega cantidades, precio y número de pedido.\n\nEscribe `ventas.csv` limpio (UTF-8, coma, ISO, encabezados en inglés neutro: `customer_id, order_id, date, sku, ean, product, qty, price`) y `verdad.json` con el formato de la arquitectura. Todo sale de `numpy.random.default_rng(semilla)`: la misma semilla da archivos idénticos byte a byte.\n\n`comandos/datos.py`: `dogfood datos --perfil --clientes [--seed] [--salida]`. `--defectos` se declara, pero da «disponible en F2» y sale con código 2 si no viene vacío.\n\nDone when: estos tests pasan en `tests/test_datos_generador.py`:\n- la misma semilla da el mismo sha256 en los dos archivos;\n- la mediana empírica de los intervalos de los pares con 8 compras o más está a ±15 % de `ciclo_real_dias` en al menos el 85 % de los pares;\n- los pares marcados con menos de 3 compras tienen menos de 3 fechas distintas;\n- ningún cliente que abandonó compra después de `abandono_desde`;\n- los EAN tienen dígito verificador válido;\n- ninguna fecha es mayor que `fecha_max`.",
+      "model": "claude/claude-opus-5-5",
+      "reason": "La verdad estadística es la base del oráculo; un error aquí da falsos positivos en un repo público.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T2",
+        "F0.1.T5"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/datos/__init__.py",
+        "src/dogfood/datos/generador.py",
+        "src/dogfood/datos/perfiles.py",
+        "src/dogfood/comandos/datos.py",
+        "tests/test_datos_generador.py"
+      ],
+      "specRef": "f1-una-persona.md#F1.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.3.T1",
+      "phase": 1,
+      "title": "Cargador de escenarios y escenarios iniciales de predicts",
+      "description": "Implementa `src/dogfood/escenarios.py`:\n- `cargar(carpeta) -> list[Escenario]`, que valida cada YAML con el modelo `Escenario` de `dominio.py` y da un error con el archivo y el campo;\n- `compatibles(persona, escenarios) -> list[Escenario]`, según `persona_compatible`;\n- `asignar(personas, escenarios, semilla) -> list[tuple[Persona, Escenario]]`, que es determinista y cubre cada escenario al menos una vez si hay personas compatibles.\n\nEscribe los escenarios iniciales en `src/dogfood/objetivos/predicts/escenarios/`, uno por archivo, con el formato de *Interfaces → Escenario YAML*. Lee las pantallas reales en `/mnt/storage/project/predicts/web/src/routes/` para que el objetivo describa lo que la persona ve, sin inventar botones:\n- `recompra-completa`;\n- `demo` (probar con datos de ejemplo);\n- `corregir-mapeo` (el agente debe cambiar al menos una columna sugerida);\n- `calidad-antes-de-analizar`;\n- `ofertas-con-lista` (sube también una lista de ofertas);\n- `agente-analista` (hace tres preguntas sobre sus datos);\n- `plantillas-mensaje` (edita una plantilla);\n- `explorar-universo` (solo mirar y volver);\n- `recuperar-contrasena`;\n- `login-fallido` (`carril: login_fallido`: falla la contraseña tres veces y después entra bien).\n\nEl `criterio_exito` de cada uno es observable en la pantalla o en la descarga.\n\nDone when: estos tests pasan en `tests/test_escenarios.py`:\n- todos los YAML de predicts cargan;\n- un YAML sin `criterio_exito` da un error que nombra el archivo;\n- `asignar` con la misma semilla da la misma asignación;\n- con 10 personas compatibles con todo, los 10 escenarios quedan cubiertos;\n- `login-fallido` tiene `carril == \"login_fallido\"`.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Carga simple; los escenarios necesitan leer la UI real con criterio.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/escenarios.py",
+        "src/dogfood/objetivos/predicts/escenarios/recompra-completa.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/demo.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/corregir-mapeo.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/calidad-antes-de-analizar.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/ofertas-con-lista.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/agente-analista.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/plantillas-mensaje.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/explorar-universo.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/recuperar-contrasena.yaml",
+        "src/dogfood/objetivos/predicts/escenarios/login-fallido.yaml",
+        "tests/test_escenarios.py"
+      ],
+      "specRef": "f1-una-persona.md#F1.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.4.T1",
+      "phase": 1,
+      "title": "Agente navegador con personalidad",
+      "description": "Implementa `src/dogfood/agente/navegador.py` y `src/dogfood/agente/prompts.py` (arquitectura: *Componentes → Agente*, decisiones D1, D2 y D7, FR-10 y FR-16).\n\n`async def ejecutar(persona, escenario, instancia, dataset, carpeta: Path, llm, juez) -> Ejecucion`:\n1. Lanza un Chromium headless **propio** con Playwright: contexto limpio, `accept_downloads=True` y la carpeta `descargas/`. Viewport de escritorio, o de móvil si la persona tiene el rasgo `movil`. Locale e idioma de la persona.\n2. Usa el `Agent` de browser-use con el LLM del rol `persona`:\n   - el prompt de sistema (`prompts.py`) describe a la persona (nombre, rubro, destreza, paciencia, estilo e idioma) y le pide actuar como ella, con sus errores típicos si su destreza es baja;\n   - la tarea es el `objetivo` del escenario, más sus credenciales (email y contraseña para registrarse o entrar) y la ruta del CSV, ofrecida como `available_file_paths`;\n   - hay que pasarle la URL inicial `instancia.base_url`.\n3. Agrega dos herramientas: `anotar_friccion(texto, severidad)`, para cuando algo confunde o molesta, con la cita textual de la pantalla; y `rendirse(motivo)`, para cuando la persona dejaría la app.\n4. Captura, con eventos de Playwright y sin pasar por el LLM:\n   - la consola (`error` y `warning`);\n   - la red (respuestas con estado ≥ 400 y peticiones fallidas, con método, URL, estado y ms);\n   - una captura por paso en `capturas/`, y el texto visible del DOM en `Paso.texto_visible`;\n   - las descargas.\n   Escribe `pasos.jsonl`, `red.jsonl` y `consola.jsonl`.\n5. Antes de cada navegación, bloquea toda URL que no cumpla `url_permitida` (FR-3), con `page.route`, y registra el intento como un evento de red con estado 0.\n6. Corta en `max_pasos`, o en un timeout total configurable (15 minutos por defecto).\n7. Guarda el historial de browser-use en `historial.json`, para el replay.\n8. El juez (`llm.completar_json` con el rol `juez`) recibe el criterio de éxito, las últimas 5 capturas como texto o visión, la lista de descargas y el último estado, y devuelve `{exito: bool, motivo: str}`.\n\nCada llamada al LLM registra su `UsoLlm`. Nunca escribas la contraseña de la persona en los logs de dogfood; sí puede quedar en el historial local, que no se publica.\n\nDone when: estos tests pasan en `tests/test_agente_navegador.py`, con un LLM falso que devuelve acciones guionadas, contra una página HTML local servida por la prueba (sin predicts):\n- un guion que llena un formulario y descarga un archivo termina con `exito=True` y la descarga registrada;\n- una respuesta 500 de la página de prueba queda en `red.jsonl`;\n- un `console.error` queda en `consola.jsonl`;\n- un enlace a un origen no permitido queda bloqueado y registrado;\n- `anotar_friccion` agrega una `Friccion` con captura;\n- al pasar `max_pasos`, el estado es `fallo` con el motivo `max_pasos`.\n\nAdemás, prueba a mano una ejecución real contra la instancia de F1.1, si está levantada, y deja el resultado en el PR.",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Pieza central y la más difícil: integración con browser-use, captura de eventos y juez.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T3",
+        "F0.1.T4"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "src/dogfood/agente/__init__.py",
+        "src/dogfood/agente/navegador.py",
+        "src/dogfood/agente/prompts.py",
+        "tests/test_agente_navegador.py",
+        "tests/fixtures/pagina_prueba/index.html"
+      ],
+      "specRef": "f1-una-persona.md#F1.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.5.T1",
+      "phase": 1,
+      "title": "Orquestador de corrida, `dogfood run` y `dogfood runs`",
+      "description": "Implementa `src/dogfood/corrida.py`, `comandos/run.py` y `comandos/runs.py` (arquitectura: *Componentes → Corrida*, FR-22 y FR-23).\n\n`async def correr(opciones) -> Corrida`:\n1. Crea la corrida en el almacén.\n2. Llama a `objetivo.preparar(ref)`.\n3. Genera un dataset por perfil necesario con `datos.generar`.\n4. Arma las personas. **Por ahora** usa `persona_por_defecto(semilla, i)`, definida aquí: una persona fija y válida con email único `@dogfood.test`. F2.4.T1 la reemplaza por el generador.\n5. Asigna escenarios con `escenarios.asignar`.\n6. Ejecuta con `agente.ejecutar`, en serie (la concurrencia llega en F2.4).\n7. Junta los logs con `objetivo.logs`.\n8. Llama a `deteccion.ejecutar_detectores(ctx)`.\n9. Guarda todo y cierra la corrida con su costo (suma de `uso_llm`).\n10. Si no se pidió `--mantener-entorno`, llama a `objetivo.destruir`. Si la corrida falla, destruye el entorno igual y la deja con estado `error`.\n\n`--sin-publicar` se acepta y por ahora no hace nada: la publicación llega en F4.\n\n`dogfood runs` lista las corridas: id, fecha, objetivo, ref, personas, éxito por escenario, hallazgos y costo.\n\nDone when: estos tests pasan en `tests/test_corrida.py`, con un `Objetivo` falso y un `agente.ejecutar` falso:\n- una corrida con 2 personas guarda 2 ejecuciones y cierra con estado `ok`;\n- si `preparar` falla, la corrida queda en `error` y `destruir` se llama igual;\n- un detector falso que devuelve un hallazgo hace que `dogfood runs` muestre 1 hallazgo;\n- el costo es la suma de los `UsoLlm` registrados;\n- la misma semilla da la misma asignación.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Orquestación con contratos ya fijados.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.1.T1",
+        "F1.2.T1",
+        "F1.3.T1",
+        "F1.4.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/corrida.py",
+        "src/dogfood/comandos/run.py",
+        "src/dogfood/comandos/runs.py",
+        "tests/test_corrida.py"
+      ],
+      "specRef": "f1-una-persona.md#F1.5.T1",
+      "comments": []
+    },
+    {
+      "id": "F1.9.T1",
+      "phase": 1,
+      "title": "Integración M1: una corrida real contra predicts",
+      "description": "Escribe `tests/integracion/test_m1.py`, marcado `integracion`. Ejecuta `dogfood run --target predicts --personas 1 --escenarios recompra-completa --sin-publicar --seed 1` y comprueba:\n- que la corrida quedó en el almacén;\n- que la ejecución tiene pasos, capturas y un `historial.json`;\n- que hay un CSV descargado;\n- que la instancia se destruyó al final.\n\n**Córrelo de verdad en el server.** Si falla por un bug de dogfood, arréglalo en el archivo que corresponda; puedes editar los archivos listados abajo. Si falla por un bug de predicts, es un hallazgo: anótalo en `docs/notas/m1-hallazgos.md` y no lo arregles. Si falta un prerrequisito de `docs/ops/prerequisitos.md`, bloquea la tarea con `scripts/task-block.sh` nombrando el archivo que falta.\n\nDeja en el PR el resumen de la corrida: duración, pasos, costo y si el juez dio éxito.\n\nDone when: `uv run pytest -m integracion tests/integracion/test_m1.py` pasa en el server y `uv run pytest` (sin integración) sigue pasando.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Prueba real de punta a punta; puede requerir ajustes en varias piezas.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.5.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "tests/integracion/test_m1.py",
+        "docs/notas/m1-hallazgos.md",
+        "src/dogfood/corrida.py",
+        "src/dogfood/agente/navegador.py",
+        "src/dogfood/agente/prompts.py",
+        "src/dogfood/objetivos/predicts/entorno.py"
+      ],
+      "specRef": "f1-una-persona.md#F1.9.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.1.T1",
+      "phase": 2,
+      "title": "Defectos de mundo real en los CSV",
+      "description": "Implementa `src/dogfood/datos/defectos.py` (FR-6). La función `aplicar(csv_limpio: Path, defectos: list[str], semilla) -> Path` escribe un CSV nuevo y **no** toca `verdad.json`, salvo para agregar la lista de defectos aplicados en el campo `defectos`.\n\nDefectos, combinables en este orden de aplicación:\n- `sep_punto_coma`, `sep_tab`;\n- `latin1`, `cp1252`, `utf8_bom`;\n- `fecha_dmy` (`dd/mm/aaaa`), `fecha_mdy`, `fecha_con_hora`;\n- `decimal_coma`;\n- `ean_cientifico` (`7,89123E+12`), `ean_sin_ceros`;\n- `encabezados_pt` (`cliente, pedido, data, sku, ean, produto, quantidade, preco`), `encabezados_es`, `sin_encabezados`;\n- `duplicados` (5 % de filas repetidas);\n- `ids_vacios` (2 %);\n- `fechas_futuras` (1 %);\n- `columnas_extra` (vacías y con basura);\n- `grande` (repite clientes con otro id hasta llegar a N MB, con la verdad extendida de forma coherente);\n- `vacio` (solo encabezados).\n\n`defectos_que_rompen_verdad()` devuelve la lista de defectos tras los cuales el oráculo **no** debe comparar números: `ean_sin_ceros`, `ids_vacios` y `fechas_futuras` siguen siendo comparables; `vacio` no lo es. Documenta cada caso.\n\nEn `comandos/datos.py`, activa `--defectos a,b,c`; un nombre desconocido da un error que lista los válidos.\n\nDone when: estos tests pasan en `tests/test_datos_defectos.py`:\n- cada defecto, aplicado solo, produce un archivo que `csv`/`codecs` leen con el separador y la codificación esperados;\n- `fecha_dmy` convierte `2026-03-05` en `05/03/2026`;\n- `ean_cientifico` produce notación científica;\n- `duplicados` agrega cerca del 5 % de filas;\n- `vacio` deja solo los encabezados;\n- la misma semilla da el mismo archivo;\n- `verdad.json` solo cambia en el campo `defectos`.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Muchas transformaciones mecánicas pero precisas.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.2.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/datos/defectos.py",
+        "src/dogfood/comandos/datos.py",
+        "tests/test_datos_defectos.py"
+      ],
+      "specRef": "f2-poblacion.md#F2.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.2.T1",
+      "phase": 2,
+      "title": "Generador de personas",
+      "description": "Implementa `src/dogfood/personas/generador.py` (FR-8, decisión D5: sin LLM y determinista). La función es `generar(n, semilla, idiomas={\"pt-BR\": 0.5, \"es\": 0.5}) -> list[Persona]`:\n- nombres y apellidos de listas locales de Brasil y de Latam (`personas/nombres.py`, al menos 80 nombres y 80 apellidos por idioma);\n- un nombre de empresa plausible por rubro;\n- email único `<slug>.<n>@dogfood.test` (dominio reservado, nunca real);\n- contraseña aleatoria fuerte por semilla;\n- destreza y paciencia de 1 a 5;\n- `intencion` repartida para que todas aparezcan cuando n ≥ 10;\n- `estilo` como subconjunto de rasgos: `apurado`, `lee_todo`, `faltas_ortografia`, `movil`, `cambia_de_opinion`, `curioso`, `desconfiado`.\n\n`comandos/personas.py`: `dogfood personas --n --seed --idiomas` imprime una tabla y puede guardar JSON con `--salida`.\n\nDone when: estos tests pasan en `tests/test_personas.py`:\n- con n=120, los 120 emails son distintos;\n- la misma semilla da las mismas personas;\n- la proporción de idiomas está dentro de ±10 % de la pedida;\n- todas las intenciones aparecen con n=20;\n- ningún email termina en un dominio que no sea `dogfood.test`.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Generación determinista con reglas simples.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T2",
+        "F0.1.T5"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/personas/__init__.py",
+        "src/dogfood/personas/generador.py",
+        "src/dogfood/personas/nombres.py",
+        "src/dogfood/comandos/personas.py",
+        "tests/test_personas.py"
+      ],
+      "specRef": "f2-poblacion.md#F2.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.3.T1",
+      "phase": 2,
+      "title": "Cuentas por persona y token de recuperación",
+      "description": "Implementa `src/dogfood/objetivos/predicts/cuentas.py` (FR-9, decisiones D7 y D8).\n\n1. `credenciales(persona) -> (email, contrasena)`: las mismas que verá el agente.\n2. `confirmar_registro(instancia, persona) -> str | None`: después de la ejecución, verifica por API (`POST /api/auth/login` con httpx, guardando la cookie) que la cuenta existe, y devuelve el `empresa_id` de `GET /api/auth/yo`, o `None` si el registro no ocurrió.\n3. `token_recuperacion(instancia, email, desde) -> str | None`: busca en `objetivo.logs(...)[\"api\"]` el último «Email (modo dev) a <email>» posterior a `desde` y extrae el token del texto, según la plantilla de recuperación de predicts (`api/src/predicts/correo/`); lee la plantilla real para el patrón.\n4. Una herramienta para el agente, `pedir_token_recuperacion()`, registrada desde aquí con una función `herramientas_extra(instancia, persona)`, que el agente usa solo en el escenario `recuperar-contrasena`. **No** edites `agente/navegador.py`: expón la función y documenta en el docstring cómo se engancha. F2.4.T1 la conecta.\n\nDone when: estos tests pasan en `tests/test_predicts_cuentas.py`, con `respx` y logs de ejemplo:\n- extrae el token de un log real copiado de la plantilla;\n- devuelve `None` si el email no aparece o es anterior a `desde`;\n- `confirmar_registro` devuelve el id de empresa con un login 200 y `None` con un 401;\n- `credenciales` es estable.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Parsing y HTTP acotados.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/cuentas.py",
+        "tests/test_predicts_cuentas.py"
+      ],
+      "specRef": "f2-poblacion.md#F2.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F2.4.T1",
+      "phase": 2,
+      "title": "Población real, concurrencia, carriles y memoria",
+      "description": "Modifica `src/dogfood/corrida.py` (FR-11, NFR-2, NFR-5, decisión D9):\n1. Reemplaza `persona_por_defecto` por `personas.generar(n, semilla, idiomas)` y elimina la función vieja.\n2. Ejecuta con `asyncio.Semaphore(concurrencia)`; por defecto toma la de `dogfood.yaml` (5).\n3. Las asignaciones con escenario `carril: login_fallido` corren **al final y de a una**. Un 429 de `/auth/login` en esas ejecuciones se marca como esperado en la `Ejecucion` (campo `notas`) y no se cuenta como fallo técnico.\n4. Antes de lanzar cada ejecución, lee la memoria libre del host (`/proc/meminfo`, `MemAvailable`). Si está bajo `memoria_libre_min_gb`, espera; si sigue así 5 minutos, aborta la corrida con estado `error` y motivo `memoria`.\n5. Después de cada ejecución, llama a `cuentas.confirmar_registro` y guarda el `empresa_id` en la ejecución.\n6. Engancha `cuentas.herramientas_extra` en el agente para `recuperar-contrasena`. Si `agente.ejecutar` necesita un parámetro `herramientas_extra`, agrégalo en `agente/navegador.py` como **único cambio** en ese archivo.\n7. Para evitar recompilar 100 veces, genera los datasets **una vez por perfil y combinación de defectos**, y comparte cada uno entre las personas que lo usan.\n\nDone when: estos tests pasan en `tests/test_corrida_concurrencia.py`, con fakes:\n- con concurrencia 3 nunca hay más de 3 ejecuciones a la vez;\n- las ejecuciones `login_fallido` empiezan después de que terminan todas las normales y nunca se solapan;\n- con `MemAvailable` falso bajo el umbral durante más tiempo que el límite (con tiempo inyectado), la corrida termina en `error` con motivo `memoria`;\n- 120 personas producen 120 ejecuciones con emails distintos;\n- dos personas con el mismo perfil comparten un dataset.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Concurrencia con reglas de orden; standard con tests guiados alcanza.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.9.T1",
+        "F2.2.T1",
+        "F2.3.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/corrida.py",
+        "src/dogfood/agente/navegador.py",
+        "tests/test_corrida_concurrencia.py"
+      ],
+      "specRef": "f2-poblacion.md#F2.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.1.T1",
+      "phase": 3,
+      "title": "Cliente HTTP de predicts",
+      "description": "Implementa `src/dogfood/objetivos/predicts/cliente.py`: `PredictsCliente(api_url)` con httpx, cookie de sesión y métodos tipados para las rutas que usan los detectores. Toma los nombres y las formas del OpenAPI real: levanta la instancia o lee `api/src/predicts/api/*.py` en `/mnt/storage/project/predicts`. **No inventes campos.**\n\nMétodos:\n- `login(email, contrasena)` y `yo()`;\n- `proyectos()` y `datasets(proyecto_id)`;\n- `mapeo(dataset_id)` y `calidad(dataset_id)`;\n- `analisis_de(dataset_id)` y `analisis(analisis_id)`, que devuelve resumen y `metricas`;\n- `resultados(analisis_id, tipo, todas_las_paginas=True)` para `recompra`, `ciclos`, `riesgo` y `ofertas`;\n- `exportar(analisis_id, tipo) -> bytes`;\n- `get_crudo(ruta) -> (status, json|texto)`, para la auditoría de aislamiento.\n\nAdemás, `cliente_para(instancia, persona) -> PredictsCliente` hace login con `cuentas.credenciales` y es lo que se entrega como `ctx.cliente_api`.\n\nDone when: estos tests pasan en `tests/test_predicts_cliente.py`, con `respx`:\n- el login guarda la cookie y la envía en `yo()`;\n- `resultados(..., todas_las_paginas=True)` sigue la paginación hasta el final;\n- un 401 da `ErrorSesion`;\n- `get_crudo` devuelve el estado sin lanzar una excepción en un 403.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Cliente HTTP con contrato conocido.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.3.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/cliente.py",
+        "tests/test_predicts_cliente.py"
+      ],
+      "specRef": "f3-deteccion.md#F3.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.2.T1",
+      "phase": 3,
+      "title": "Fallos técnicos: consola, red, logs y trabajos colgados",
+      "description": "Implementa `src/dogfood/deteccion/tecnicos.py` (FR-12):\n- **red:** cada estado ≥ 500, o 4xx inesperado. Un 401 antes del login, un 404 de un recurso que la persona borró, un 422 de validación que la UI mostró como error de formulario y un 429 marcado como esperado en `Ejecucion.notas` no cuentan. Firma: `método + ruta con ids reemplazados por {id} + estado`. Gravedad: 5xx alta, 4xx media.\n- **consola:** errores de JavaScript (`console.error` y excepciones no capturadas). Firma: el mensaje sin números, ids ni URLs. Gravedad media, o alta si después de ese evento no hay más pasos (pantalla muerta).\n- **logs:** en `ctx.logs[\"api\"]` y `ctx.logs[\"worker\"]`, los tracebacks de Python y las líneas de nivel ERROR durante la corrida. Firma: el tipo de excepción y el último frame del paquete `predicts`. Gravedad alta. Asocia el hallazgo a la ejecución cuyo intervalo de tiempo contiene la línea, si la hay.\n- **pantalla en blanco:** un paso cuya captura es casi uniforme (desvío de píxeles bajo un umbral) después de una navegación. Gravedad alta.\n- **trabajo colgado:** una ejecución que esperó un trabajo (lo marca el agente con fricción o con timeout) y cuyo análisis sigue sin estar `listo` en la API después de `TIMEOUT_TRABAJO_S`. Gravedad alta.\n\nHallazgos con la misma huella dentro de una corrida se fusionan en uno con varias ocurrencias, sin duplicar la evidencia.\n\nDone when: estos tests pasan en `tests/test_deteccion_tecnicos.py`, con ejecuciones y logs de ejemplo:\n- un 500 genera un hallazgo alto con la ruta normalizada;\n- dos 500 en la misma ruta con distintos ids dan una sola huella;\n- un 429 marcado como esperado no genera nada;\n- un traceback del worker da un hallazgo con el tipo de excepción;\n- una captura blanca da «pantalla en blanco»;\n- un `console.error` seguido del fin de los pasos da gravedad alta.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Reglas claras y bien testeables.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.4.T1",
+        "F1.1.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/deteccion/tecnicos.py",
+        "tests/test_deteccion_tecnicos.py",
+        "tests/fixtures/logs/"
+      ],
+      "specRef": "f3-deteccion.md#F3.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.3.T1",
+      "phase": 3,
+      "title": "Oráculo de números contra la verdad",
+      "description": "Implementa `src/dogfood/objetivos/predicts/oraculo.py` (FR-13, decisión D4: tolerancias, no igualdad; las tolerancias se leen de `dogfood.yaml`). Antes de escribir nada, lee el modelo de predicts en `/mnt/storage/project/predicts/docs/arch/001-predicts.md` («Modelo de recompra» e «Interfaces → Modelo») y las columnas reales de `api/src/predicts/api/analisis.py` (`_RESULTADOS`).\n\nPara cada ejecución con un análisis terminado, usa `ctx.cliente_api(persona)` para traer el análisis, sus métricas y todos los resultados, y compáralos con el `verdad.json` de su dataset:\n\n1. **Correspondencia:** une los productos de predicts con los de la verdad por SKU, EAN o nombre. Cuenta los grupos de productos que hizo predicts. Lo que no se pueda unir no se compara, y si es más del 10 % genera un hallazgo `logica` medio «productos no reconocidos». Los clientes se unen por `cliente_id`. Si `verdad.defectos` incluye algo de `defectos_que_rompen_verdad()`, salta las comparaciones numéricas.\n2. **Chequeos exactos** (cualquier violación es un hallazgo `logica` alto, con el par como ejemplo, el esperado y el obtenido):\n   - ningún par con menos de `MIN_COMPRAS` fechas distintas en la verdad tiene `fecha_probable`;\n   - en recompra, `fecha_min ≤ fecha_probable ≤ fecha_max` y `0 ≤ p ≤ 1`;\n   - `n_compras` igual al de la verdad (días distintos);\n   - `dias_desde_ultima` coherente con `ultima_compra` y la fecha de referencia del análisis;\n   - el CSV de `exportar(recompra)` tiene las mismas filas (cliente, producto, fecha_probable) que `resultados(recompra)`.\n3. **Chequeos estadísticos** (un hallazgo `logica` por chequeo fallido, con las cifras):\n   - en los pares con 6 compras o más, al menos `tolerancias.ciclo_pct_pares` (80 %) tienen `|ciclo − ciclo_real| / ciclo_real ≤ tolerancias.ciclo_err` (25 %);\n   - en ciclos por producto, `ciclo_mediano` está a ±20 % de la mediana de los `ciclo_real_dias` de ese producto;\n   - el MAE en días que dogfood recalcula con su propia verdad, sobre la ventana de backtest que declara predicts, está a ±1 día del `mae_dias` declarado;\n   - en datos sin defectos, el modelo no es peor que la línea base en `precision_at_k` por más de 0,05;\n   - en riesgo, al menos el 60 % de los clientes marcados con nivel alto abandonaron en la verdad, y al menos el 50 % de los que abandonaron con 4 compras o más aparecen en riesgo.\n4. **Firma:** `chequeo + tipo de análisis`. El título dice qué chequeo falló, no los números, para que la deduplicación funcione entre corridas.\n\nDone when: estos tests pasan en `tests/test_predicts_oraculo.py`, con verdad y resultados sintéticos armados en el test (sin red):\n- resultados que coinciden con la verdad no dan hallazgos;\n- un ciclo desplazado un 40 % en todos los pares da el hallazgo de ciclo;\n- un par con 2 compras y fecha predicha da el hallazgo exacto;\n- un export con una fila de menos da el hallazgo de exportación;\n- un `mae_dias` declarado inflado 3 días da el hallazgo de backtest;\n- un dataset con el defecto `vacio` no se compara;\n- las huellas no dependen de los números.",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Razonamiento estadístico y riesgo de falsos positivos en un repo público.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.1.T1",
+        "F2.1.T1"
+      ],
+      "estimateHours": 6.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/oraculo.py",
+        "tests/test_predicts_oraculo.py"
+      ],
+      "specRef": "f3-deteccion.md#F3.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.4.T1",
+      "phase": 3,
+      "title": "Auditoría de aislamiento entre empresas",
+      "description": "Implementa `src/dogfood/objetivos/predicts/aislamiento.py` (FR-14). Con al menos dos ejecuciones de empresas distintas que tengan proyecto, dataset y análisis:\n1. Junta los ids de A (proyecto, dataset, análisis, plantillas de mensaje, grupos de productos y trabajos) con el cliente de A.\n2. Con el cliente de B, pide **cada ruta GET con parámetro de ruta del OpenAPI** de la instancia (`GET {api_url}/openapi.json`), con los ids de A sustituidos. También prueba las rutas PATCH y DELETE, pero **solo** contra un set de recursos de A creado para la auditoría (un proyecto de prueba), nunca contra los recursos que usan las otras ejecuciones.\n3. Toda respuesta distinta de 403/404 que devuelva datos de A es un hallazgo `aislamiento` **crítico**, con la ruta, el método, el estado y un extracto sin datos sensibles. Firma: método más ruta normalizada.\n4. Prueba también `GET /analisis/{id}/exportar` y `/trabajos/{id}/eventos` (SSE: lee solo el primer evento, con timeout).\n\nSi no hay dos empresas con datos, no hace nada y lo anota en un hallazgo `regla` de gravedad baja, «auditoría de aislamiento no ejecutada».\n\nDone when: estos tests pasan en `tests/test_predicts_aislamiento.py`, con `respx` y un OpenAPI mínimo:\n- todas las rutas con 404 no dan hallazgos;\n- una ruta que devuelve 200 con datos da un hallazgo crítico con la ruta normalizada;\n- los DELETE solo se envían contra el proyecto de auditoría;\n- una sola empresa da el hallazgo de «no ejecutada».",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Auditoría de seguridad; debe ser exhaustiva y no destructiva.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/aislamiento.py",
+        "tests/test_predicts_aislamiento.py"
+      ],
+      "specRef": "f3-deteccion.md#F3.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.5.T1",
+      "phase": 3,
+      "title": "Reglas propias de predicts",
+      "description": "Implementa `src/dogfood/objetivos/predicts/reglas.py` (FR-15). Las reglas salen de `/mnt/storage/project/predicts/CONTEXTO.md`, sección «Reglas que no se negocian».\n\n- **historia insuficiente:** un cliente con una sola compra o con menos de `MIN_COMPRAS` en la verdad no tiene `fecha_probable` en recompra ni en el export. (Comparte la idea con el oráculo, pero esta regla se evalúa también en datos con defectos, usando el conteo del propio CSV subido.) Gravedad alta.\n- **evidencia e incertidumbre:** toda fila de recompra trae `n_compras`, `fecha_min` y `fecha_max` no nulos. Gravedad media.\n- **Jev bajo el umbral:** si `mapeo(dataset)` trae sugerencias con confianza menor que `CONFIANZA_MAPEO`, la persona tuvo que confirmarlas (aparece un paso de confirmación en la pantalla de mapeo de su ejecución). Si se aplicaron sin confirmación, gravedad alta.\n- **sin mezcla de idiomas:** en las capturas de texto del DOM (`Paso.texto_visible` de cada paso), detecta frases en otro idioma que el de la persona con una heurística de palabras frecuentes pt/es/en; se aceptan nombres de productos y marcas. Firma: pantalla más idioma intruso. Gravedad baja.\n- **el sistema sugiere, no envía:** ninguna petición de red a dominios de mensajería (WhatsApp, SMTP o servicios de email) durante la corrida. Gravedad crítica.\n\nDone when: estos tests pasan en `tests/test_predicts_reglas.py`:\n- una fila con `fecha_probable` para un cliente de una compra da un hallazgo alto;\n- una fila sin `fecha_min` da uno medio;\n- un mapeo con confianza 0,5 aplicado sin paso de confirmación da uno alto, y con paso, nada;\n- una pantalla pt-BR con un párrafo en inglés da uno bajo, pero «Online Retail II» no;\n- la heurística de idioma está en una función pura con sus propios casos.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Reglas concretas con heurísticas acotadas.",
+      "status": "backlog",
+      "dependencies": [
+        "F3.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/objetivos/predicts/reglas.py",
+        "tests/test_predicts_reglas.py"
+      ],
+      "specRef": "f3-deteccion.md#F3.5.T1",
+      "comments": []
+    },
+    {
+      "id": "F3.6.T1",
+      "phase": 3,
+      "title": "Fricción y verificadores del objetivo en el registro de detectores",
+      "description": "Implementa los dos stubs restantes del registro de detección (arquitectura: *Componentes → Detección*):\n\n1. `src/dogfood/deteccion/friccion.py` (FR-16):\n   - convierte las `Friccion` de cada ejecución en hallazgos `friccion`;\n   - las agrupa por pantalla y por similitud de texto (normalización más similitud de tokens; **sin LLM** aquí);\n   - la gravedad depende de cuántas personas distintas la sufrieron: 5 o más, media; 2 a 4, baja; 1, no se publica (queda solo para el reporte de opinión, con `solo_reporte=True`);\n   - una ejecución `rendido` sin ninguna fricción recibe una sintética con el motivo de `rendirse`.\n2. `src/dogfood/deteccion/objetivo.py`: llama a cada función de `ctx.objetivo.verificadores()` y concatena los resultados. El aislamiento de errores ya lo hace `ejecutar_detectores`; aquí, si un verificador falla, registra cuál fue.\n\nDone when: estos tests pasan en `tests/test_deteccion_friccion.py`:\n- cinco personas con la misma queja en el mapeo dan un hallazgo de gravedad media;\n- una sola persona da un hallazgo con `solo_reporte=True`;\n- textos parecidos («no entiendo qué es SKU» y «qué significa sku??») se agrupan;\n- un rendido sin fricción genera la sintética;\n- `objetivo.detectar` llama a todos los verificadores.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Agregación y agrupamiento simples.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.4.T1",
+        "F1.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/deteccion/friccion.py",
+        "src/dogfood/deteccion/objetivo.py",
+        "tests/test_deteccion_friccion.py"
+      ],
+      "specRef": "f3-deteccion.md#F3.6.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.1.T1",
+      "phase": 4,
+      "title": "Redacción de secretos y datos sensibles",
+      "description": "Implementa `src/dogfood/reporte/redactar.py` (NFR-3 y NFR-4). Todo texto que salga de la máquina (issues, comentarios, Slack, reporte HTML) pasa por `redactar(texto, secretos_conocidos) -> str`, que reemplaza por `«redactado»`:\n- los valores de todos los secretos cargados por `config` (vienen como lista; nunca los imprimas);\n- cookies y encabezados `Cookie`, `Set-Cookie` y `Authorization`;\n- tokens con forma de JWT, `sk-…`, hex o base64 de 32 caracteres o más;\n- parámetros `token=`, `key=` y `password=` en URLs;\n- las contraseñas de las personas;\n- cualquier email que no sea de `@dogfood.test`;\n- rutas absolutas de `/home/...`, salvo la de `runs/` relativa.\n\nAdemás, `verificar_limpio(texto) -> list[str]` devuelve lo que parece secreto y sirve como última barrera antes de publicar.\n\nDone when: estos tests pasan en `tests/test_redactar.py`:\n- una API key conocida desaparece aunque esté dentro de una URL;\n- un `Set-Cookie: sesion=abc…` queda redactado;\n- un JWT queda redactado;\n- `ana.3@dogfood.test` se mantiene y `x@gmail.com` se redacta;\n- `verificar_limpio` detecta un `sk-` que quedó;\n- un texto sin secretos queda idéntico.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Reglas de redacción acotadas pero críticas para un repo público.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T4"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "src/dogfood/reporte/__init__.py",
+        "src/dogfood/reporte/redactar.py",
+        "tests/test_redactar.py"
+      ],
+      "specRef": "f4-reporte.md#F4.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.2.T1",
+      "phase": 4,
+      "title": "Publicación de hallazgos como issues con deduplicación",
+      "description": "Implementa `src/dogfood/reporte/issues.py` (FR-17, FR-18, FR-19, NFR-8, decisiones D6 y D14, *Interfaces → Issue publicado* de la arquitectura).\n\n`publicar(hallazgos, corrida, config, publicar=True) -> list[ResultadoIssue]`:\n1. Filtra: los `solo_reporte` y los que estén bajo `umbral_publicar` no se publican; quedan en el reporte.\n2. Arma el cuerpo con la plantilla de la arquitectura: pasos, esperado/obtenido, evidencia en texto, ruta local de las capturas, `dogfood replay <id>`, commit de predicts, semilla y `<!-- dogfood:huella=… -->`. Todo pasa por `redactar`; si `verificar_limpio` encuentra algo, **no publica** ese hallazgo y lo marca como `bloqueado_por_redaccion`.\n3. Deduplica con `gh issue list -R <repo> --label dogfood --state open --search \"dogfood:huella=<h> in:body\" --json number,url`:\n   - si existe, comenta la nueva ocurrencia (corrida, fecha, commit y número de ocurrencias);\n   - si no, crea el issue con las etiquetas `dogfood`, `dogfood:<tipo>` y `gravedad:<g>`, creándolas antes si no existen (`gh label create --force`).\n4. Usa `gh` por subprocess con el `-R` del config. Con `publicar=False` (`--sin-publicar`), no llama a `gh` para escribir, pero sí calcula qué haría.\n5. Guarda en el almacén `issue_url` y `nuevo` por hallazgo.\n\nUn tope de seguridad, `max_issues_nuevos_por_corrida` (por defecto 15), corta la publicación y avisa en el reporte, como protección de NFR-8.\n\nDone when: estos tests pasan en `tests/test_issues.py`, con `gh` falso (un ejecutable en `tmp_path` que registra sus argumentos y responde JSON guionado):\n- un hallazgo nuevo crea un issue con las tres etiquetas y la huella en el cuerpo;\n- un hallazgo cuya huella ya existe comenta en vez de crear;\n- un hallazgo bajo el umbral no llama a `gh`;\n- un cuerpo con un secreto queda en `bloqueado_por_redaccion` y no se publica;\n- con `publicar=False` no hay llamadas de escritura;\n- pasado el tope, el resto queda sin publicar y con aviso.",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Publica en un repo público; la deduplicación y la redacción no pueden fallar.",
+      "status": "backlog",
+      "dependencies": [
+        "F4.1.T1",
+        "F0.1.T3"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/reporte/issues.py",
+        "tests/test_issues.py"
+      ],
+      "specRef": "f4-reporte.md#F4.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.3.T1",
+      "phase": 4,
+      "title": "Replay de una ejecución o un hallazgo",
+      "description": "Implementa `src/dogfood/agente/replay.py` y `src/dogfood/comandos/replay.py` (FR-17). `dogfood replay <hallazgo_id|ejecucion_id> [--ref main]`:\n1. Busca la ejecución en el almacén, y su dataset y su persona.\n2. Levanta una instancia limpia con `objetivo.preparar(ref)`.\n3. Vuelve a ejecutar el historial de browser-use sin LLM (`Agent.rerun_history` o la API equivalente de la versión instalada; léela en el paquete). Como la cuenta no existe en la instancia nueva, el primer tramo (el registro) se repite tal cual.\n4. Corre solo los detectores que produjeron el hallazgo original.\n5. Informa uno de tres resultados: `reproduce` (misma huella), `no_reproduce` o `no_reproducible_por_cambio_ui` (el historial falló en un paso antes de llegar a la pantalla del hallazgo).\n6. Destruye la instancia.\n\nDone when: estos tests pasan en `tests/test_replay.py`, con un `Objetivo` falso, un historial falso y un `rerun` falso:\n- si la huella aparece de nuevo, el resultado es `reproduce`;\n- si el rerun falla en el paso 3 de 10 con el hallazgo en el paso 8, es `no_reproducible_por_cambio_ui`;\n- si no aparece, `no_reproduce`;\n- la instancia se destruye siempre, incluso si el rerun lanza una excepción.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Integración puntual con la API de historial de browser-use.",
+      "status": "backlog",
+      "dependencies": [
+        "F1.4.T1",
+        "F3.2.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/agente/replay.py",
+        "src/dogfood/comandos/replay.py",
+        "tests/test_replay.py"
+      ],
+      "specRef": "f4-reporte.md#F4.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.4.T1",
+      "phase": 4,
+      "title": "Reporte de opinión de usuarios",
+      "description": "Implementa `src/dogfood/reporte/opinion.py` y las plantillas Jinja2 en `src/dogfood/reporte/plantillas/` (FR-20).\n\n`generar(corrida, ejecuciones, hallazgos, personas) -> (ruta_md, ruta_html)` escribe `reporte.md` y `reporte.html`, autocontenido, con las capturas como miniaturas por ruta relativa. Todo va en español. Secciones:\n1. **Resumen:** personas, escenarios, tasa de éxito por escenario, hallazgos por gravedad y tipo (con los links a issues si los hay), duración y costo (el de dogfood, exacto, y el de predicts, marcado como **estimado** según D12: cuenta las filas de `decisiones_jev` y las plantillas generadas en el Postgres de la instancia antes de destruirla, a través de una función `contar_uso_ia(instancia)` de este módulo, con el costo unitario de `dogfood.yaml`).\n2. **Por pantalla:** qué no se entendió, qué frustró, qué sobró y qué funcionó. Agrupa las fricciones con el rol `dedupe` del LLM (es el único lugar donde se usa) y cita textos reales con el número de personas.\n3. **Por tipo de usuario:** destreza baja contra alta, por idioma y por rubro.\n4. **Hallazgos sin publicar:** los de solo reporte, los que quedaron bajo el umbral y los bloqueados por redacción.\n\nLa redacción final de los párrafos la hace el rol `redactor` con `completar_json`, a partir de datos ya agregados: el LLM no inventa conteos. Todo el texto pasa por `redactar`.\n\nDone when: estos tests pasan en `tests/test_opinion.py`, con un LLM falso:\n- el Markdown tiene las cuatro secciones;\n- los conteos por pantalla coinciden con los datos de entrada, sin que importe la salida del LLM;\n- el HTML se genera y referencia capturas por ruta relativa;\n- un secreto plantado en una fricción no aparece en ningún archivo;\n- el costo de predicts aparece marcado como estimado.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Agregación más plantillas; el LLM solo redacta.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T3",
+        "F0.1.T4",
+        "F4.1.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/reporte/opinion.py",
+        "src/dogfood/reporte/plantillas/reporte.md.j2",
+        "src/dogfood/reporte/plantillas/reporte.html.j2",
+        "tests/test_opinion.py"
+      ],
+      "specRef": "f4-reporte.md#F4.4.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.5.T1",
+      "phase": 4,
+      "title": "Resumen en Slack",
+      "description": "Implementa `src/dogfood/reporte/slack.py` (FR-21, decisión D11). `avisar(corrida, resumen, config)` envía, por el webhook de `~/.config/dogfood/slack.env`, un mensaje en español con:\n- objetivo, ref y commit;\n- personas y tasa de éxito;\n- hallazgos por gravedad;\n- los issues nuevos y comentados (máximo 10 links);\n- la ruta del reporte en el server;\n- costo y duración.\n\nSin el archivo `slack.env`, avisa en la consola y no falla la corrida. El texto pasa por `redactar`.\n\nDone when: estos tests pasan en `tests/test_slack.py`, con `respx`:\n- el POST lleva el texto con los conteos;\n- sin `slack.env` no hay POST ni excepción;\n- un error 500 del webhook se registra y no rompe nada;\n- un secreto plantado no aparece en el cuerpo.",
+      "model": "claude/claude-haiku-5-5",
+      "reason": "Integración trivial.",
+      "status": "backlog",
+      "dependencies": [
+        "F0.1.T4",
+        "F4.1.T1"
+      ],
+      "estimateHours": 1.0,
+      "files": [
+        "src/dogfood/reporte/slack.py",
+        "tests/test_slack.py"
+      ],
+      "specRef": "f4-reporte.md#F4.5.T1",
+      "comments": []
+    },
+    {
+      "id": "F4.6.T1",
+      "phase": 4,
+      "title": "Publicación, reporte y aviso al cerrar la corrida",
+      "description": "Modifica `src/dogfood/corrida.py` para que, después de los detectores y **antes** de destruir la instancia, haga lo siguiente:\n1. calcular `contar_uso_ia(instancia)`;\n2. `issues.publicar(hallazgos, publicar=not opciones.sin_publicar)`;\n3. `opinion.generar(...)`;\n4. `slack.avisar(...)`.\n\nSi uno de estos pasos falla, se registra y la corrida sigue con los demás (estado `ok_con_avisos`). Imprime al final la ruta del reporte y los links de los issues. Agrega `--tope-usd` (NFR-6): antes de lanzar cada ejecución, si el costo acumulado de `uso_llm` supera el tope, no lanza más, cierra la corrida con el motivo `tope_usd` y aun así genera el reporte de lo hecho.\n\nDone when: estos tests pasan en `tests/test_corrida_cierre.py`, con fakes:\n- el orden de las llamadas es contar → publicar → opinión → Slack → destruir;\n- con `sin_publicar`, `publicar` recibe `publicar=False`;\n- si Slack falla, el estado es `ok_con_avisos` y el reporte existe;\n- con un tope de 0,01 y ejecuciones que cuestan 0,02, se ejecuta una sola y el motivo es `tope_usd`.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Cableado con contratos ya probados.",
+      "status": "backlog",
+      "dependencies": [
+        "F2.4.T1",
+        "F4.2.T1",
+        "F4.4.T1",
+        "F4.5.T1"
+      ],
+      "estimateHours": 2.0,
+      "files": [
+        "src/dogfood/corrida.py",
+        "tests/test_corrida_cierre.py"
+      ],
+      "specRef": "f4-reporte.md#F4.6.T1",
+      "comments": []
+    },
+    {
+      "id": "F5.1.T1",
+      "phase": 5,
+      "title": "Varios modelos por rol y comparación en el reporte",
+      "description": "1. En `src/dogfood/llm.py`, agrega `modelos_para(rol) -> list[str]` y una estrategia de asignación configurable en `dogfood.yaml` (`asignacion_modelos: rotar | primero`). Con `rotar`, las ejecuciones de la corrida reparten los modelos del rol `persona` de forma determinista según la semilla. El rol `juez` sigue usando un solo modelo por corrida, para que la comparación sea justa.\n2. En `src/dogfood/corrida.py`, guarda en cada `Ejecucion.modelo` el modelo efectivo y pasa el índice a `cliente_para`.\n3. Crea `src/dogfood/reporte/modelos.py`: una tabla por modelo con ejecuciones, tasa de éxito, pasos promedio, fricciones por ejecución, hallazgos únicos que solo encontró ese modelo, tokens y costo por ejecución. Agrega la sección «Modelos» al reporte desde `opinion.generar`, sumando una sola llamada en `opinion.py`, que es la única edición permitida en ese archivo.\n\nDone when: estos tests pasan en `tests/test_modelos.py`:\n- con tres modelos y nueve ejecuciones en modo `rotar`, cada modelo recibe tres;\n- la misma semilla da el mismo reparto;\n- el juez usa siempre el mismo modelo;\n- la tabla calcula bien la tasa de éxito y los hallazgos únicos por modelo;\n- el reporte incluye la sección «Modelos».",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Cambios acotados en piezas ya probadas.",
+      "status": "backlog",
+      "dependencies": [
+        "F4.6.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/llm.py",
+        "src/dogfood/corrida.py",
+        "src/dogfood/reporte/modelos.py",
+        "src/dogfood/reporte/opinion.py",
+        "tests/test_modelos.py"
+      ],
+      "specRef": "f5-modelos.md#F5.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F5.2.T1",
+      "phase": 5,
+      "title": "`--repeat` y tasa de éxito por escenario",
+      "description": "1. En `src/dogfood/comandos/run.py` y `src/dogfood/corrida.py`, `--repeat N` ejecuta cada asignación (persona × escenario) N veces, con la **misma** persona y el mismo dataset, sobre la misma instancia. Cada repetición necesita su propia cuenta, porque el email ya existe: la persona recibe el sufijo `+r<k>` en el email (`ana.3+r2@dogfood.test`).\n2. Crea `src/dogfood/reporte/consistencia.py`. Por escenario calcula: tasa de éxito con su intervalo de Wilson al 95 %, desvío de pasos, hallazgos que aparecen en todas las repeticiones contra los que aparecen en algunas (inestables), y lo mismo por modelo si hay varios. Agrega la sección «Consistencia» al reporte con una sola llamada en `opinion.py`.\n3. Los hallazgos que aparecen en menos de la mitad de las repeticiones se marcan como `inestable` en la evidencia y se publican con gravedad un nivel menor (NFR-8).\n\nDone when: estos tests pasan en `tests/test_consistencia.py`:\n- `--repeat 3` con 2 asignaciones produce 6 ejecuciones con emails `+r1`, `+r2` y `+r3` distintos;\n- 2 éxitos de 3 dan una tasa de 0,67 con el intervalo de Wilson correcto;\n- un hallazgo en 1 de 3 queda como inestable y baja de gravedad;\n- el reporte incluye la sección «Consistencia».",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Estadística simple y cambios acotados.",
+      "status": "backlog",
+      "dependencies": [
+        "F5.1.T1"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "src/dogfood/comandos/run.py",
+        "src/dogfood/corrida.py",
+        "src/dogfood/reporte/consistencia.py",
+        "src/dogfood/reporte/opinion.py",
+        "tests/test_consistencia.py"
+      ],
+      "specRef": "f5-modelos.md#F5.2.T1",
+      "comments": []
+    }
+  ]
 }
