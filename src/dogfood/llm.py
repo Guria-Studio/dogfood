@@ -32,6 +32,7 @@ class ContadorUso:
     def __init__(self, cfg: Config):
         self.cfg = cfg
         self._avisados: set[str] = set()
+        self.usos: list[UsoLlm] = []  # todo lo registrado, para guardarlo en el almacén
 
     def registrar(
         self,
@@ -49,7 +50,7 @@ class ContadorUso:
             costo = 0.0
         else:
             costo = (tokens_in * precio.entrada + tokens_out * precio.salida) / 1_000_000
-        return UsoLlm(
+        uso = UsoLlm(
             rol=rol,
             modelo=modelo,
             tokens_in=tokens_in,
@@ -57,6 +58,8 @@ class ContadorUso:
             costo_usd=costo,
             ejecucion_id=ejecucion_id,
         )
+        self.usos.append(uso)
+        return uso
 
     def desde_respuesta(self, rol: str, modelo: str, respuesta: dict, **kw) -> UsoLlm:
         """`respuesta` es el JSON de chat/completions (campo `usage`)."""
