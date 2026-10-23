@@ -59,5 +59,10 @@ img{max-width:160px;border:1px solid #ccc;margin:.25rem}blockquote{margin:.2rem 
 <table><tr><th>Modelo</th><th>Ejecuciones</th><th>Éxito</th><th>Pasos prom.</th><th>Fricciones/ej.</th><th>Hallazgos únicos</th><th>Tokens/ej.</th><th>Costo/ej. (US$)</th></tr>
 {% for m in modelos %}<tr><td>{{ m.modelo }}</td><td>{{ m.ejecuciones }}</td><td>{{ m.exito_pct }} %</td><td>{{ m.pasos_prom }}</td><td>{{ m.fricciones_por_ejecucion }}</td><td>{{ m.hallazgos_unicos }}</td><td>{{ m.tokens_por_ejecucion }}</td><td>{{ m.costo_por_ejecucion_usd }}</td></tr>
 {% endfor %}</table>
+<h2>6. Consistencia</h2>
+<table><tr><th>Escenario</th><th>Modelo</th><th>Ejecuciones</th><th>Éxito</th><th>Wilson 95 %</th><th>Desvío de pasos</th><th>En todas</th><th>Inestables</th></tr>
+{% for c in consistencia %}<tr><td>{{ c.escenario }}</td><td>todos</td><td>{{ c.ejecuciones }}</td><td>{{ c.tasa }}</td><td>{{ c.wilson_bajo }}–{{ c.wilson_alto }}</td><td>{{ c.desvio_pasos }}</td><td>{{ c.en_todas }}</td><td>{{ c.inestables }}</td></tr>
+{% for m in c.por_modelo %}<tr><td>{{ c.escenario }}</td><td>{{ m.modelo }}</td><td>{{ m.ejecuciones }}</td><td>{{ m.tasa }}</td><td>{{ m.wilson_bajo }}–{{ m.wilson_alto }}</td><td>{{ m.desvio_pasos }}</td><td>{{ m.en_todas }}</td><td>{{ m.inestables }}</td></tr>
+{% endfor %}{% endfor %}</table>
 </body>
 </html>
