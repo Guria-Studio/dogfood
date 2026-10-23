@@ -39,5 +39,5 @@ def run(
         )
     )
     typer.echo(f"{corrida.id}: {corrida.estado}")
-    if corrida.estado != "ok":
+    if corrida.estado not in ("ok", "ok_con_avisos"):
         raise typer.Exit(1)

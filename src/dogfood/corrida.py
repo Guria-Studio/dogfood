@@ -5,6 +5,7 @@ import logging
 import secrets
 import time
 from collections.abc import Awaitable, Callable
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from pathlib import Path
@@ -31,6 +32,7 @@ from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
 from dogfood.personas.generador import generar as generar_personas
+from dogfood.reporte import issues, opinion, slack
 
 log = logging.getLogger("dogfood")
 
@@ -58,7 +60,7 @@ class Opciones:
     semilla: int | None = None
     repeat: int = 1
     mantener_entorno: bool = False
-    sin_publicar: bool = False  # ponytail: se acepta; la publicación llega en F4
+    sin_publicar: bool = False
     tope_usd: float | None = None
     raiz: Path = field(default_factory=lambda: Path("runs"))
     # Inyectables (tests): por defecto salen de la config y del registro de objetivos.
@@ -109,6 +111,7 @@ async def correr(op: Opciones) -> Corrida:
     contador = ContadorUso(cfg)
     instancia: Instancia | None = None
     estado = "ok"
+    avisos: list[str] = []
     try:
         instancia = objetivo.preparar(op.ref, corrida)
         corrida.commit = instancia.commit
@@ -145,6 +148,7 @@ async def correr(op: Opciones) -> Corrida:
 
         async def una(n: int, persona: Persona, escenario: Escenario) -> None:
             if op.tope_usd is not None and sum(u.costo_usd for u in contador.usos) >= op.tope_usd:
+                corrida.parametros["motivo"] = "tope_usd"
                 return
             await esperar_memoria()
             ds = datasets[_clave(escenario)] if escenario.datos else None
@@ -211,7 +215,68 @@ async def correr(op: Opciones) -> Corrida:
             cliente_api=lambda _persona: PredictsCliente(instancia.api_url),
             logs=logs,
         )
-        almacen.guardar_hallazgos(corrida.id, deteccion.ejecutar_detectores(ctx))
+        hallazgos = deteccion.ejecutar_detectores(ctx)
+        almacen.guardar_hallazgos(corrida.id, hallazgos)
+
+        # Cierre: cada paso falla por separado. contar_uso_ia consulta el Postgres de la
+        # instancia, así que va antes de destruirla (D12).
+        @contextmanager
+        def paso(nombre: str):
+            try:
+                yield
+            except Exception:
+                log.exception("falló %s en la corrida %s", nombre, corrida.id)
+                avisos.append(nombre)
+
+        uso_ia = None
+        with paso("contar_uso_ia"):
+            uso_ia = opinion.contar_uso_ia(instancia)
+        secretos = [p.contrasena for p in personas]
+        publicados: list[issues.ResultadoIssue] = []
+        with paso("publicar"):
+            publicados = issues.publicar(
+                hallazgos,
+                corrida,
+                cfg,
+                publicar=not op.sin_publicar,
+                almacen=almacen,
+                secretos=secretos,
+            )
+        costo = sum(u.costo_usd for u in contador.usos)
+        ruta_reporte = None
+        with paso("opinion"):
+            ruta_reporte, _ = await opinion.generar(
+                corrida,
+                ejecuciones,
+                hallazgos,
+                personas,
+                destino=almacen.dir_corrida(corrida.id),
+                cfg=cfg,
+                costo_dogfood_usd=costo,
+                uso_ia=uso_ia,
+                issues={r.huella: r.issue_url for r in publicados if r.issue_url},
+                bloqueados={r.huella for r in publicados if r.accion == "bloqueado_por_redaccion"},
+            )
+        with paso("slack"):
+            slack.avisar(
+                corrida,
+                slack.Resumen(
+                    personas=len(personas),
+                    exitos=sum(1 for e in ejecuciones if e.exito),
+                    hallazgos=hallazgos,
+                    issues=publicados,
+                    ruta_reporte=str(ruta_reporte or almacen.dir_corrida(corrida.id)),
+                    costo_usd=costo,
+                    duracion_s=(datetime.now().astimezone() - inicio).total_seconds(),
+                ),
+                cfg,
+                secretos=secretos,
+            )
+        if ruta_reporte:
+            print(f"Reporte: {ruta_reporte}")
+        for r in publicados:
+            if r.issue_url:
+                print(f"Issue: {r.issue_url}")
     except ErrorMemoria:
         log.error("memoria libre bajo el mínimo por %s s; aborto la corrida", ESPERA_MEMORIA_S)
         corrida.parametros["motivo"] = "memoria"
@@ -236,6 +301,9 @@ async def correr(op: Opciones) -> Corrida:
                 )
             except Exception:
                 log.exception("no pude destruir el entorno de %s", corrida.id)
+        if estado == "ok" and avisos:
+            estado = "ok_con_avisos"
+            corrida.parametros["avisos"] = avisos
         corrida.estado = estado
         corrida.fin = datetime.now().astimezone()
         almacen.cerrar_corrida(corrida.id, estado, sum(u.costo_usd for u in contador.usos))
