@@ -1,0 +1,23 @@
+# Configuración de ejemplo. Copia a dogfood.yaml (ignorado por git) y ajusta.
+roles:
+  persona: [ag/gemini-3.8-flash]
+  juez: [ag/claude-sonnet-5-5-medium]
+  dedupe: [ag/gemini-3.8-flash]
+  redactor: [ag/claude-sonnet-5-5-medium]
+
+precios_usd_por_millon:
+  ag/gemini-3.8-flash: { entrada: 0.30, salida: 2.50 }
+  ag/claude-sonnet-5-5-medium: { entrada: 3.00, salida: 15.00 }
+
+concurrencia: 5
+tope_usd: null
+umbral_publicar: media
+repo_issues: hectorcanaimero/predicts
+memoria_libre_min_gb: 2
+
+# Tolerancias del oráculo (decisión D4)
+tolerancias:
+  ciclo_relativo_max: 0.25    # |ciclo - ciclo_real| <= 25 %
+  pares_ok_min: 0.80          # al menos 80 % de los pares con 6+ compras
+  compras_min_par: 6
+  mae_dias_delta: 1           # MAE recalculado a ±1 día del declarado
