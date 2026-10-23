@@ -58,7 +58,7 @@ def persona_por_defecto(semilla: int, i: int) -> Persona:
     return Persona(
         id=f"P{i + 1}",
         nombre=f"Persona {i + 1}",
-        email=f"persona{i + 1}-{semilla}@dogfood.test",
+        email=f"persona{i + 1}-{semilla}@dogfood.example.com",  # EmailStr de predicts rechaza .test
         contrasena=f"Dogfood-{semilla}-{i + 1}!",
         empresa=f"Empresa {i + 1}",
         rubro="farmacia",

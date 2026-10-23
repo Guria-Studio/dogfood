@@ -50,7 +50,13 @@ Solo puedes usar la app indicada; no visites otros sitios.
 
 def tarea(escenario: Escenario, persona: Persona, ruta_csv: str | None) -> str:
     """El objetivo del escenario más las credenciales y el CSV disponible."""
-    csv = f"\nTu archivo de ventas está en: {ruta_csv}" if ruta_csv else ""
+    csv = (
+        f"\nTu archivo de ventas está en: {ruta_csv}\n"
+        "Para subirlo usa la acción `upload_file` con `index` (el campo de archivo o el botón "
+        "de subir) y `path` (esa ruta exacta); no escribas la ruta con `input`."
+        if ruta_csv
+        else ""
+    )
     return (
         f"{escenario.objetivo}\n\n"
         f"Para registrarte o entrar usa el email {persona.email} "
