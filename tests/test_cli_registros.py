@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 import pytest
@@ -9,16 +10,23 @@ from dogfood.dominio import ContextoDeteccion, Corrida, Gravedad, Hallazgo, Inst
 from dogfood.objetivos import cargar_objetivo
 
 runner = CliRunner()
+_ANSI = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _salida(args: list[str]) -> str:
+    # Rich colorea y parte las opciones con códigos ANSI cuando el entorno fuerza color
+    # (el runner de CI lo hace); se comparan textos planos.
+    return _ANSI.sub("", runner.invoke(app, args, env={"NO_COLOR": "1", "COLUMNS": "200"}).output)
 
 
 def test_help_lista_comandos() -> None:
-    out = runner.invoke(app, ["--help"]).output
+    out = _salida(["--help"])
     for c in ("env", "datos", "personas", "run", "runs", "replay"):
         assert c in out
 
 
 def test_run_help() -> None:
-    out = runner.invoke(app, ["run", "--help"]).output
+    out = _salida(["run", "--help"])
     assert "--seed" in out and "--concurrencia" in out
 
 
