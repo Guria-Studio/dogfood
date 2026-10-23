@@ -238,13 +238,15 @@ async def ejecutar(
                 )
             )
 
+        # browser-use solo sube archivos con ruta absoluta que esté en available_file_paths.
+        ruta_csv = str(dataset.ruta_csv.resolve()) if dataset else None
         agente = Agent(
-            task=prompts.tarea(escenario, persona, str(dataset.ruta_csv) if dataset else None),
+            task=prompts.tarea(escenario, persona, ruta_csv),
             llm=llm,
             browser_session=sesion,
             tools=tools,
             extend_system_message=prompts.sistema(persona),
-            available_file_paths=[str(dataset.ruta_csv)] if dataset else None,
+            available_file_paths=[ruta_csv] if ruta_csv else None,
             initial_actions=[{"navigate": {"url": instancia.base_url, "new_tab": False}}],
             use_judge=False,
             enable_signal_handler=False,
