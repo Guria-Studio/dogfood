@@ -171,6 +171,14 @@ class Almacen:
             )
         return ids
 
+    def marcar_issues(self, corrida_id: str, issues: list[tuple[str, str | None, bool]]) -> None:
+        """`(hallazgo_id, issue_url, nuevo)` por hallazgo publicado."""
+        with closing(self._con()) as con, con:
+            con.executemany(
+                "UPDATE hallazgos SET issue_url = ?, nuevo = ? WHERE id = ? AND corrida_id = ?",
+                [(url, int(nuevo), hid, corrida_id) for hid, url, nuevo in issues],
+            )
+
     def registrar_uso(self, uso: UsoLlm, corrida_id: str) -> None:
         with closing(self._con()) as con, con:
             con.execute(
