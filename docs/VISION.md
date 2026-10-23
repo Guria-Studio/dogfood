@@ -20,7 +20,7 @@ Encuentra bugs y fricción. **No valida mercado**: eso solo se consigue con usua
 ## Componentes
 - Generador de personas.
 - Escenarios con criterio de éxito.
-- Agente navegador (web) y agente de chat (WhatsApp vía webhooks de WAHA simulados).
+- Agente navegador y generador de CSV sintéticos con verdad conocida.
 - Detector de errores.
 - Reporte: issues y opinión.
 - Evaluación de costo y consistencia.
@@ -29,10 +29,5 @@ Encuentra bugs y fricción. **No valida mercado**: eso solo se consigue con usua
 Ver [adr/0001-stack.md](adr/0001-stack.md).
 
 ## Objetivos
-- Primero: **Showly** (repo `agndaZAP`). Es agendamiento por WhatsApp con recordatorios anti no-show. Tiene cuatro superficies:
-  - el bot de WhatsApp para el paciente;
-  - el panel web de recepción;
-  - la página pública `/agendar/[clinicSlug]`;
-  - el panel de operador `/admin`.
-- Después: agenda-barberia.
-- Integración futura: cada deploy de rama en Coolify dispara una corrida antes de producción.
+- Primero: **predicts** (`/mnt/storage/project/predicts`), que corre en el homelab: predice la recompra a partir de un CSV y es una app web con registro abierto. dogfood le da CSV sintéticos con la verdad conocida para detectar números equivocados, no solo pantallas rotas.
+- Después: Showly (agndaZAP) y agenda-barberia.
