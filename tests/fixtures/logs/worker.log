@@ -1,0 +1,10 @@
+worker-1  | 2026-10-23 18:00:05,100 INFO analisis 7 iniciado
+worker-1  | 2026-10-23 18:00:25,200 ERROR fallo el analisis 7
+worker-1  | Traceback (most recent call last):
+worker-1  |   File "/app/src/predicts/trabajos/worker.py", line 88, in ejecutar
+worker-1  |     modelo.ajustar(df)
+worker-1  |   File "/app/src/predicts/modelo/recompra.py", line 41, in ajustar
+worker-1  |     return np.mean(vacio)
+worker-1  |   File "/usr/lib/python3.12/site-packages/numpy/core/fromnumeric.py", line 3504, in mean
+worker-1  |     raise ZeroDivisionError("division by zero")
+worker-1  | ZeroDivisionError: division by zero
