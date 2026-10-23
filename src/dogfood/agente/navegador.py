@@ -73,6 +73,7 @@ async def ejecutar(
     objetivo: Objetivo | None = None,
     contador: ContadorUso | None = None,
     timeout_s: float = TIMEOUT_S,
+    herramientas_extra: list[Callable] | None = None,
 ) -> Ejecucion:
     """`juez(prompt, Veredicto)` es `llm.completar_json` con el rol `juez` ya aplicado.
 
@@ -212,6 +213,9 @@ async def ejecutar(
         async def rendirse(motivo: str) -> ActionResult:
             rendido.append(sin_clave(motivo))
             return ActionResult(is_done=True, success=False, extracted_content=motivo)
+
+        for f in herramientas_extra or []:
+            tools.action(f.__doc__ or f.__name__)(f)
 
         async def al_terminar_paso(agente: Agent) -> None:
             h = agente.history.history[-1] if agente.history.history else None
