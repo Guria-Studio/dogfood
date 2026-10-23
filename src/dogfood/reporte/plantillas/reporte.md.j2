@@ -66,3 +66,11 @@ Corrida `{{ corrida.id }}` · commit `{{ corrida.commit }}`
 - ninguno
 {% endfor %}
 {% endfor -%}
+
+## 5. Modelos
+
+| Modelo | Ejecuciones | Éxito | Pasos prom. | Fricciones/ej. | Hallazgos únicos | Tokens/ej. | Costo/ej. (US$) |
+|---|---|---|---|---|---|---|---|
+{% for m in modelos -%}
+| {{ m.modelo }} | {{ m.ejecuciones }} | {{ m.exito_pct }} % | {{ m.pasos_prom }} | {{ m.fricciones_por_ejecucion }} | {{ m.hallazgos_unicos }} | {{ m.tokens_por_ejecucion }} | {{ m.costo_por_ejecucion_usd }} |
+{% endfor %}

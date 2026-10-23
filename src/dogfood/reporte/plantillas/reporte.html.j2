@@ -55,5 +55,9 @@ img{max-width:160px;border:1px solid #ccc;margin:.25rem}blockquote{margin:.2rem 
 {% for c in h.capturas %}<img src="{{ c }}" alt="captura">{% endfor %}</li>
 {% else %}<li>ninguno</li>{% endfor %}</ul>
 {% endfor %}
+<h2>5. Modelos</h2>
+<table><tr><th>Modelo</th><th>Ejecuciones</th><th>Éxito</th><th>Pasos prom.</th><th>Fricciones/ej.</th><th>Hallazgos únicos</th><th>Tokens/ej.</th><th>Costo/ej. (US$)</th></tr>
+{% for m in modelos %}<tr><td>{{ m.modelo }}</td><td>{{ m.ejecuciones }}</td><td>{{ m.exito_pct }} %</td><td>{{ m.pasos_prom }}</td><td>{{ m.fricciones_por_ejecucion }}</td><td>{{ m.hallazgos_unicos }}</td><td>{{ m.tokens_por_ejecucion }}</td><td>{{ m.costo_por_ejecucion_usd }}</td></tr>
+{% endfor %}</table>
 </body>
 </html>
