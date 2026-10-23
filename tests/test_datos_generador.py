@@ -107,8 +107,8 @@ def test_cli(tmp_path):
     assert (tmp_path / "ventas.csv").exists() and (tmp_path / "verdad.json").exists()
 
 
-def test_cli_defectos_f2():
+def test_cli_defectos_desconocido():
     r = CliRunner().invoke(
         app, ["datos", "--perfil", "cafe", "--clientes", "5", "--defectos", "bom"]
     )
-    assert r.exit_code == 2 and "disponible en F2" in r.output
+    assert r.exit_code == 2 and "latin1" in r.output
