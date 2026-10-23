@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><title>Página de prueba</title></head>
+<body>
+  <h1>Ventas de prueba</h1>
+  <form id="registro" onsubmit="event.preventDefault(); document.getElementById('ok').hidden = false;">
+    <label>Correo <input id="email" name="email" type="email"></label>
+    <label>Contraseña <input id="clave" name="clave" type="password"></label>
+    <button id="entrar" type="submit">Entrar</button>
+  </form>
+  <p id="ok" hidden>Registro completo</p>
+  <a id="descargar" href="/descarga.csv">Descargar CSV</a>
+  <button id="romper" onclick="fetch('/api/falla')">Analizar</button>
+  <a id="externo" href="http://externo.invalid/robar">Sitio externo</a>
+  <script>console.error("falla de prueba en consola");</script>
+</body>
+</html>
