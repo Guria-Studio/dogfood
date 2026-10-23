@@ -32,7 +32,7 @@ from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
 from dogfood.personas.generador import generar as generar_personas
-from dogfood.reporte import issues, opinion, slack
+from dogfood.reporte import consistencia, issues, opinion, slack
 
 log = logging.getLogger("dogfood")
 
@@ -126,7 +126,18 @@ async def correr(op: Opciones) -> Corrida:
 
         personas = generar_personas(op.personas, semilla, op.idiomas)
         almacen.guardar_personas(corrida.id, personas)
-        pares = esc.asignar(personas, todos, semilla) * op.repeat
+        base = esc.asignar(personas, todos, semilla)
+        # cada repetición necesita su propia cuenta: el email lleva el sufijo +r<k>
+        pares = [
+            (
+                p.model_copy(update={"email": p.email.replace("@", f"+r{k}@", 1)})
+                if op.repeat > 1
+                else p,
+                e,
+            )
+            for k in range(1, op.repeat + 1)
+            for p, e in base
+        ]
 
         def llm_de(n: int):
             return op.llm or cliente_para("persona", indice_modelo("persona", n, semilla, cfg), cfg)
@@ -217,6 +228,8 @@ async def correr(op: Opciones) -> Corrida:
             logs=logs,
         )
         hallazgos = deteccion.ejecutar_detectores(ctx)
+        if op.repeat > 1:
+            consistencia.marcar_inestables(hallazgos, ejecuciones)
         almacen.guardar_hallazgos(corrida.id, hallazgos)
 
         # Cierre: cada paso falla por separado. contar_uso_ia consulta el Postgres de la
