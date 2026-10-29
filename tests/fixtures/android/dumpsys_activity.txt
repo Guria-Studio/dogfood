@@ -1,0 +1,10 @@
+ACTIVITY MANAGER ACTIVITIES (dumpsys activity activities)
+Display #0 (activities from top to bottom):
+  Stack #1: type=standard mode=fullscreen
+    Task id #42
+      mBounds=Rect(0, 0 - 0, 0) mMinWidth=-1 mMinHeight=-1
+      * Task{3f1a2b #42 type=standard A=10123:com.example.app U=0 visible=true mode=fullscreen translucent=false sz=1}
+        * ActivityRecord{8c4d1e0 u0 com.example.app/.ui.LoginActivity t42}
+          packageName=com.example.app processName=com.example.app
+mResumedActivity: ActivityRecord{8c4d1e0 u0 com.example.app/.ui.LoginActivity t42}
+mFocusedApp=ActivityRecord{8c4d1e0 u0 com.example.app/.ui.LoginActivity t42}
