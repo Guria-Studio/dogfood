@@ -31,7 +31,14 @@ def test_run_help() -> None:
 
 
 def test_stub_sale_con_2() -> None:
-    r = runner.invoke(app, ["replay", "x"])
+    # replay ya está implementado (F4.3.T1); se prueba el stub directamente.
+    import typer
+
+    from dogfood.comandos._stub import no_implementado
+
+    stub = typer.Typer()
+    stub.command()(no_implementado)
+    r = runner.invoke(stub, [])
     assert r.exit_code == 2 and "no implementado todavía" in r.output
 
 
