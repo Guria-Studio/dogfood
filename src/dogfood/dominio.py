@@ -98,6 +98,13 @@ class DatosEscenario(BaseModel):
     defectos: list[str] = []
 
 
+class ContratoRecorrido(BaseModel):
+    estado_inicial: str = ""
+    acciones: list[str] = []
+    resultado_esperado: str = ""
+    evidencia_requerida: list[str] = []
+
+
 class Escenario(BaseModel):
     id: str
     titulo: str
@@ -108,6 +115,8 @@ class Escenario(BaseModel):
     criterio_exito: str
     max_pasos: int = Field(default=60, gt=0)
     carril: Literal["normal", "login_fallido"] = "normal"
+    contrato: ContratoRecorrido | None = None
+    driver: Literal["web", "android"] = "web"
 
 
 class DatasetSintetico(BaseModel):
@@ -129,6 +138,12 @@ class Paso(BaseModel):
     captura: Path | None = None
     texto_visible: str = ""
     ts: datetime
+    razonamiento: str = ""
+    paso_contrato: str = ""
+    esperado: str = ""
+    observado: str = ""
+    arbol: Path | None = None
+    punto: tuple[int, int] | None = None
 
     @field_validator("texto_visible")
     @classmethod
@@ -157,6 +172,20 @@ class Friccion(BaseModel):
     cita: str = ""
 
 
+class Evidencia(BaseModel):
+    tipo: Literal["captura", "log", "red", "csv", "texto", "video", "trace"]
+    ruta: Path | None = None
+    extracto: str = ""
+
+
+class MetricasEjecucion(BaseModel):
+    tokens_in: int = 0
+    tokens_out: int = 0
+    capturas: int = 0
+    costo_usd: float = 0.0
+    costo_equivalente_usd: float = 0.0
+
+
 class Ejecucion(BaseModel):
     id: str
     persona_id: str
@@ -175,12 +204,14 @@ class Ejecucion(BaseModel):
     ruta_historial: Path | None = None
     empresa_id: str | None = None
     notas: list[str] = []
-
-
-class Evidencia(BaseModel):
-    tipo: Literal["captura", "log", "red", "csv", "texto"]
-    ruta: Path | None = None
-    extracto: str = ""
+    driver: Literal["web", "android"] = "web"
+    motor: str = "browser_use"
+    backend: str = "api"
+    resultado: Literal["aprobado", "fallo", "no_concluyente"] | None = None
+    metricas: MetricasEjecucion = Field(default_factory=MetricasEjecucion)
+    video: Path | None = None
+    trace: Path | None = None
+    evidencia_driver: list[Evidencia] = []
 
 
 class Hallazgo(BaseModel):
@@ -212,6 +243,8 @@ class UsoLlm(BaseModel):
     tokens_out: int
     costo_usd: float
     ejecucion_id: str | None = None
+    backend: str = "api"
+    costo_equivalente_usd: float = 0.0
 
 
 class Corrida(BaseModel):
@@ -224,6 +257,7 @@ class Corrida(BaseModel):
     fin: datetime | None = None
     estado: str
     parametros: dict[str, Any] = {}
+    version_app: str | None = None
 
 
 class Instancia(BaseModel):

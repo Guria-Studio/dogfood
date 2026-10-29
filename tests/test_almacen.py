@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from dogfood.almacen import Almacen
+from dogfood.almacen import VERSION_ESQUEMA, Almacen
 from dogfood.dominio import Corrida, Ejecucion, Gravedad, Hallazgo, TipoHallazgo, UsoLlm
 
 
@@ -73,5 +73,6 @@ def test_reabrir_conserva_datos_y_version(tmp_path):
     import sqlite3
 
     assert (
-        sqlite3.connect(tmp_path / "dogfood.db").execute("PRAGMA user_version").fetchone()[0] == 1
+        sqlite3.connect(tmp_path / "dogfood.db").execute("PRAGMA user_version").fetchone()[0]
+        == VERSION_ESQUEMA
     )
