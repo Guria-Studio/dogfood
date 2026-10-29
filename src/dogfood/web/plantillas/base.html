@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block titulo %}{{ titulo_app }}{% endblock %} · dogfood</title>
+  <script>
+    if (localStorage.getItem("tema") === "dark") document.documentElement.classList.add("dark");
+  </script>
+  <link rel="stylesheet" href="/estatico/dogfood.css">
+</head>
+<body>
+  <nav class="barra-lateral" aria-label="Principal">
+    <strong class="marca">dogfood</strong>
+    <a href="/">Corridas</a>
+    <a href="/recorridos">Recorridos</a>
+    <a href="/en-vivo">En vivo</a>
+    <button type="button" id="tema" aria-label="Cambiar tema claro/oscuro">◐ Tema</button>
+  </nav>
+  <main>
+    <h1>{% block titulo_pagina %}{{ self.titulo() }}{% endblock %}</h1>
+    {% block contenido %}{% endblock %}
+  </main>
+  <script>
+    document.getElementById("tema").addEventListener("click", function () {
+      var oscuro = document.documentElement.classList.toggle("dark");
+      localStorage.setItem("tema", oscuro ? "dark" : "light");
+    });
+  </script>
+</body>
+</html>
