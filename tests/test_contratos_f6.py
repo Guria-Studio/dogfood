@@ -1,4 +1,5 @@
 import json
+import re
 import sqlite3
 from contextlib import closing
 from datetime import datetime
@@ -18,7 +19,9 @@ TS = datetime(2026, 10, 29, 12, 0)
 
 
 def test_help_lista_los_seis_comandos():
-    salida = CliRunner().invoke(app, ["--help"]).output
+    # Rich colorea la ayuda cuando el entorno fuerza color (el runner de CI lo hace).
+    crudo = CliRunner().invoke(app, ["--help"], env={"NO_COLOR": "1", "COLUMNS": "200"}).output
+    salida = re.sub(r"\x1b\[[0-9;]*m", "", crudo)
     for cmd in ("env", "datos", "personas", "run", "runs", "replay"):
         assert f" {cmd} " in salida
 
