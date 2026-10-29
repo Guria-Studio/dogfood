@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block titulo %}Ejecución {{ e.id }}{% endblock %}
+{% block contenido %}
+<p>
+  <span class="res-{{ resultado }}">{{ etiquetas[resultado] }}</span>
+  · <a href="/corridas/{{ corrida.id }}">corrida {{ corrida.id }}</a> · recorrido {{ e.escenario_id }}
+  · {{ e.driver }} · {{ e.motor }}/{{ e.backend }} · {{ e.modelo }} · {{ e.duracion_s|duracion }}
+  · {{ persona.nombre }} ({{ persona.idioma.value }})
+</p>
+{% if e.motivo_juez %}<p class="atenuado">{{ e.motivo_juez }}</p>{% endif %}
+
+{% if video %}
+<h2>Video</h2>
+<video controls preload="metadata" src="{{ video }}" style="max-width:100%"></video>
+{% endif %}
+{% if trace %}
+<p><a href="{{ trace }}" download>Descargar trace.zip</a>
+  · ábrelo con <code>uv run playwright show-trace trace.zip</code></p>
+{% endif %}
+
+<h2>Paso a paso</h2>
+<nav id="linea" aria-label="Línea de tiempo">
+  {% for v in pasos %}<a href="#paso-{{ v.p.n }}" data-ir="{{ loop.index0 }}">{{ v.p.n }}</a> {% endfor %}
+</nav>
+<p>
+  <button type="button" id="anterior">← anterior</button>
+  <button type="button" id="siguiente">siguiente →</button>
+</p>
+{% for v in pasos %}
+<section class="tarjeta paso" id="paso-{{ v.p.n }}">
+  <h3>Paso {{ v.p.n }} · {{ v.p.pantalla }}</h3>
+  {% if v.captura %}<img src="{{ v.captura }}" alt="Captura del paso {{ v.p.n }}" style="max-width:100%">{% endif %}
+  <p><strong>Acción:</strong> {{ v.p.accion }}</p>
+  {% if v.p.razonamiento %}<p><strong>Razonamiento:</strong> {{ v.p.razonamiento }}</p>{% endif %}
+  {% if v.p.paso_contrato %}<p><strong>Paso del contrato:</strong> {{ v.p.paso_contrato }}</p>{% endif %}
+  {% if v.p.esperado or v.p.observado %}
+  <p><strong>Esperado:</strong> {{ v.p.esperado }}<br><strong>Observado:</strong> {{ v.p.observado }}</p>
+  {% endif %}
+  {% if v.consola %}<pre>{% for c in v.consola %}[{{ c.nivel }}] {{ c.texto }}
+{% endfor %}</pre>{% endif %}
+  {% if v.red %}<pre>{% for r in v.red %}{{ r.metodo }} {{ r.url }} → {{ r.estado }} ({{ "%.0f"|format(r.ms) }} ms)
+{% endfor %}</pre>{% endif %}
+</section>
+{% else %}
+<p class="atenuado">Sin pasos registrados.</p>
+{% endfor %}
+
+{% if e.driver == "web" and (consola or red) %}
+<h2>Consola y red</h2>
+<pre>{% for c in consola %}[{{ c.nivel }}] {{ c.texto }}
+{% endfor %}{% for r in red %}{{ r.metodo }} {{ r.url }} → {{ r.estado }} ({{ "%.0f"|format(r.ms) }} ms)
+{% endfor %}</pre>
+{% endif %}
+{% if logcat %}
+<h2>Logcat</h2>
+<pre>{{ logcat }}</pre>
+{% endif %}
+
+<h2>Opinión de la persona</h2>
+{% for pantalla, items in fricciones.items() %}
+<h3>{{ pantalla }}</h3>
+{% for it in items %}
+<div class="tarjeta">
+  <p>{{ it.f.texto }} <span class="atenuado">({{ it.f.severidad.value }})</span></p>
+  {% if it.f.cita %}<blockquote>{{ it.f.cita }}</blockquote>{% endif %}
+  {% if it.captura %}<img src="{{ it.captura }}" alt="Captura de la fricción" style="max-width:24rem">{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p class="atenuado">Sin fricciones.</p>
+{% endfor %}
+
+<h2>Crear issue</h2>
+<form id="issue">
+  <label>Tipo <select name="tipo">{% for t in tipos %}<option{% if t == "tecnico" %} selected{% endif %}>{{ t }}</option>{% endfor %}</select></label>
+  <label>Gravedad <select name="gravedad">{% for g in gravedades %}<option{% if g == "media" %} selected{% endif %}>{{ g }}</option>{% endfor %}</select></label>
+  <button type="submit">Crear issue</button>
+</form>
+<p id="issue-resultado" aria-live="polite"></p>
+
+<script>
+  (function () {
+    var pasos = document.querySelectorAll(".paso"), actual = 0;
+    function mostrar(i) {
+      actual = Math.max(0, Math.min(pasos.length - 1, i));
+      pasos.forEach(function (p, k) { p.hidden = k !== actual; });
+    }
+    if (pasos.length) mostrar(0);
+    document.getElementById("anterior").onclick = function () { mostrar(actual - 1); };
+    document.getElementById("siguiente").onclick = function () { mostrar(actual + 1); };
+    document.querySelectorAll("[data-ir]").forEach(function (a) {
+      a.onclick = function (ev) { ev.preventDefault(); mostrar(+a.dataset.ir); };
+    });
+    document.addEventListener("keydown", function (ev) {
+      if (/^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+      if (ev.key === "ArrowLeft") mostrar(actual - 1);
+      if (ev.key === "ArrowRight") mostrar(actual + 1);
+    });
+    var out = document.getElementById("issue-resultado");
+    document.getElementById("issue").addEventListener("submit", function (ev) {
+      ev.preventDefault();
+      var q = new URLSearchParams(new FormData(ev.target));
+      out.textContent = "Publicando…";
+      fetch("/ejecuciones/{{ e.id }}/issue?" + q, { method: "POST" })
+        .then(function (r) { return r.json().then(function (d) { return [r.ok, d]; }); })
+        .then(function (x) {
+          out.textContent = "";
+          if (!x[0]) { out.textContent = x[1].detail; return; }
+          if (x[1].url) {
+            var a = document.createElement("a");
+            a.href = x[1].url; a.textContent = x[1].url;
+            out.append(x[1].accion + ": ", a);
+          } else out.textContent = x[1].accion + " " + x[1].aviso;
+        });
+    });
+  })();
+</script>
+{% endblock %}
