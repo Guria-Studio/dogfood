@@ -2,10 +2,12 @@
 
 import logging
 
-import httpx
 from browser_use.llm import ChatOpenAI
 from pydantic import BaseModel
 
+from dogfood.backends.api import BackendApi
+from dogfood.backends.base import BackendLlm
+from dogfood.backends.claude_code import BackendClaudeCode
 from dogfood.config import Config
 from dogfood.dominio import UsoLlm
 
@@ -54,6 +56,8 @@ class ContadorUso:
         tokens_in: int,
         tokens_out: int,
         ejecucion_id: str | None = None,
+        backend: str = "api",
+        costo_equivalente_usd: float | None = None,
     ) -> UsoLlm:
         precio = self.cfg.precios_usd_por_millon.get(modelo)
         if precio is None:
@@ -70,6 +74,8 @@ class ContadorUso:
             tokens_out=tokens_out,
             costo_usd=costo,
             ejecucion_id=ejecucion_id,
+            backend=backend,
+            costo_equivalente_usd=costo if costo_equivalente_usd is None else costo_equivalente_usd,
         )
         self.usos.append(uso)
         return uso
@@ -82,6 +88,22 @@ class ContadorUso:
         )
 
 
+def backend_para(
+    rol: str,
+    cfg: Config | None = None,
+    indice: int = 0,
+    contador: ContadorUso | None = None,
+) -> BackendLlm:
+    cfg = cfg or Config.cargar()
+    motor = cfg.motores[rol]
+    if motor == "api":
+        return BackendApi(_modelo(cfg, rol, indice), cfg, contador, rol=rol)
+    if motor == "claude_code":
+        modelo = cfg.claude_code.modelos.get(rol) or _modelo(cfg, rol, indice)
+        return BackendClaudeCode(modelo, cfg)
+    raise ValueError(f"motor desconocido para {rol!r}: {motor!r} (válidos: api, claude_code)")
+
+
 async def completar_json[T: BaseModel](
     rol: str,
     prompt: str,
@@ -89,30 +111,8 @@ async def completar_json[T: BaseModel](
     cfg: Config | None = None,
     contador: ContadorUso | None = None,
 ) -> T:
-    """Salida estructurada `json_schema`. No usar `tool_choice` forzado: 9router lo rompe."""
+    """Salida estructurada `json_schema` por la API (el motor de `cfg.motores` no aplica aquí)."""
     cfg = cfg or Config.cargar()
-    modelo = _modelo(cfg, rol)
-    cuerpo = {
-        "model": modelo,
-        "stream": False,  # sin esto algunos modelos devuelven `data: [DONE]` pegado al JSON
-        "messages": [{"role": "user", "content": prompt}],
-        "response_format": {
-            "type": "json_schema",
-            "json_schema": {
-                "name": esquema.__name__,
-                "strict": True,
-                "schema": esquema.model_json_schema(),
-            },
-        },
-    }
-    async with httpx.AsyncClient(timeout=120) as http:
-        r = await http.post(
-            cfg.secreto("ROUTER_BASE_URL").rstrip("/") + "/chat/completions",
-            json=cuerpo,
-            headers={"Authorization": f"Bearer {cfg.secreto('ROUTER_API_KEY')}"},
-        )
-    r.raise_for_status()
-    datos = r.json()
-    if contador:
-        contador.desde_respuesta(rol, modelo, datos)
-    return esquema.model_validate_json(datos["choices"][0]["message"]["content"])
+    backend = BackendApi(_modelo(cfg, rol), cfg, contador, rol=rol)
+    salida, _, _ = await backend.completar_json(prompt, esquema)
+    return salida
