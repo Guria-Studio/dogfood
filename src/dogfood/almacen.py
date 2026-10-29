@@ -233,11 +233,14 @@ class Almacen:
                 ),
             )
 
-    def cerrar_corrida(self, corrida_id: str, estado: str, costo: float) -> None:
+    def cerrar_corrida(
+        self, corrida_id: str, estado: str, costo: float, version_app: str | None = None
+    ) -> None:
         with closing(self._con()) as con, con:
             con.execute(
-                "UPDATE corridas SET estado = ?, costo_usd = ?, fin = ? WHERE id = ?",
-                (estado, costo, datetime.now().astimezone().isoformat(), corrida_id),
+                "UPDATE corridas SET estado = ?, costo_usd = ?, fin = ?,"
+                " version_app = COALESCE(?, version_app) WHERE id = ?",
+                (estado, costo, datetime.now().astimezone().isoformat(), version_app, corrida_id),
             )
 
     # --- lectura ---

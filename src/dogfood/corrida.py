@@ -11,9 +11,10 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from dogfood import deteccion
+from dogfood import contrato, deteccion
 from dogfood import escenarios as esc
-from dogfood.agente import navegador
+from dogfood.agente import bucle, navegador
+from dogfood.agente.navegador import ESCRITORIO, MOVIL
 from dogfood.almacen import Almacen
 from dogfood.config import Config
 from dogfood.datos.defectos import aplicar
@@ -27,7 +28,16 @@ from dogfood.dominio import (
     Instancia,
     Persona,
 )
-from dogfood.llm import ContadorUso, cliente_para, completar_json, indice_modelo
+from dogfood.drivers.android import Adb, DriverAndroid
+from dogfood.drivers.web import DriverWeb
+from dogfood.eventos import BUS_NULO, BusVivo
+from dogfood.llm import (
+    ContadorUso,
+    backend_para,
+    cliente_para,
+    completar_json,
+    indice_modelo,
+)
 from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
@@ -75,11 +85,28 @@ class Opciones:
     reloj: Callable[[], float] = time.monotonic
     dormir: Callable[[float], Awaitable[None]] = asyncio.sleep
     confirmar: Callable[[Instancia, Persona], str | None] | None = None
+    driver: str | None = None  # web | android; pisa el del escenario
+    motor: str | None = None  # browser_use | bucle
+    bus: BusVivo = BUS_NULO
 
 
 def _clave(e: Escenario) -> str:
     d = e.datos
     return "-".join([d.perfil, str(d.clientes), *d.defectos])
+
+
+def _driver(nombre: str, cfg: Config, objetivo: Objetivo, instancia: Instancia, persona: Persona):
+    if nombre == "android":
+        p, d = instancia.parametros, cfg.driver
+        adb = Adb(p.get("serial") or d.serial, p.get("host_puerto") or d.host_puerto)
+        return DriverAndroid(adb, p.get("paquete") or d.paquete, d.actividad)
+    movil = "movil" in persona.estilo
+    return DriverWeb(
+        instancia.base_url,
+        lambda url: objetivo.url_permitida(url, instancia),
+        MOVIL if movil else ESCRITORIO,
+        movil,
+    )
 
 
 def _dataset(e: Escenario, semilla: int, almacen: Almacen, corrida_id: str) -> DatasetSintetico:
@@ -115,6 +142,7 @@ async def correr(op: Opciones) -> Corrida:
     try:
         instancia = objetivo.preparar(op.ref, corrida)
         corrida.commit = instancia.commit
+        corrida.version_app = instancia.parametros.get("version_app") or instancia.commit
 
         todos = objetivo.escenarios()
         if op.escenarios:
@@ -167,18 +195,54 @@ async def correr(op: Opciones) -> Corrida:
             extra = {}
             if objetivo.nombre == "predicts" and escenario.id == "recuperar-contrasena":
                 extra["herramientas_extra"] = cuentas.herramientas_extra(instancia, persona)
-            e = await navegador.ejecutar(
-                persona,
-                escenario,
-                instancia,
-                ds,
-                almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}"),
-                llm_de(n),
-                op.juez or juez,
-                objetivo=objetivo,
-                contador=contador,
-                **extra,
-            )
+            carpeta = almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}")
+            driver = op.driver or escenario.driver
+            por_bucle = driver == "android" or op.motor == "bucle"
+            if not por_bucle and cfg.motores["persona"] == "claude_code":
+                log.info(
+                    "motores.persona=claude_code: browser-use necesita un cliente de chat por "
+                    "API, uso el bucle propio con el driver web"
+                )
+                por_bucle = True
+            if por_bucle:
+                indice = indice_modelo("persona", n, semilla, cfg)
+                e = await bucle.ejecutar(
+                    persona,
+                    escenario,
+                    _driver(driver, cfg, objetivo, instancia, persona),
+                    backend_para("persona", cfg, indice),
+                    backend_para("juez", cfg),
+                    carpeta,
+                    cfg=cfg,
+                    bus=op.bus,
+                    corrida_id=corrida.id,
+                    objetivo=objetivo,
+                )
+                m = e.metricas
+                uso = contador.registrar(
+                    "persona",
+                    e.modelo,
+                    m.tokens_in,
+                    m.tokens_out,
+                    e.id,
+                    backend=e.backend,
+                    costo_equivalente_usd=m.costo_equivalente_usd,
+                )
+                uso.costo_usd = m.costo_usd  # lo cobrado de verdad: 0 con el plan Max
+            else:
+                e = await navegador.ejecutar(
+                    persona,
+                    escenario,
+                    instancia,
+                    ds,
+                    carpeta,
+                    llm_de(n),
+                    op.juez or juez,
+                    objetivo=objetivo,
+                    contador=contador,
+                    **extra,
+                )
+            e.resultado = contrato.resultado(e)
             if escenario.carril == "login_fallido":
                 esperados = [r for r in e.red if r.estado == 429 and "/auth/login" in r.url]
                 if esperados:
@@ -321,7 +385,9 @@ async def correr(op: Opciones) -> Corrida:
             corrida.parametros["avisos"] = avisos
         corrida.estado = estado
         corrida.fin = datetime.now().astimezone()
-        almacen.cerrar_corrida(corrida.id, estado, sum(u.costo_usd for u in contador.usos))
+        almacen.cerrar_corrida(
+            corrida.id, estado, sum(u.costo_usd for u in contador.usos), corrida.version_app
+        )
         (almacen.dir_corrida(corrida.id) / "corrida.json").write_text(
             corrida.model_dump_json(indent=2)
         )
