@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block titulo %}Ejecuciones{% endblock %}
+{% block contenido %}
+<form method="get" action="/" class="filtros">
+  {% for nombre, valores in opciones.items() %}
+  <label>{{ nombre }}
+    <select name="{{ nombre }}">
+      <option value="">todos</option>
+      {% for valor, etiqueta in valores %}
+      <option value="{{ valor }}"{% if filtros[nombre] == valor %} selected{% endif %}>{{ etiqueta }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  {% endfor %}
+  <button type="submit">Filtrar</button>
+</form>
+<table>
+  <thead><tr>
+    <th>Corrida</th><th>Fecha</th><th>Versión</th><th>Persona</th><th>Escenario</th><th>Driver</th>
+    <th>Motor</th><th>Backend</th><th>Modelo</th><th>Resultado</th><th>Duración</th><th>Pasos</th>
+    <th>Tokens</th><th>Capturas</th><th>Costo</th><th>Costo equiv.</th><th></th>
+  </tr></thead>
+  <tbody>
+  {% for f in filas %}
+  <tr>
+    <td><a href="/corridas/{{ f.corrida_id }}">{{ f.corrida_id }}</a></td>
+    <td>{{ f.fecha|fecha }}</td><td>{{ f.version }}</td>
+    <td>{{ f.persona_nombre or f.persona_id }} ({{ f.persona_idioma or "?" }})</td>
+    <td>{{ f.escenario_id }}</td><td>{{ f.driver }}</td><td>{{ f.motor }}</td>
+    <td>{{ f.backend }}</td><td>{{ f.modelo }}</td>
+    <td><span class="res-{{ f.resultado }}">{{ etiquetas[f.resultado] }}</span></td>
+    <td>{{ f.duracion_s|duracion }}</td><td>{{ f.pasos }}</td><td>{{ f.tokens }}</td>
+    <td>{{ f.capturas }}</td><td>{{ f.costo_usd|usd }}</td><td>{{ f.costo_equivalente_usd|usd }}</td>
+    <td><a href="/ejecuciones/{{ f.id }}">detalle</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="17">Sin ejecuciones.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
