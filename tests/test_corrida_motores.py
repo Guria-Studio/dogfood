@@ -1,4 +1,5 @@
 import asyncio
+import re
 import sqlite3
 
 import pytest
@@ -157,5 +158,6 @@ def test_version_app_llega_a_la_corrida(tmp_path, motores):
 
 
 def test_help_muestra_driver_y_motor():
-    r = CliRunner().invoke(app, ["--help"])
-    assert "--driver" in r.output and "--motor" in r.output
+    r = CliRunner().invoke(app, ["--help"], env={"NO_COLOR": "1", "COLUMNS": "200"})
+    salida = re.sub(r"\x1b\[[0-9;]*m", "", r.output)
+    assert "--driver" in salida and "--motor" in salida
