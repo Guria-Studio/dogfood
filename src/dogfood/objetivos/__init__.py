@@ -2,7 +2,10 @@ from importlib import import_module
 
 from dogfood.objetivos.base import Objetivo
 
-OBJETIVOS = {"predicts": "dogfood.objetivos.predicts:PredictsObjetivo"}
+OBJETIVOS = {
+    "predicts": "dogfood.objetivos.predicts:PredictsObjetivo",
+    "android": "dogfood.objetivos.android:AndroidObjetivo",
+}
 
 
 def cargar_objetivo(nombre: str) -> Objetivo:
