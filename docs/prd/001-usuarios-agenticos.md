@@ -1,9 +1,9 @@
 ---
 type: prd
 project_id: dogfood
-version: 0.2
+version: 0.3
 generated_by: orch-prd
-generated_at: 2026-10-24
+generated_at: 2026-10-29
 title: Usuarios agénticos para predicts
 ---
 
@@ -42,6 +42,9 @@ dogfood crea una población de usuarios sintéticos con personalidad que usan pr
 - G3 — dogfood detecta predicciones equivocadas: compara lo que predicts devuelve con la verdad conocida de cada CSV sintético.
 - G4 — Cada corrida produce un reporte de opinión, en español, por pantalla y por tipo de usuario.
 - G5 — Ninguna corrida toca la instancia de desarrollo que Héctor usa, ni deja datos en ella.
+- G6 — El motor del agente es intercambiable: Claude Code con el plan Max (sin pagar computer use por API) o un backend por API, con resultado y costo comparables (issue #35).
+- G7 — Los usuarios agénticos también prueban apps Android reales, con el mismo modelo de personas, escenarios, contratos y reporte (issue #32).
+- G8 — Lo que hacen los agentes se ve en vivo y se revisa después en un panel, sin leer logs (issues #33 y #34).
 
 ## Fuera de alcance
 
@@ -130,9 +133,19 @@ dogfood crea una población de usuarios sintéticos con personalidad que usan pr
 - **FR-24** — Los modelos se eligen por rol (persona, juez de éxito, deduplicación y redacción) y son configurables. Varios modelos pueden tomar el mismo rol en una corrida, para comparar. *Aceptación:* el reporte muestra qué modelo hizo qué.
 - **FR-25** — dogfood mide la consistencia: el mismo escenario varias veces da la tasa de éxito y la variación de los hallazgos. *Aceptación:* `dogfood run --repeat 3` reporta la tasa de éxito por escenario.
 
+### Motores, drivers y observabilidad (v0.3, issues #32–#35)
+- **FR-26** — **Motor intercambiable por rol** (#35). Cada rol (`persona`, `juez`, `dedupe`, `redactor`) elige en `dogfood.yaml` su backend: `api` (9router u otro endpoint compatible con OpenAI) o `claude_code` (`claude -p` en modo headless con la suscripción Max, salida JSON validada contra un esquema y MCPs opcionales con `--mcp-config`). Los dos cumplen el mismo contrato `BackendLlm`. *Aceptación:* el mismo escenario corre con `claude_code` y con `api`, y el panel compara resultado y costo; no hay claves en el repo; si `claude` no está instalado o no está autenticado, el backend falla con un mensaje que dice qué hacer.
+- **FR-27** — **Control de costo del motor** (#35): el agente manda primero el árbol de UI en texto, adjunta como máximo `max_capturas_por_paso` capturas y las reduce a `resolucion_max`. Cada ejecución guarda tokens de entrada y salida, capturas enviadas, tiempo, costo cobrado y costo equivalente por API. *Aceptación:* con `max_capturas_por_paso: 0` ningún prompt lleva imagen; `dogfood runs` y el panel muestran las métricas por ejecución.
+- **FR-28** — **Interfaz `Driver` común** (#32): el agente habla con la app solo por `observar()`, `actuar(acción)` y `evidencia()`. Hay un driver web (Playwright) y uno Android (ADB). *Aceptación:* el bucle del agente corre sin cambios con un driver falso, el web y el Android.
+- **FR-29** — **Driver Android por ADB/UIAutomator** (#32): observa con `screencap` y `uiautomator dump` (elementos con texto, id y bounds); actúa con `input tap/text/swipe/keyevent`, `am start`, `am force-stop` e `adb install`; guarda `logcat` filtrado por paquete, `screenrecord` por ejecución y una captura por paso. Se configura en `dogfood.yaml` (`driver: android`, `serial` o `host:puerto`, `paquete`, `apk` opcional) y solo usa dispositivos reales por USB, localhost o Tailscale. *Aceptación:* (a) los tests con un `adb` falso cubren observar, actuar y evidencia; (b) **verificación manual pendiente**: un escenario de login corre de punta a punta en un Android real conectado por Tailscale, cada paso deja captura, árbol y acción en el almacén, y un fallo produce el mismo tipo de issue que el driver web (pasos, capturas, logcat, gravedad).
+- **FR-30** — **Contrato de resultado**: cada ejecución termina como `aprobado`, `fallo` o `no_concluyente`. Sin evidencia observable (capturas de los pasos y motivo del juez) nunca es `aprobado`. *Aceptación:* una ejecución con `exito=True` y sin capturas es `no_concluyente`.
+- **FR-31** — **Vista en vivo** (#33): `dogfood run --vista` sirve en `127.0.0.1` una página de solo lectura con la pantalla de cada ejecución en streaming (CDP `Page.startScreencast` en web; `scrcpy` o `screencap` a baja frecuencia en Android), la acción en curso marcada sobre la imagen y una columna de razonamiento con el paso del contrato. Varias ejecuciones en grilla, clic para ampliar. *Aceptación:* latencia menor a 1 s en web y a 2 s en Android; la columna de razonamiento muestra el paso que corresponde a la imagen; con 3 ejecuciones simultáneas la duración de la corrida no sube más de un 10 % respecto de correr sin vista.
+- **FR-32** — **Panel de corridas** (#34): `dogfood panel` sirve en `127.0.0.1` los recorridos con su contrato (estado inicial, acciones, resultado esperado y evidencia requerida) y las ejecuciones con versión de la app, persona, driver, motor, resultado, duración y costo en tokens. El detalle por paso muestra captura, acción, razonamiento, esperado contra observado y consola/red (web) o logcat (Android); cada ejecución tiene su video y, en web, el *trace* de Playwright descargable; también la opinión de la persona por pantalla. Mismo estilo visual que el dashboard de orch. *Aceptación:* desde el panel se recorre cualquier ejecución paso a paso con su evidencia, y se filtra por recorrido, resultado, versión, persona, driver y motor.
+- **FR-33** — **Crear issue desde el panel** (#34): el botón «Crear issue» publica en el repo configurado un issue con pasos, rutas de capturas y del video, y el comando de replay, pasado antes por la redacción de NFR-3 (secretos, emails y contraseñas de las personas, datos de prueba). *Aceptación:* el issue creado no contiene ningún secreto ni contraseña de las personas, y lleva la huella para la deduplicación de FR-18.
+
 ## Requisitos no funcionales
 
-- **NFR-1 — Restricción:** Python 3.13 con uv. Modelos solo vía 9router. El navegador es el Chrome del server o un Chromium que maneje dogfood, en el homelab.
+- **NFR-1 — Restricción:** Python 3.13 con uv. Modelos vía 9router o vía Claude Code con el plan Max (FR-26). El navegador es el Chrome del server o un Chromium que maneje dogfood, en el homelab. Android solo con dispositivos reales: el homelab no tiene KVM.
 - **NFR-2 — Memoria:** el homelab tiene 14 GB compartidos con otros proyectos. La instancia de dogfood respeta los límites de memoria del compose de predicts; la concurrencia por defecto es de 5 navegadores y es configurable; ningún proceso de dogfood puede tumbar el servidor.
 - **NFR-3 — Seguridad:** las credenciales (9router, Jev, GitHub) se leen de `~/.config/dogfood/*.env` y nunca aparecen en issues, reportes ni logs. Antes de publicar se eliminan los tokens y las cookies de la evidencia.
 - **NFR-4 — Datos públicos:** predicts es un **repo público**. Todos los datos son sintéticos; un issue nunca lleva datos reales ni menciona al empleador de Héctor (regla de confidencialidad de predicts).
@@ -140,6 +153,8 @@ dogfood crea una población de usuarios sintéticos con personalidad que usan pr
 - **NFR-6 — Costo:** no hay tope duro, por decisión de Héctor. Se mide y se muestra el costo por corrida, por rol y por modelo, e incluye la IA que consume la propia instancia de predicts (Jev y 9router). Existe un tope opcional que corta la corrida.
 - **NFR-7 — Reproducibilidad:** la misma semilla y el mismo commit dan la misma población, los mismos CSV y la misma verdad.
 - **NFR-8 — Ruido:** con la deduplicación de FR-18 y un umbral de gravedad configurable, una corrida sobre `main` sin cambios no abre más de 10 issues nuevos.
+- **NFR-10 — Exposición:** la vista en vivo y el panel escuchan en `127.0.0.1` por defecto; solo aceptan otra dirección si es de Tailscale (`100.64.0.0/10`) y nunca `0.0.0.0`. ADB solo por USB, localhost o Tailscale; dogfood se niega a conectar a un `host:puerto` fuera de esos rangos.
+- **NFR-11 — Vista sin costo de velocidad:** la vista descarta frames cuando un cliente va lento; nunca bloquea al agente.
 - **NFR-9 — Extensible:** predicts es un «objetivo» con su entorno, sus pantallas, sus datos y sus verificaciones. Agregar Showly o agenda-barberia debe ser un objetivo nuevo, no cambios en el núcleo.
 
 ## Supuestos
@@ -167,3 +182,5 @@ dogfood crea una población de usuarios sintéticos con personalidad que usan pr
 - **M3 — Detección:** fallos técnicos, números equivocados frente a la verdad, aislamiento entre empresas, reglas propias de predicts y notas de fricción. FR-12, FR-13, FR-14, FR-15, FR-16.
 - **M4 — Issues y reporte:** hallazgos reproducibles, deduplicados y publicados en GitHub, reporte de opinión y aviso en Slack. FR-17, FR-18, FR-19, FR-20, FR-21.
 - **M5 — Modelos y consistencia:** modelos por rol, comparación entre modelos y tasa de éxito por repetición. FR-24, FR-25.
+- **M6 — Motores intercambiables y Android:** backend `claude_code` junto al de API, interfaz `Driver` con driver web y Android, bucle de agente propio y contrato de resultado. FR-26, FR-27, FR-28, FR-29, FR-30, NFR-10.
+- **M7 — Vista en vivo y panel:** streaming de la pantalla con razonamiento y panel de corridas con evidencia, video, costo y «Crear issue». FR-31, FR-32, FR-33, NFR-11.

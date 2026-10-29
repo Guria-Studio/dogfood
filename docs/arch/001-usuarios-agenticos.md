@@ -1,11 +1,11 @@
 ---
 type: arch
 project_id: dogfood
-version: 0.1
+version: 0.2
 depends_on:
   - docs/prd/001-usuarios-agenticos.md
 generated_by: orch-arch
-generated_at: 2026-10-24
+generated_at: 2026-10-29
 title: Usuarios agénticos para predicts — arquitectura
 ---
 
@@ -99,6 +99,35 @@ Todo vive en `src/dogfood/`.
 ### CLI (`cli.py` + `comandos/`)
 - **`cli.py`** (Typer) monta los comandos de `comandos/*.py`; cada comando vive en su propio archivo, creado como stub en F0: `env`, `datos`, `personas`, `run`, `runs` y `replay`.
 
+### Motores (`backends/`, `llm.py`) — v0.2, FR-26, FR-27
+- **`backends/base.py`:** el protocolo `BackendLlm` y `UsoBackend` (ver *Interfaces*). Un backend recibe un prompt, un esquema Pydantic y, opcionalmente, rutas de imágenes; devuelve la salida validada, el uso y un id de sesión para continuar.
+- **`backends/api.py`:** el `completar_json` de siempre contra 9router (o cualquier endpoint compatible con OpenAI), ahora detrás del protocolo; las imágenes van como `image_url` en base64.
+- **`backends/claude_code.py`:** invoca `claude -p --output-format json --json-schema <esquema> --model <m>` como subproceso, con `cwd` en la carpeta de la ejecución (para no cargar el `CLAUDE.md` de dogfood), `--strict-mcp-config` y `--mcp-config` solo si está configurado, solo la herramienta `Read` sobre la carpeta de capturas y `--resume <sesion>` para mantener el contexto entre pasos. Lee `result`/`structured_output`, `usage` y `total_cost_usd` del JSON. El costo cobrado es 0 (plan Max) y `total_cost_usd` queda como costo **equivalente**. Si `claude` no está en el PATH o responde que no hay sesión, lanza `ErrorMotor` con la instrucción de arreglo.
+- **`llm.py`:** agrega `backend_para(rol, cfg, indice=0) -> BackendLlm` según `motores.<rol>` de `dogfood.yaml` (por defecto `api`). `cliente_para` (el `ChatOpenAI` de browser-use) y `completar_json` siguen igual para no romper F1–F5.
+
+### Drivers (`drivers/`) — v0.2, FR-28, FR-29
+- **`drivers/base.py`:** el protocolo `Driver` y sus modelos `ElementoUI`, `Observacion`, `Accion`, `ResultadoAccion`.
+- **`drivers/web.py`:** driver web sobre Playwright (Chromium propio, como D2): observa con captura y el árbol de accesibilidad (`aria_snapshot`/`accessibility`) convertido a `ElementoUI`; actúa por id de elemento o coordenadas; guarda consola, red, video (`record_video_dir`) y *trace* (`ctx.tracing`); `frame()` devuelve el último frame de `Page.startScreencast` (CDP).
+- **`drivers/android.py`:** clase `Adb` (envuelve el binario `adb` con un *runner* inyectable para tests) y `DriverAndroid`. Observa con `adb exec-out screencap -p` y `uiautomator dump /sdcard/dogfood.xml` + `exec-out cat` (XML → `ElementoUI` con `resource-id`, `text`, `content-desc`, `class`, `bounds`, `clickable`); actúa con `input tap|text|swipe|keyevent`, `am start -n`/`monkey -p`, `am force-stop`, `install -r`; evidencia: `logcat --pid=<pid del paquete>` (o filtrado por paquete), `screenrecord` en segmentos de 170 s y la captura por paso. `frame()` usa `screencap` escalado a JPEG. Valida el destino antes de conectar (NFR-10).
+- **Opción B (Appium + UIAutomator2 o `mobile-mcp`)** queda como spike pendiente de dispositivo real (ver D18).
+
+### Bucle de agente (`agente/bucle.py`, `agente/prompts_bucle.py`) — v0.2
+- Una `Ejecucion` con cualquier `Driver` y cualquier `BackendLlm`: `observar → decidir (DecisionPaso en JSON) → actuar → registrar Paso → publicar EventoVivo`, hasta `terminado`, `rendirse` o `max_pasos`. El prompt lleva el árbol en texto; adjunta la captura solo cuando el árbol tiene menos de 3 elementos útiles o el modelo la pidió en el paso anterior, con tope `max_capturas_por_paso` y reducida a `resolucion_max` (Pillow). Al terminar llama al juez (`backend_para("juez")`) y aplica `contrato.resultado`.
+- Mientras el bus está activo, una tarea aparte pide `driver.frame()` (5 fps web, 1 fps Android) y lo publica; nunca espera al cliente (NFR-11).
+- browser-use (`agente/navegador.py`) sigue siendo el motor web por defecto (`motor: browser_use`); el bucle propio es `motor: bucle` y es el único para Android.
+
+### Contrato y eventos (`contrato.py`, `eventos.py`) — v0.2, FR-30, FR-31
+- **`contrato.py`:** `resultado(e: Ejecucion) -> Resultado` (aprobado, fallo, no concluyente), única fuente de verdad del resultado.
+- **`eventos.py`:** `EventoVivo` y `BusVivo`, pub/sub en proceso con una cola acotada por suscriptor que descarta frames viejos. `BUS_NULO` no hace nada (corridas sin `--vista`).
+
+### Web local (`web/`, `vista/`, `panel/`) — v0.2, FR-31, FR-32, FR-33
+- **`web/`:** base común: `crear_app_base()` (FastAPI + Jinja2, estáticos), `validar_host()` (NFR-10), `plantillas/base.html` y `estatico/dogfood.css` con los tokens del dashboard de orch («Mesa de despacho»: fondo grafito, violeta `#5a43db` para foco y selección, escala de estado done `#1e8a4c`, failed `#d1343a`, blocked `#b86e0b`, running `#2f6bd6`, modo claro y oscuro).
+- **`vista/servidor.py`:** app de la vista en vivo: `GET /` (grilla), `GET /ws` (WebSocket con los `EventoVivo` de todas las ejecuciones). `vista.js` dibuja el frame, marca el punto de la acción y llena la columna de razonamiento. Corre dentro del proceso de `dogfood run --vista` (uvicorn en el mismo loop) en `127.0.0.1:7460`.
+- **`panel/`:** app del panel (`dogfood panel`, `127.0.0.1:7470`), solo lectura sobre `runs/` salvo «Crear issue». `consultas.py` lee SQLite y las carpetas; `app.py` monta las rutas; `detalle.py` el paso a paso; `issue.py` arma y publica el issue reutilizando `reporte/redactar.py` y `reporte/issues.py` (sin modificarlos).
+
+### Objetivo Android (`objetivos/android/`) — v0.2
+- `AndroidObjetivo` cumple el protocolo `Objetivo`: `preparar` verifica el dispositivo (`adb get-state`), instala el `apk` si hay y devuelve una `Instancia` con `base_url = android://<paquete>` y `parametros = {serial, paquete, version_app}` (de `dumpsys package`); `destruir` hace `force-stop` y `pm clear`; `url_permitida` acepta solo `android://<paquete>`; `pantalla` es la actividad; `logs` devuelve el logcat; `verificadores()` es `[]` en la v1. Escenarios en `objetivos/android/escenarios/*.yaml` (login de ejemplo).
+
 ## Modelo de datos
 
 **Carpeta por corrida:** `runs/<corrida_id>/` (gitignored).
@@ -121,6 +150,13 @@ Todo vive en `src/dogfood/`.
 - `semilla`, `perfil`, `fecha_max`, `parametros` (`MIN_COMPRAS`, horizonte y ventana usados para comparar), `defectos` aplicados;
 - `clientes[]`, cada uno con `cliente_id`, `abandono_desde` (fecha o null) y `pares[]`;
 - cada par trae `producto_id`, `sku`, `ciclo_real_dias`, `sigma_log`, `n_compras`, `ultima_compra` y `durable`.
+
+**Cambios v0.2 (migración a `user_version = 2` con `ALTER TABLE … ADD COLUMN`, una sola tarea: F6.1.T1):**
+- `corridas`: `version_app TEXT` (versionName en Android; commit en web).
+- `ejecuciones`: `driver TEXT DEFAULT 'web'`, `motor TEXT DEFAULT 'browser_use'`, `backend TEXT DEFAULT 'api'`, `resultado TEXT` (`aprobado`, `fallo`, `no_concluyente`), `tokens_in INTEGER DEFAULT 0`, `tokens_out INTEGER DEFAULT 0`, `capturas INTEGER DEFAULT 0`, `costo_usd REAL DEFAULT 0`, `costo_equivalente_usd REAL DEFAULT 0`, `video TEXT`, `trace TEXT`.
+- `uso_llm`: `backend TEXT DEFAULT 'api'`, `costo_equivalente_usd REAL DEFAULT 0`.
+- Carpeta de la ejecución: además `arboles/paso-NNN.xml|.json`, `video/*.webm|*.mp4`, `trace.zip` (web), `logcat.txt` (Android).
+- `Paso` suma `razonamiento`, `paso_contrato`, `esperado`, `observado`, `arbol` (ruta) y `punto` (x, y de la acción). `Ejecucion` suma `driver`, `motor`, `backend`, `resultado`, `metricas: MetricasEjecucion` (tokens_in, tokens_out, capturas, costo_usd, costo_equivalente_usd), `video`, `trace` y `evidencia_driver: list[Evidencia]`. `Escenario` suma `contrato: ContratoRecorrido | None` (estado_inicial, acciones, resultado_esperado, evidencia_requerida) y `driver: web | android` (por defecto `web`). `UsoLlm` suma `backend` y `costo_equivalente_usd`. `Corrida` suma `version_app`. Todos los campos nuevos tienen valor por defecto: los JSON de corridas viejas siguen cargando.
 
 ## Interfaces
 
@@ -191,6 +227,136 @@ dogfood replay <hallazgo_id|ejecucion_id>
 - `slack.env`: `SLACK_WEBHOOK_URL`.
 - `gh` usa su propio login.
 
+### v0.2 — Driver (`drivers/base.py`)
+```python
+class ElementoUI(BaseModel):
+    id: str                      # resource-id / selector estable; "e<n>" si no hay
+    texto: str = ""
+    descripcion: str = ""        # content-desc / aria-label
+    clase: str = ""
+    bounds: tuple[int, int, int, int]   # x1, y1, x2, y2 en píxeles
+    clicable: bool = False
+    editable: bool = False
+
+class Observacion(BaseModel):
+    pantalla: str                # URL (web) o actividad (Android)
+    elementos: list[ElementoUI]
+    texto_visible: str = ""
+    captura: Path | None = None  # PNG del paso
+    arbol: Path | None = None    # árbol crudo
+    ts: datetime
+
+class Accion(BaseModel):
+    tipo: Literal["tocar", "escribir", "deslizar", "tecla", "navegar",
+                  "abrir_app", "cerrar_app", "volver", "esperar"]
+    elemento: str | None = None  # id de ElementoUI; si no, x/y
+    x: int | None = None; y: int | None = None
+    x2: int | None = None; y2: int | None = None
+    texto: str | None = None     # texto, tecla, URL o paquete
+    ms: int | None = None
+
+class ResultadoAccion(BaseModel):
+    ok: bool
+    error: str = ""
+    punto: tuple[int, int] | None = None   # dónde se tocó, para la vista
+
+class Driver(Protocol):
+    nombre: str                                   # "web" | "android"
+    async def iniciar(self, carpeta: Path) -> None
+    async def observar(self, n_paso: int) -> Observacion
+    async def actuar(self, accion: Accion) -> ResultadoAccion
+    async def frame(self) -> bytes | None         # JPEG para la vista; barato
+    async def evidencia(self) -> list[Evidencia]  # consola/red o logcat, video, trace
+    async def cerrar(self) -> None
+```
+
+### v0.2 — BackendLlm (`backends/base.py`)
+```python
+class UsoBackend(BaseModel):
+    tokens_in: int = 0; tokens_out: int = 0; tokens_cache: int = 0
+    capturas: int = 0; duracion_s: float = 0
+    costo_usd: float = 0             # lo que se cobra (0 con plan Max)
+    costo_equivalente_usd: float = 0 # lo que costaría por API
+
+class ErrorMotor(RuntimeError): ...   # mensaje accionable, sin secretos
+
+class BackendLlm(Protocol):
+    nombre: str     # "api" | "claude_code"
+    modelo: str
+    async def completar_json(self, prompt: str, esquema: type[T], *,
+                             imagenes: Sequence[Path] = (), sesion: str | None = None
+                             ) -> tuple[T, UsoBackend, str | None]   # salida, uso, sesión
+```
+`dogfood.yaml`:
+```yaml
+motores: {persona: api, juez: api, dedupe: api, redactor: api}   # api | claude_code
+claude_code: {modelos: {persona: sonnet, juez: sonnet}, mcp_config: null, timeout_s: 180}
+agente: {max_capturas_por_paso: 1, resolucion_max: 1024}
+driver:                      # por defecto web
+  tipo: android
+  serial: null               # USB, o
+  host_puerto: 100.x.y.z:5555   # localhost o Tailscale, nunca otra red
+  paquete: com.ejemplo.app
+  apk: null
+vista: {host: 127.0.0.1, puerto: 7460}
+panel: {host: 127.0.0.1, puerto: 7470}
+```
+
+### v0.2 — DecisionPaso (salida del bucle por paso)
+```python
+class DecisionPaso(BaseModel):
+    razonamiento: str        # breve, para la columna de la vista
+    paso_contrato: str       # qué paso del contrato persigue
+    accion: Accion | None
+    esperado: str            # qué debería pasar tras la acción
+    friccion: str | None = None
+    pedir_captura: bool = False
+    terminado: bool = False
+    rendirse: str | None = None
+```
+
+### v0.2 — Contrato y eventos
+```python
+Resultado = Literal["aprobado", "fallo", "no_concluyente"]
+def resultado(e: Ejecucion) -> Resultado
+# no_concluyente: estado == "error", o ningún paso con captura, o exito sin motivo_juez
+# aprobado: exito y hay evidencia; fallo: el resto
+
+class EventoVivo(BaseModel):
+    corrida_id: str; ejecucion_id: str
+    tipo: Literal["inicio", "paso", "frame", "fin"]
+    n_paso: int = 0; persona: str = ""; escenario: str = ""
+    paso_contrato: str = ""; razonamiento: str = ""; accion: str = ""
+    punto: tuple[int, int] | None = None; resultado: str | None = None
+    frame_jpeg_b64: str | None = None
+    ts: datetime
+
+class BusVivo:
+    activo: bool
+    def publicar(self, ev: EventoVivo) -> None          # nunca bloquea
+    def suscribir(self, max_cola: int = 50) -> Suscripcion   # async iterable; close()
+BUS_NULO: BusVivo   # activo = False
+```
+
+### v0.2 — HTTP local
+| App | Método y ruta | Qué hace |
+| --- | --- | --- |
+| vista | `GET /` | grilla de ejecuciones en vivo |
+| vista | `GET /ws` (WebSocket) | `EventoVivo` en JSON, todas las ejecuciones |
+| panel | `GET /` | ejecuciones con filtros `recorrido`, `resultado`, `version`, `persona`, `driver`, `motor` |
+| panel | `GET /recorridos` | escenarios con su contrato |
+| panel | `GET /corridas/{id}` | resumen y comparación por motor (resultado, tokens, costo y costo equivalente) |
+| panel | `GET /ejecuciones/{id}` | paso a paso, video, trace, consola/red o logcat, fricciones |
+| panel | `GET /archivos/{ruta}` | archivos bajo `runs/`, con guarda contra `..` |
+| panel | `POST /ejecuciones/{id}/issue` | redacta y publica el issue; responde la URL |
+
+### v0.2 — CLI
+```
+dogfood run … [--driver web|android] [--motor browser_use|bucle] [--vista] [--vista-puerto 7460]
+dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
+```
+`cli.py` descubre los comandos de `comandos/` con `pkgutil` (cada módulo expone `app` y opcionalmente `NOMBRE`), así que un comando nuevo solo agrega su archivo.
+
 ## Decisiones
 
 - **D1 — Motor del agente.** Elegido: la librería `browser-use`, con LLM por 9router. Trae visión, acciones y un historial que se puede repetir. Descartados: un bucle propio sobre Playwright, porque es mucho trabajo para lo mismo; y el `browser_exec` de Hermes, que es un solo Chrome compartido.
@@ -211,6 +377,15 @@ dogfood replay <hallazgo_id|ejecucion_id>
 - **D14 — Evidencia sin imágenes en la v1.** El issue lleva evidencia en texto, más la ruta local de las capturas y el replay. Descartados: un release de assets en el repo privado dogfood, que en un issue público no se ve; y una rama de evidencias en predicts, que lo ensucia. Pendiente para v2: un bucket o la API de uploads de GitHub.
 - **D13 — CI sin docker.** Los tests unitarios usan fakes del `Objetivo` y del LLM. Los de integración llevan la marca `integracion` y se excluyen por defecto (`addopts = -m "not integracion"`). Las tareas que los escriben los corren a mano en el server.
 
+- **D15 — Claude Code como backend por paso, no como agente completo.** Elegido: dogfood mantiene su bucle (observa, decide, actúa) y `claude -p` solo decide el paso con salida JSON validada (`--json-schema`), con `--resume` para conservar el contexto. Así la evidencia por paso (captura, árbol, consola, red, logcat) y el contrato quedan bajo control de dogfood, igual con cualquier backend. Descartado: darle a Claude Code el escenario entero con Playwright MCP, porque la evidencia y los tiempos quedarían dentro de su sesión y no habría equivalente para Android; los MCPs siguen disponibles con `--mcp-config` para quien los quiera sumar.
+- **D16 — Costo del plan Max.** `costo_usd = 0` y `costo_equivalente_usd = total_cost_usd` del JSON de `claude -p`; el panel muestra las dos columnas para comparar motores. Descartado: contar 0 sin más, porque no permitiría comparar.
+- **D17 — Driver Android sobre ADB directo.** Elegido: `adb` + `uiautomator dump`, sin servicios extra en el teléfono. Descartado por ahora: Appium + UIAutomator2, que agrega un servidor Java y una dependencia pesada.
+- **D18 — Spike de la opción B diferido.** El issue pide un spike medible de Appium o `mobile-mcp`, pero hoy no hay dispositivo conectado ni KVM: se documenta en `docs/ops/android.md` cómo medirlo (tiempo por paso y tasa de esperas fallidas en el escenario de login) y queda pendiente con dispositivo real.
+- **D19 — Vista dentro del proceso de la corrida.** Elegido: uvicorn en el mismo loop asyncio de `dogfood run --vista`, con un bus en memoria; los frames no tocan disco. Descartado: un proceso aparte que lea archivos, porque agrega latencia (FR-31 pide < 1 s) y escritura de frames.
+- **D20 — Panel server-rendered.** Elegido: FastAPI + Jinja2 con un poco de JS propio y la hoja de estilo con los tokens del dashboard de orch. Descartado: el SPA React de orch (Vite + Tailwind), porque metería Node y un build en un proyecto Python para pocas pantallas.
+- **D21 — Exposición local.** Vista y panel solo en loopback o una IP de Tailscale, ADB solo USB/loopback/Tailscale (NFR-10); `validar_host` lo hace cumplir y los tests lo prueban. Descartado: auth propia, porque no hay exposición pública que proteger.
+- **D22 — Tests sin dispositivo ni `claude` real.** El `adb` y el `claude` se reemplazan por *runners* falsos (y un script `claude` falso en el PATH) con salidas grabadas. Las pruebas con dispositivo real y con la sesión de Claude Code son manuales y llevan la marca `integracion`.
+
 ## Riesgos
 
 - **Que browser-use se trabe en pantallas 3D o con SSE** (universo, procesamiento en vivo). *Mitigación:* límite de pasos y timeout por ejecución; la pantalla 3D se marca como «solo mirar» en los escenarios; un timeout es un hallazgo técnico solo si lo confirma el trabajo en la API.
@@ -218,6 +393,9 @@ dogfood replay <hallazgo_id|ejecucion_id>
 - **Memoria del homelab.** *Mitigación:* los límites del compose de predicts, 5 Chromium por defecto, `docker stats` muestreado por la corrida, y abortar si la memoria libre baja de 2 GB.
 - **Que cambie la UI de predicts.** El agente es de lenguaje natural, no de selectores, así que tolera cambios. El replay puede romperse: se informa como «no reproducible por cambio de UI» y no como «arreglado».
 - **Costo de IA en predicts** (Jev en cada mapeo y mensajes por análisis) con más de 100 personas. *Mitigación:* lo mide D12, y existe `--tope-usd`.
+- **Latencia de `claude -p` por paso** (arranque de varios segundos). *Mitigación:* `--resume` para no reenviar contexto, `timeout_s` configurable y comparación de tiempos en el panel; si no alcanza, el backend `api` sigue disponible.
+- **`uiautomator dump` lento o vacío** en pantallas con animaciones o WebView. *Mitigación:* reintento corto, captura como respaldo para el modelo y la opción B (D18) si los números del spike lo justifican.
+- **Frames que saturan la memoria o la CPU con varias ejecuciones.** *Mitigación:* JPEG de baja calidad, tope de fps, cola acotada que descarta frames viejos (NFR-11) y la vista solo con `--vista`.
 
 ## Cobertura de requisitos
 
@@ -257,6 +435,16 @@ dogfood replay <hallazgo_id|ejecucion_id>
 | NFR-7 | datos/generador.py, personas/generador.py (semilla) |
 | NFR-8 | reporte/issues.py (dedupe + umbral) |
 | NFR-9 | objetivos/base.py, registros |
+| FR-26 | backends/base.py, backends/api.py, backends/claude_code.py, llm.py (`backend_para`), panel (comparación) |
+| FR-27 | agente/bucle.py (capturas y resolución), dominio.py (`MetricasEjecucion`), almacen.py v2 |
+| FR-28 | drivers/base.py, agente/bucle.py |
+| FR-29 | drivers/android.py, objetivos/android/, docs/ops/android.md |
+| FR-30 | contrato.py, corrida.py |
+| FR-31 | eventos.py, vista/, agente/bucle.py y agente/navegador.py (frames y razonamiento), corrida.py (`--vista`) |
+| FR-32 | panel/app.py, panel/consultas.py, panel/detalle.py, drivers (video, trace, logcat) |
+| FR-33 | panel/issue.py, reporte/redactar.py, reporte/issues.py |
+| NFR-10 | web/ (`validar_host`), drivers/android.py (destino ADB) |
+| NFR-11 | eventos.py (cola acotada), agente/bucle.py (emisor de frames) |
 
 ## Desglose del trabajo
 
@@ -304,3 +492,21 @@ Las fases siguen los milestones del PRD (M1 = F1, …) y van precedidas de F0 co
 ### F5 — Modelos y consistencia (M5)
 - **F5.1 — modelos por rol**: `llm.py`, `reporte/modelos.py`, `corrida.py`. Depende de F4.6.
 - **F5.2 — repetición**: `reporte/consistencia.py`, `corrida.py`, `comandos/run.py`. Depende de F5.1.
+
+### F6 — Motores intercambiables y Android (M6)
+- **F6.1 — contratos v0.2** (esqueleto de la fase): dependencias nuevas (FastAPI, uvicorn) en `pyproject.toml` + `uv.lock`; `cli.py` con autodescubrimiento; campos nuevos de `dominio.py`; migración v2 de `almacen.py`; bloques nuevos de `config.py` y `dogfood.example.yaml`; `contrato.py`; `eventos.py`; `drivers/{__init__,base}.py`; `backends/{__init__,base}.py`.
+- **F6.2 — backend claude_code**: `backends/claude_code.py`, `backends/api.py`, `llm.py`. Depende de F6.1.
+- **F6.3 — driver Android**: `drivers/android.py`, `tests/fixtures/android/`. Depende de F6.1.
+- **F6.4 — driver web**: `drivers/web.py`. Depende de F6.1.
+- **F6.5 — bucle de agente**: `agente/bucle.py`, `agente/prompts_bucle.py`. Depende de F6.1.
+- **F6.6 — objetivo Android**: `objetivos/android/`, `objetivos/__init__.py`. Depende de F6.3.
+- **F6.7 — integración en la corrida**: `corrida.py`, `comandos/run.py`, `agente/navegador.py`. Depende de F6.2–F6.6.
+- **F6.8 — docs de operación**: `docs/ops/android.md`, `docs/ops/claude-code.md`. Depende de F6.2 y F6.3.
+
+### F7 — Vista en vivo y panel (M7)
+- **F7.1 — base web**: `web/` (app base, `validar_host`, CSS con tokens de orch, `base.html`). Depende de F6.1.
+- **F7.2 — vista en vivo**: `vista/`. Depende de F7.1.
+- **F7.3 — vista en la corrida**: `corrida.py`, `comandos/run.py`. Depende de F7.2 y F6.7.
+- **F7.4 — panel: listas y filtros**: `panel/{__init__,app,consultas}.py`, plantillas de listas, `comandos/panel.py`. Depende de F7.1.
+- **F7.5 — panel: detalle y crear issue**: `panel/{detalle,issue}.py`, `panel/app.py`, `plantillas/ejecucion.html`. Depende de F7.4.
+- **F7.9 — integración M7**: `tests/integracion/test_panel_vista.py`, `docs/ops/panel-y-vista.md`. Depende de F7.3 y F7.5.
