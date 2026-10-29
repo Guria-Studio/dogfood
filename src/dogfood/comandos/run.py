@@ -23,6 +23,12 @@ def run(
         str | None, typer.Option(help="Driver: web o android (pisa el del escenario).")
     ] = None,
     motor: Annotated[str | None, typer.Option(help="Motor: browser_use o bucle.")] = None,
+    vista: Annotated[
+        bool, typer.Option("--vista", help="Vista en vivo de las ejecuciones.")
+    ] = False,
+    vista_puerto: Annotated[
+        int | None, typer.Option("--vista-puerto", help="Puerto de la vista (por defecto, config).")
+    ] = None,
     mantener_entorno: Annotated[
         bool, typer.Option("--mantener-entorno", help="No destruye el entorno al terminar.")
     ] = False,
@@ -45,6 +51,8 @@ def run(
                 tope_usd=tope_usd,
                 driver=driver,
                 motor=motor,
+                vista=vista,
+                vista_puerto=vista_puerto,
             )
         )
     )

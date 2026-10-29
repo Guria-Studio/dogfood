@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import secrets
+import socket
 import time
 from collections.abc import Awaitable, Callable
 from contextlib import contextmanager
@@ -43,11 +44,13 @@ from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
 from dogfood.personas.generador import generar as generar_personas
 from dogfood.reporte import consistencia, issues, opinion, slack
+from dogfood.vista.servidor import iniciar_vista
 
 log = logging.getLogger("dogfood")
 
 FECHA_MAX = date(2026, 6, 30)
 ESPERA_MEMORIA_S = 300
+ESPERA_VISTA_S = 5
 
 
 def memoria_disponible_gb() -> float:
@@ -88,6 +91,9 @@ class Opciones:
     driver: str | None = None  # web | android; pisa el del escenario
     motor: str | None = None  # browser_use | bucle
     bus: BusVivo = BUS_NULO
+    vista: bool = False
+    vista_puerto: int | None = None  # por defecto, cfg.vista.puerto
+    espera_vista_s: float = ESPERA_VISTA_S  # deja ver el resultado final
 
 
 def _clave(e: Escenario) -> str:
@@ -119,6 +125,28 @@ def _dataset(e: Escenario, semilla: int, almacen: Almacen, corrida_id: str) -> D
     return ds.model_copy(update={"id": ds_id, "ruta_csv": ruta, "defectos": list(d.defectos)})
 
 
+async def _arrancar_vista(cfg: Config, puerto: int | None) -> tuple[BusVivo, asyncio.Task | None]:
+    """La vista nunca hace fallar la corrida: si no arranca, sigue con BUS_NULO."""
+    host, puerto = cfg.vista.host, puerto or cfg.vista.puerto
+    try:
+        with socket.socket() as s:  # uvicorn hace sys.exit si el puerto está ocupado
+            s.bind((host, puerto))
+        bus = BusVivo()
+        tarea = await iniciar_vista(bus, host, puerto)
+        for _ in range(100):  # espera a que escuche
+            try:
+                _, w = await asyncio.open_connection(host, puerto)
+                w.close()
+                break
+            except OSError:
+                await asyncio.sleep(0.05)
+    except (OSError, ValueError) as exc:
+        log.warning("no pude abrir la vista en %s:%s (%s); sigo sin vista", host, puerto, exc)
+        return BUS_NULO, None
+    log.info("vista en vivo: http://%s:%s/", host, puerto)
+    return bus, tarea
+
+
 async def correr(op: Opciones) -> Corrida:
     cfg = op.cfg or Config.cargar()
     objetivo = op.objetivo_obj or cargar_objetivo(op.objetivo)
@@ -139,7 +167,11 @@ async def correr(op: Opciones) -> Corrida:
     instancia: Instancia | None = None
     estado = "ok"
     avisos: list[str] = []
+    bus = op.bus
+    tarea_vista: asyncio.Task | None = None
     try:
+        if op.vista:
+            bus, tarea_vista = await _arrancar_vista(cfg, op.vista_puerto)
         instancia = objetivo.preparar(op.ref, corrida)
         corrida.commit = instancia.commit
         corrida.version_app = instancia.parametros.get("version_app") or instancia.commit
@@ -214,7 +246,7 @@ async def correr(op: Opciones) -> Corrida:
                     backend_para("juez", cfg),
                     carpeta,
                     cfg=cfg,
-                    bus=op.bus,
+                    bus=bus,
                     corrida_id=corrida.id,
                     objetivo=objetivo,
                 )
@@ -230,6 +262,8 @@ async def correr(op: Opciones) -> Corrida:
                 )
                 uso.costo_usd = m.costo_usd  # lo cobrado de verdad: 0 con el plan Max
             else:
+                if bus.activo:  # sin vista no se pasa nada: los navegadores falsos no lo esperan
+                    extra |= {"bus": bus, "corrida_id": corrida.id}
                 e = await navegador.ejecutar(
                     persona,
                     escenario,
@@ -364,6 +398,10 @@ async def correr(op: Opciones) -> Corrida:
         log.exception("la corrida %s falló", corrida.id)
         estado = "error"
     finally:
+        if tarea_vista:
+            await asyncio.sleep(op.espera_vista_s)
+            tarea_vista.cancel()
+            await asyncio.gather(tarea_vista, return_exceptions=True)
         for uso in contador.usos:
             almacen.registrar_uso(uso, corrida.id)
         if not op.mantener_entorno:
