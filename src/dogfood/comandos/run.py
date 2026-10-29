@@ -1,8 +1,9 @@
+import asyncio
 from typing import Annotated
 
 import typer
 
-from dogfood.comandos._stub import no_implementado
+from dogfood.corrida import Opciones, correr
 
 app = typer.Typer(help="Corre usuarios agénticos contra el objetivo.")
 
@@ -18,5 +19,25 @@ def run(
     repeat: Annotated[int, typer.Option(help="Repeticiones.")] = 1,
     sin_publicar: Annotated[bool, typer.Option("--sin-publicar", help="No crea issues.")] = False,
     tope_usd: Annotated[float | None, typer.Option("--tope-usd", help="Tope de costo.")] = None,
+    mantener_entorno: Annotated[
+        bool, typer.Option("--mantener-entorno", help="No destruye el entorno al terminar.")
+    ] = False,
 ) -> None:
-    no_implementado()
+    corrida = asyncio.run(
+        correr(
+            Opciones(
+                objetivo=target,
+                ref=ref,
+                personas=personas or 1,
+                escenarios=[e.strip() for e in escenarios.split(",")] if escenarios else None,
+                semilla=seed,
+                repeat=repeat,
+                mantener_entorno=mantener_entorno,
+                sin_publicar=sin_publicar,
+                tope_usd=tope_usd,
+            )
+        )
+    )
+    typer.echo(f"{corrida.id}: {corrida.estado}")
+    if corrida.estado not in ("ok", "ok_con_avisos"):
+        raise typer.Exit(1)

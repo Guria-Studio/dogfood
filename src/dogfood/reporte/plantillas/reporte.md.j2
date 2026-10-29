@@ -66,3 +66,22 @@ Corrida `{{ corrida.id }}` · commit `{{ corrida.commit }}`
 - ninguno
 {% endfor %}
 {% endfor -%}
+
+## 5. Modelos
+
+| Modelo | Ejecuciones | Éxito | Pasos prom. | Fricciones/ej. | Hallazgos únicos | Tokens/ej. | Costo/ej. (US$) |
+|---|---|---|---|---|---|---|---|
+{% for m in modelos -%}
+| {{ m.modelo }} | {{ m.ejecuciones }} | {{ m.exito_pct }} % | {{ m.pasos_prom }} | {{ m.fricciones_por_ejecucion }} | {{ m.hallazgos_unicos }} | {{ m.tokens_por_ejecucion }} | {{ m.costo_por_ejecucion_usd }} |
+{% endfor %}
+
+## 6. Consistencia
+
+| Escenario | Modelo | Ejecuciones | Éxito | Wilson 95 % | Desvío de pasos | En todas | Inestables |
+|---|---|---|---|---|---|---|---|
+{% for c in consistencia -%}
+| {{ c.escenario }} | todos | {{ c.ejecuciones }} | {{ c.tasa }} | {{ c.wilson_bajo }}–{{ c.wilson_alto }} | {{ c.desvio_pasos }} | {{ c.en_todas }} | {{ c.inestables }} |
+{% for m in c.por_modelo -%}
+| {{ c.escenario }} | {{ m.modelo }} | {{ m.ejecuciones }} | {{ m.tasa }} | {{ m.wilson_bajo }}–{{ m.wilson_alto }} | {{ m.desvio_pasos }} | {{ m.en_todas }} | {{ m.inestables }} |
+{% endfor -%}
+{% endfor %}

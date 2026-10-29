@@ -73,6 +73,7 @@ async def ejecutar(
     objetivo: Objetivo | None = None,
     contador: ContadorUso | None = None,
     timeout_s: float = TIMEOUT_S,
+    herramientas_extra: list[Callable] | None = None,
 ) -> Ejecucion:
     """`juez(prompt, Veredicto)` es `llm.completar_json` con el rol `juez` ya aplicado.
 
@@ -213,6 +214,9 @@ async def ejecutar(
             rendido.append(sin_clave(motivo))
             return ActionResult(is_done=True, success=False, extracted_content=motivo)
 
+        for f in herramientas_extra or []:
+            tools.action(f.__doc__ or f.__name__)(f)
+
         async def al_terminar_paso(agente: Agent) -> None:
             h = agente.history.history[-1] if agente.history.history else None
             acciones = (
@@ -238,13 +242,15 @@ async def ejecutar(
                 )
             )
 
+        # browser-use solo sube archivos con ruta absoluta que esté en available_file_paths.
+        ruta_csv = str(dataset.ruta_csv.resolve()) if dataset else None
         agente = Agent(
-            task=prompts.tarea(escenario, persona, str(dataset.ruta_csv) if dataset else None),
+            task=prompts.tarea(escenario, persona, ruta_csv),
             llm=llm,
             browser_session=sesion,
             tools=tools,
             extend_system_message=prompts.sistema(persona),
-            available_file_paths=[str(dataset.ruta_csv)] if dataset else None,
+            available_file_paths=[ruta_csv] if ruta_csv else None,
             initial_actions=[{"navigate": {"url": instancia.base_url, "new_tab": False}}],
             use_judge=False,
             enable_signal_handler=False,

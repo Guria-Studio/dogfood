@@ -19,6 +19,19 @@ def _modelo(cfg: Config, rol: str, indice: int = 0) -> str:
     return cfg.roles[rol][indice]
 
 
+def modelos_para(rol: str, cfg: Config | None = None) -> list[str]:
+    cfg = cfg or Config.cargar()
+    _modelo(cfg, rol)  # valida el rol
+    return list(cfg.roles[rol])
+
+
+def indice_modelo(rol: str, n: int, semilla: int, cfg: Config) -> int:
+    """Índice del modelo de la ejecución `n`. Solo `persona` rota; el resto (juez) usa el primero."""
+    if rol != "persona" or cfg.asignacion_modelos != "rotar":
+        return 0
+    return (semilla + n) % len(modelos_para(rol, cfg))
+
+
 def cliente_para(rol: str, indice: int = 0, cfg: Config | None = None) -> ChatOpenAI:
     cfg = cfg or Config.cargar()
     return ChatOpenAI(

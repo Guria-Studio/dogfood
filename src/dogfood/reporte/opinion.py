@@ -17,8 +17,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from pydantic import BaseModel
 
 from dogfood.config import Config
-from dogfood.dominio import Corrida, Ejecucion, Gravedad, Hallazgo, Instancia, Persona
+from dogfood.dominio import Corrida, Ejecucion, Gravedad, Hallazgo, Instancia, Persona, UsoLlm
 from dogfood.llm import completar_json
+from dogfood.reporte import consistencia, modelos
 from dogfood.reporte.redactar import REDACTADO, redactar, verificar_limpio
 
 CATEGORIAS = ("no se entendió", "frustró", "sobró")
@@ -196,6 +197,7 @@ async def generar(
     cfg: Config | None = None,
     costo_dogfood_usd: float = 0.0,
     uso_ia: UsoIA | None = None,
+    usos: list[UsoLlm] | None = None,
     issues: dict[str, str] | None = None,
     bloqueados: set[str] | None = None,
     completar: Completar = completar_json,
@@ -260,6 +262,8 @@ async def generar(
         ],
         "bloqueados": [_hallazgo(h, destino, issues) for h in hallazgos if h.huella in bloqueados],
         "umbral": umbral.value,
+        "modelos": modelos.tabla(ejecuciones, hallazgos, usos or []),
+        "consistencia": consistencia.seccion(ejecuciones, hallazgos),
     }
     datos = _limpiar(datos, secretos)
 
