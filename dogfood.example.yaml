@@ -21,3 +21,28 @@ tolerancias:
   pares_ok_min: 0.80          # al menos 80 % de los pares con 6+ compras
   compras_min_par: 6
   mae_dias_delta: 1           # MAE recalculado a ±1 día del declarado
+
+# Motor por rol: api (9router) | claude_code (CLI `claude -p` con el plan Max)
+motores: { persona: api, juez: api, dedupe: api, redactor: api }
+
+claude_code:
+  modelos: { persona: sonnet, juez: sonnet }   # si falta un rol, usa roles.<rol>
+  mcp_config: null
+  timeout_s: 180
+
+# Bucle de agente propio (motor: bucle)
+agente:
+  max_capturas_por_paso: 1    # 0 = nunca adjunta captura
+  resolucion_max: 1024        # lado mayor de la captura enviada al modelo
+
+driver:
+  tipo: web                   # web | android
+  serial: null                # Android por USB, o
+  host_puerto: null           # 127.0.0.1:<p> o <ip de Tailscale>:<p>; nunca otra red
+  paquete: null               # com.ejemplo.app
+  actividad: null
+  apk: null
+
+# Vista en vivo y panel: solo 127.0.0.1 o una IP de Tailscale, nunca 0.0.0.0
+vista: { host: 127.0.0.1, puerto: 7460 }
+panel: { host: 127.0.0.1, puerto: 7470 }

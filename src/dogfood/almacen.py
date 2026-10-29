@@ -10,9 +10,9 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 1
+VERSION_ESQUEMA = 2
 
-# Esquema completo del MVP: las fases siguientes no lo cambian.
+# Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
 CREATE TABLE corridas (
     id TEXT PRIMARY KEY, objetivo TEXT NOT NULL, ref TEXT NOT NULL, "commit" TEXT NOT NULL,
@@ -41,6 +41,27 @@ CREATE INDEX ix_ejecuciones_corrida ON ejecuciones (corrida_id);
 CREATE INDEX ix_uso_corrida ON uso_llm (corrida_id);
 """
 
+# «Cambios v0.2» del modelo de datos.
+MIGRACION_V2 = """
+ALTER TABLE corridas ADD COLUMN version_app TEXT;
+ALTER TABLE ejecuciones ADD COLUMN driver TEXT DEFAULT 'web';
+ALTER TABLE ejecuciones ADD COLUMN motor TEXT DEFAULT 'browser_use';
+ALTER TABLE ejecuciones ADD COLUMN backend TEXT DEFAULT 'api';
+ALTER TABLE ejecuciones ADD COLUMN resultado TEXT;
+ALTER TABLE ejecuciones ADD COLUMN tokens_in INTEGER DEFAULT 0;
+ALTER TABLE ejecuciones ADD COLUMN tokens_out INTEGER DEFAULT 0;
+ALTER TABLE ejecuciones ADD COLUMN capturas INTEGER DEFAULT 0;
+ALTER TABLE ejecuciones ADD COLUMN costo_usd REAL DEFAULT 0;
+ALTER TABLE ejecuciones ADD COLUMN costo_equivalente_usd REAL DEFAULT 0;
+ALTER TABLE ejecuciones ADD COLUMN video TEXT;
+ALTER TABLE ejecuciones ADD COLUMN trace TEXT;
+ALTER TABLE uso_llm ADD COLUMN backend TEXT DEFAULT 'api';
+ALTER TABLE uso_llm ADD COLUMN costo_equivalente_usd REAL DEFAULT 0;
+"""
+
+# Script que lleva la base de la versión `n - 1` a la `n`.
+MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2}
+
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
 
 
@@ -62,10 +83,10 @@ class Almacen:
         self.raiz.mkdir(parents=True, exist_ok=True)
         self.db = self.raiz / "dogfood.db"
         with closing(self._con()) as con:
-            if con.execute("PRAGMA user_version").fetchone()[0] < VERSION_ESQUEMA:
-                con.executescript(ESQUEMA_V1)
-                con.execute(f"PRAGMA user_version = {VERSION_ESQUEMA}")
-                con.commit()
+            version = con.execute("PRAGMA user_version").fetchone()[0]
+            for v in range(version + 1, VERSION_ESQUEMA + 1):
+                # executescript hace COMMIT antes; BEGIN/COMMIT dentro deja cada paso atómico.
+                con.executescript(f"BEGIN;\n{MIGRACIONES[v]}\nPRAGMA user_version = {v};\nCOMMIT;")
 
     def _con(self) -> sqlite3.Connection:
         con = sqlite3.connect(self.db)
@@ -90,8 +111,8 @@ class Almacen:
         (base / "corrida.json").write_text(corrida.model_dump_json(indent=2))
         with closing(self._con()) as con, con:
             con.execute(
-                'INSERT INTO corridas (id, objetivo, ref, "commit", semilla, inicio, fin, estado)'
-                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                'INSERT INTO corridas (id, objetivo, ref, "commit", semilla, inicio, fin, estado,'
+                " version_app) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     corrida.id,
                     corrida.objetivo,
@@ -101,6 +122,7 @@ class Almacen:
                     corrida.inicio.isoformat(),
                     corrida.fin.isoformat() if corrida.fin else None,
                     corrida.estado,
+                    corrida.version_app,
                 ),
             )
         return base
@@ -124,12 +146,15 @@ class Almacen:
         (d / "capturas").mkdir(parents=True, exist_ok=True)
         (d / "descargas").mkdir(exist_ok=True)
         (d / "historial.json").write_text(e.model_dump_json(indent=2))
+        m = e.metricas
         for nombre, items in (("pasos", e.pasos), ("red", e.red), ("consola", e.consola)):
             (d / f"{nombre}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items))
         with closing(self._con()) as con, con:
             con.execute(
                 "INSERT OR REPLACE INTO ejecuciones (id, corrida_id, persona_id, escenario_id, modelo,"
-                " estado, pasos, duracion_s, exito, motivo_juez) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " estado, pasos, duracion_s, exito, motivo_juez, driver, motor, backend, resultado,"
+                " tokens_in, tokens_out, capturas, costo_usd, costo_equivalente_usd, video, trace)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     e.id,
                     corrida_id,
@@ -141,6 +166,17 @@ class Almacen:
                     e.duracion_s,
                     int(e.exito),
                     e.motivo_juez,
+                    e.driver,
+                    e.motor,
+                    e.backend,
+                    e.resultado,
+                    m.tokens_in,
+                    m.tokens_out,
+                    m.capturas,
+                    m.costo_usd,
+                    m.costo_equivalente_usd,
+                    str(e.video) if e.video else None,
+                    str(e.trace) if e.trace else None,
                 ),
             )
 
@@ -183,7 +219,7 @@ class Almacen:
         with closing(self._con()) as con, con:
             con.execute(
                 "INSERT INTO uso_llm (corrida_id, ejecucion_id, rol, modelo, tokens_in, tokens_out,"
-                " costo_usd) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                " costo_usd, backend, costo_equivalente_usd) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     corrida_id,
                     uso.ejecucion_id,
@@ -192,6 +228,8 @@ class Almacen:
                     uso.tokens_in,
                     uso.tokens_out,
                     uso.costo_usd,
+                    uso.backend,
+                    uso.costo_equivalente_usd,
                 ),
             )
 

@@ -1,20 +1,20 @@
+import importlib
+import pkgutil
+
 import typer
 
-from dogfood.comandos import datos, env, personas, replay, run, runs
+from dogfood import comandos
 
 app = typer.Typer(
     help="dogfood: usuarios agénticos que prueban apps de verdad.", no_args_is_help=True
 )
 
-for _nombre, _modulo in [
-    ("env", env),
-    ("datos", datos),
-    ("personas", personas),
-    ("run", run),
-    ("runs", runs),
-    ("replay", replay),
-]:
-    app.add_typer(_modulo.app, name=_nombre)
+# Cada módulo de `comandos/` expone `app: typer.Typer` y opcionalmente `NOMBRE`.
+for _info in pkgutil.iter_modules(comandos.__path__):
+    if _info.name.startswith("_"):
+        continue
+    _modulo = importlib.import_module(f"{comandos.__name__}.{_info.name}")
+    app.add_typer(_modulo.app, name=getattr(_modulo, "NOMBRE", _info.name))
 
 
 def main() -> None:

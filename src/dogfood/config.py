@@ -31,6 +31,45 @@ class Tolerancias(BaseModel):
     mae_dias_delta: int = 1
 
 
+class Motores(BaseModel):
+    """Motor por rol: `api` | `claude_code`. `llm.backend_para` valida el valor."""
+
+    persona: str = "api"
+    juez: str = "api"
+    dedupe: str = "api"
+    redactor: str = "api"
+
+    def __getitem__(self, rol: str) -> str:
+        return getattr(self, rol)
+
+
+class ClaudeCode(BaseModel):
+    modelos: dict[str, str] = Field(default_factory=dict)
+    mcp_config: Path | None = None
+    timeout_s: float = 180
+
+
+class Agente(BaseModel):
+    max_capturas_por_paso: int = Field(default=1, ge=0)
+    resolucion_max: int = Field(default=1024, gt=0)
+
+
+class Driver(BaseModel):
+    tipo: Literal["web", "android"] = "web"
+    serial: str | None = None
+    host_puerto: str | None = None
+    paquete: str | None = None
+    actividad: str | None = None
+    apk: Path | None = None
+
+
+class Servidor(BaseModel):
+    """Host y puerto de una app web local: solo 127.0.0.1 o una IP de Tailscale (NFR-10)."""
+
+    host: str = "127.0.0.1"
+    puerto: int
+
+
 class Config(BaseModel):
     roles: dict[str, list[str]]
     precios_usd_por_millon: dict[str, Precio] = Field(default_factory=dict)
@@ -42,6 +81,12 @@ class Config(BaseModel):
     canal_slack: str | None = None
     memoria_libre_min_gb: float = 2
     tolerancias: Tolerancias = Field(default_factory=Tolerancias)
+    motores: Motores = Field(default_factory=Motores)
+    claude_code: ClaudeCode = Field(default_factory=ClaudeCode)
+    agente: Agente = Field(default_factory=Agente)
+    driver: Driver = Field(default_factory=Driver)
+    vista: Servidor = Field(default_factory=lambda: Servidor(puerto=7460))
+    panel: Servidor = Field(default_factory=lambda: Servidor(puerto=7470))
     _dir_secretos: Path = PrivateAttr(default_factory=Path)
     _secretos: dict[str, str] = PrivateAttr(default_factory=dict)
 
