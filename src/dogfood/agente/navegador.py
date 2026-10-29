@@ -6,6 +6,7 @@ lo maneja por CDP con el LLM del rol `persona` y guarda las descargas.
 
 import asyncio
 import json
+import logging
 import os
 import tempfile
 import time
@@ -16,6 +17,7 @@ from urllib.parse import urlparse
 
 from pydantic import BaseModel
 
+from dogfood import contrato
 from dogfood.agente import prompts
 from dogfood.dominio import (
     DatasetSintetico,
@@ -29,6 +31,7 @@ from dogfood.dominio import (
     Paso,
     Persona,
 )
+from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
 from dogfood.llm import ContadorUso
 from dogfood.objetivos.base import Objetivo
 
@@ -40,6 +43,8 @@ from browser_use import Agent, BrowserSession, Tools
 from browser_use.agent.views import ActionResult
 from playwright.async_api import Error as ErrorPlaywright
 from playwright.async_api import async_playwright
+
+log = logging.getLogger("dogfood")
 
 TIMEOUT_S = 15 * 60
 ESCRITORIO = {"width": 1366, "height": 768}
@@ -74,6 +79,8 @@ async def ejecutar(
     contador: ContadorUso | None = None,
     timeout_s: float = TIMEOUT_S,
     herramientas_extra: list[Callable] | None = None,
+    bus: BusVivo = BUS_NULO,
+    corrida_id: str = "",
 ) -> Ejecucion:
     """`juez(prompt, Veredicto)` es `llm.completar_json` con el rol `juez` ya aplicado.
 
@@ -105,6 +112,12 @@ async def ejecutar(
         modelo=llm.model,
         estado="error",
     )
+    base = {
+        "corrida_id": corrida_id,
+        "ejecucion_id": e.id,
+        "persona": persona.nombre,
+        "escenario": escenario.id,
+    }
     rendido: list[str] = []
     inicio = time.monotonic()
 
@@ -120,7 +133,32 @@ async def ejecutar(
             has_touch=movil,
             locale=persona.idioma.value,
             args=["--remote-debugging-port=0"],
+            record_video_dir=carpeta / "video",
+            record_video_size=MOVIL if movil else ESCRITORIO,
         )
+        await ctx.tracing.start(screenshots=True, snapshots=True)
+        bus.publicar(EventoVivo(**base, tipo="inicio"))
+
+        async def al_frame(cdp, params: dict) -> None:
+            if params.get("data"):
+                bus.publicar(EventoVivo(**base, tipo="frame", frame_jpeg_b64=params["data"]))
+            try:
+                await cdp.send("Page.screencastFrameAck", {"sessionId": params["sessionId"]})
+            except ErrorPlaywright:  # la página se cerró entre el frame y el ack
+                pass
+
+        async def iniciar_screencast() -> None:
+            if not (bus.activo and ctx.pages):
+                return
+            try:
+                cdp = await ctx.new_cdp_session(ctx.pages[0])
+                cdp.on("Page.screencastFrame", lambda p: asyncio.ensure_future(al_frame(cdp, p)))
+                await cdp.send(
+                    "Page.startScreencast",
+                    {"format": "jpeg", "quality": 60, "maxWidth": 1024, "everyNthFrame": 2},
+                )
+            except ErrorPlaywright:  # la vista nunca rompe la corrida (NFR-11)
+                log.warning("no pude iniciar el screencast de %s", e.id)
 
         # --- captura por eventos de Playwright ---
         def ms(request) -> float:
@@ -230,15 +268,31 @@ async def ejecutar(
                 texto = await p.inner_text("body", timeout=5000)
             except ErrorPlaywright:
                 texto = ""
-            e.pasos.append(
-                Paso(
-                    n=n,
-                    url=p.url,
-                    pantalla=pantalla(p.url),
-                    accion=sin_clave(json.dumps(acciones, ensure_ascii=False, default=str)),
-                    captura=ruta_png,
-                    texto_visible=sin_clave(texto),
-                    ts=datetime.now().astimezone(),
+            salida = h.model_output if h else None
+            razonamiento = (getattr(salida, "thinking", None) or "") if salida else ""
+            meta = getattr(salida, "next_goal", None) or ""
+            paso = Paso(
+                n=n,
+                url=p.url,
+                pantalla=pantalla(p.url),
+                accion=sin_clave(json.dumps(acciones, ensure_ascii=False, default=str)),
+                captura=ruta_png,
+                texto_visible=sin_clave(texto),
+                ts=datetime.now().astimezone(),
+                razonamiento=sin_clave(razonamiento or meta),
+                paso_contrato=sin_clave(meta),
+                esperado="",
+                observado=sin_clave(getattr(salida, "evaluation_previous_goal", None) or ""),
+            )
+            e.pasos.append(paso)
+            bus.publicar(
+                EventoVivo(
+                    **base,
+                    tipo="paso",
+                    n_paso=n,
+                    paso_contrato=paso.paso_contrato,
+                    razonamiento=paso.razonamiento,
+                    accion=paso.accion,
                 )
             )
 
@@ -257,6 +311,7 @@ async def ejecutar(
             file_system_path=str(Path(perfil.name) / "fs"),
         )
         try:
+            await iniciar_screencast()
             await asyncio.wait_for(
                 agente.run(max_steps=escenario.max_pasos, on_step_end=al_terminar_paso), timeout_s
             )
@@ -277,12 +332,18 @@ async def ejecutar(
             e.descargas = sorted(descargas_dir.iterdir())
             agente.save_history(carpeta / "historial.json")  # local, puede llevar la contraseña
             e.ruta_historial = carpeta / "historial.json"
-            await _registrar_uso(agente, contador, e.id)
+            await _registrar_uso(agente, contador, e)
             try:
                 await sesion.stop()
             finally:
-                await ctx.close()
+                try:
+                    await ctx.tracing.stop(path=carpeta / "trace.zip")
+                    e.trace = carpeta / "trace.zip"
+                except ErrorPlaywright:
+                    log.warning("no pude guardar el trace de %s", e.id)
+                await ctx.close()  # cierra el video: el .webm se escribe aquí
                 perfil.cleanup()
+                e.video = next(iter(sorted((carpeta / "video").glob("*.webm"))), None)
 
     if e.estado == "ok":
         ultimo = agente.history.final_result() or str(agente.history.errors()[-1:])
@@ -299,15 +360,20 @@ async def ejecutar(
             e.motivo_juez = sin_clave(f"el juez falló: {exc!r}")
 
     e.duracion_s = round(time.monotonic() - inicio, 2)
+    e.resultado = contrato.resultado(e)
+    bus.publicar(EventoVivo(**base, tipo="fin", resultado=e.resultado))
     for nombre, items in (("pasos", e.pasos), ("red", e.red), ("consola", e.consola)):
         (carpeta / f"{nombre}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items))
     return e
 
 
-async def _registrar_uso(agente: Agent, contador: ContadorUso | None, ejecucion_id: str) -> None:
-    if not contador:
-        return
+async def _registrar_uso(agente: Agent, contador: ContadorUso | None, e: Ejecucion) -> None:
     # Del servicio y no de `history.usage`, que queda vacío si el timeout corta la corrida.
     uso = await agente.token_cost_service.get_usage_summary()
     for modelo, s in uso.by_model.items():
-        contador.registrar("persona", modelo, s.prompt_tokens, s.completion_tokens, ejecucion_id)
+        e.metricas.tokens_in += s.prompt_tokens
+        e.metricas.tokens_out += s.completion_tokens
+        if contador:
+            u = contador.registrar("persona", modelo, s.prompt_tokens, s.completion_tokens, e.id)
+            e.metricas.costo_usd += u.costo_usd
+            e.metricas.costo_equivalente_usd += u.costo_equivalente_usd
