@@ -305,10 +305,10 @@ panel: {host: 127.0.0.1, puerto: 7470}
 ### v0.2 — DecisionPaso (salida del bucle por paso)
 ```python
 class DecisionPaso(BaseModel):
-    razonamiento: str        # breve, para la columna de la vista
-    paso_contrato: str       # qué paso del contrato persigue
+    razonamiento: str  # breve, para la columna de la vista
+    paso_contrato: str  # qué paso del contrato persigue
     accion: Accion | None
-    esperado: str            # qué debería pasar tras la acción
+    esperado: str  # qué debería pasar tras la acción
     friccion: str | None = None
     pedir_captura: bool = False
     terminado: bool = False
