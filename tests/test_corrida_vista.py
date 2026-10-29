@@ -164,7 +164,10 @@ def test_costo_de_la_vista(tmp_path, buses):
     base = medir()
     t0 = time.monotonic()
     asyncio.run(con_cliente(_puerto_libre()))
-    assert time.monotonic() - t0 < base * 1.1 + 0.5
+    # FR-31: la vista no frena las ejecuciones más de un 10 %. El margen fijo cubre arrancar y
+    # apagar uvicorn y conectar el WebSocket (en el runner de CI cargado llega a ~1,1 s), que no
+    # dependen del número de pasos.
+    assert time.monotonic() - t0 < base * 1.1 + 1.5
 
 
 def test_help_muestra_vista():
