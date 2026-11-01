@@ -30,7 +30,7 @@ def test_todas_las_intenciones():
 
 def test_dominio_reservado_y_rangos():
     for p in generar(50, 9):
-        assert p.email.endswith("@dogfood.test")
+        assert p.email.endswith("@dogfood.example.com")
         assert 1 <= p.destreza <= 5 and 1 <= p.paciencia <= 5
         assert set(p.estilo) <= set(RASGOS)
         assert len(p.contrasena) >= 12
@@ -46,3 +46,11 @@ def test_cli_guarda_json(tmp_path):
     r = CliRunner().invoke(app, ["personas", "--n", "5", "--seed", "1", "--salida", str(out)])
     assert r.exit_code == 0, r.output
     assert len(json.loads(out.read_text())) == 5
+
+
+def test_emails_pasan_la_validacion_de_predicts() -> None:
+    # predicts valida con EmailStr (email-validator), que rechaza los TLD de uso especial
+    # como .test (422 en /auth/registro en la corrida M1).
+    especiales = {"test", "invalid", "local", "localhost", "onion", "arpa", "internal"}
+    for p in generar(20, semilla=1):
+        assert p.email.rsplit(".", 1)[-1] not in especiales
