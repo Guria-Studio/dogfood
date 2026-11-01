@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import secrets
 import socket
 import time
@@ -30,6 +31,7 @@ from dogfood.dominio import (
     DatasetSintetico,
     Ejecucion,
     Escenario,
+    Gravedad,
     Instancia,
     Persona,
 )
@@ -49,7 +51,7 @@ from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
 from dogfood.personas.generador import generar as generar_personas
-from dogfood.reporte import consistencia, issues, opinion, slack
+from dogfood.reporte import consistencia, issues, opinion, slack, sugerencia
 from dogfood.vista.servidor import iniciar_vista
 
 log = logging.getLogger("dogfood")
@@ -233,6 +235,24 @@ def _dataset(e: Escenario, semilla: int, almacen: Almacen, corrida_id: str) -> D
     )
     ruta = aplicar(ds.ruta_csv, d.defectos, semilla) if d.defectos else ds.ruta_csv
     return ds.model_copy(update={"id": ds_id, "ruta_csv": ruta, "defectos": list(d.defectos)})
+
+
+async def _sugerencias(hallazgos, corrida, cfg: Config, secretos: list[str]):
+    """Sugerencia de cada hallazgo publicable, con id `<corrida>-H<n>`. El repo del objetivo sale de
+    DOGFOOD_REPO_OBJETIVO (por defecto, el de predicts en este server)."""
+    repo = Path(os.environ.get("DOGFOOD_REPO_OBJETIVO", "/mnt/storage/project/predicts"))
+    umbral = Gravedad(cfg.umbral_publicar)
+    salida = {}
+    for n, h in enumerate(hallazgos, 1):
+        if h.solo_reporte or h.gravedad < umbral:
+            continue
+        try:
+            salida[f"{corrida.id}-H{n}"] = await sugerencia.sugerir(
+                h, h.evidencia, repo, cfg=cfg, secretos=secretos
+            )
+        except Exception:
+            log.exception("sin sugerencia para %s-H%d", corrida.id, n)
+    return salida
 
 
 async def _arrancar_vista(cfg: Config, puerto: int | None) -> tuple[BusVivo, asyncio.Task | None]:
@@ -480,6 +500,10 @@ async def correr(op: Opciones) -> Corrida:
             uso_ia = opinion.contar_uso_ia(instancia)
         secretos = [p.contrasena for p in personas]
         publicados: list[issues.ResultadoIssue] = []
+        sugerencias: dict[str, sugerencia.Sugerencia] = {}
+        with paso("sugerencias"):
+            sugerencias = await _sugerencias(hallazgos, corrida, cfg, secretos)
+            sugerencia.guardar(almacen.dir_corrida(corrida.id), sugerencias)
         with paso("publicar"):
             publicados = issues.publicar(
                 hallazgos,
@@ -488,6 +512,7 @@ async def correr(op: Opciones) -> Corrida:
                 publicar=not op.sin_publicar,
                 almacen=almacen,
                 secretos=secretos,
+                sugerencias=sugerencias,
             )
         costo = sum(u.costo_usd for u in contador.usos)
         ruta_reporte = None

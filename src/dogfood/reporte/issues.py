@@ -15,6 +15,7 @@ from dogfood.almacen import Almacen
 from dogfood.config import Config
 from dogfood.dominio import Corrida, Gravedad, Hallazgo
 from dogfood.reporte.redactar import redactar, verificar_limpio
+from dogfood.reporte.sugerencia import Sugerencia, seccion
 
 MAX_ISSUES_NUEVOS = 15
 
@@ -39,7 +40,7 @@ def titulo(h: Hallazgo) -> str:
     return f"[dogfood][{h.gravedad.value}] {h.pantalla}: {h.titulo}"
 
 
-def cuerpo(h: Hallazgo, corrida: Corrida) -> str:
+def cuerpo(h: Hallazgo, corrida: Corrida, sugerencia: Sugerencia | None = None) -> str:
     """Parte del cuerpo con datos de la corrida: pasa por `redactar`."""
     partes = [h.descripcion, "## Pasos"]
     partes += [f"{i}. {p}" for i, p in enumerate(h.pasos, 1)] or ["(sin pasos registrados)"]
@@ -49,6 +50,8 @@ def cuerpo(h: Hallazgo, corrida: Corrida) -> str:
     if textos:
         partes.append("## Evidencia")
         partes += [f"**{e.tipo}**\n```\n{e.extracto}\n```" for e in textos]
+    if sugerencia:
+        partes.append(seccion(sugerencia))
     capturas = [Path(e.ruta).name for e in h.evidencia if e.tipo == "captura" and e.ruta]
     if capturas:
         base = (
@@ -98,6 +101,7 @@ def publicar(
     *,
     almacen: Almacen | None = None,
     secretos: list[str] | None = None,
+    sugerencias: dict[str, Sugerencia] | None = None,
 ) -> list[ResultadoIssue]:
     """`hallazgos` en el orden de `Almacen.guardar_hallazgos` (ids `<corrida>-H<n>`).
 
@@ -117,7 +121,10 @@ def publicar(
         resultados.append(r)
         if h.solo_reporte or h.gravedad < umbral:
             continue
-        t, c = redactar(titulo(h), conocidos), redactar(cuerpo(h, corrida), conocidos)
+        t, c = (
+            redactar(titulo(h), conocidos),
+            redactar(cuerpo(h, corrida, (sugerencias or {}).get(hid)), conocidos),
+        )
         if restos := verificar_limpio(f"{t}\n{c}"):
             r.accion, r.aviso = "bloqueado_por_redaccion", f"{len(restos)} resto(s) sin redactar"
             continue

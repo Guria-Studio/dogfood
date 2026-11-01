@@ -17,7 +17,7 @@ def crear_app_panel(raiz: Path, cfg: Config | None = None, spa: Path = ESTATICO)
     detalle.registrar_rutas(app, Path(raiz))
     dispositivos.registrar_rutas(app, Path(raiz), cfg)
     registrar_api(app, Path(raiz), cfg)
-    registrar_api_plan(app, Path(raiz))
+    registrar_api_plan(app, Path(raiz), cfg)
     registrar_ayuda(app, Path(__file__).parents[3])
     montar_spa(app, spa)  # sin build responde 503 con el mensaje de scripts/build-web.sh
     return app

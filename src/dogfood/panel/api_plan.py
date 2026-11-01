@@ -1,13 +1,18 @@
 """API del plan de pruebas: los casos de una corrida con el estado de su ejecución."""
 
+import json
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 from typing import Literal
 
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 
+from dogfood.config import Config
+from dogfood.dominio import Hallazgo
 from dogfood.plan import CasoPrueba, PlanPruebas
+from dogfood.reporte.sugerencia import Sugerencia, cargar
 
 EstadoCaso = Literal["pendiente", "en_curso", "exito", "fallo", "rendido", "no_concluyente"]
 _POR_RESULTADO = {"aprobado": "exito", "fallo": "fallo", "no_concluyente": "no_concluyente"}
@@ -63,7 +68,54 @@ def casos(raiz: Path, corrida_id: str) -> list[CasoVista] | None:
     return salida
 
 
-def registrar_api_plan(app: FastAPI, raiz: Path) -> None:
+class HallazgoVista(BaseModel):
+    id: str
+    titulo: str
+    pantalla: str
+    gravedad: str
+    ejecucion_id: str | None
+    commit: str
+    repo: str  # "dueño/repo" de GitHub para armar los links a los archivos
+    sugerencia: Sugerencia | None
+
+
+def _hallazgos(raiz: Path, corrida_id: str, repo: str) -> list[HallazgoVista]:
+    carpeta = raiz / corrida_id
+    ruta = carpeta / "hallazgos.json"
+    if not ruta.is_file():
+        return []
+    sug = cargar(carpeta)
+    salida = []
+    for n, d in enumerate(json.loads(ruta.read_text()), 1):
+        h = Hallazgo.model_validate(d)
+        hid = f"{corrida_id}-H{n}"
+        salida.append(
+            HallazgoVista(
+                id=hid, titulo=h.titulo, pantalla=h.pantalla, gravedad=h.gravedad.value,
+                ejecucion_id=h.ejecucion_id, commit=h.commit, repo=repo, sugerencia=sug.get(hid),
+            )
+        )  # fmt: skip
+    return salida
+
+
+def registrar_api_plan(app: FastAPI, raiz: Path, cfg: Config | None = None) -> None:
+    repo = cfg.repo_issues if cfg else ""
+
+    @app.get("/api/hallazgos/{hallazgo_id}", response_model=HallazgoVista)
+    def api_hallazgo(hallazgo_id: str):
+        corrida_id = hallazgo_id.rsplit("-H", 1)[0]
+        for h in _hallazgos(Path(raiz), corrida_id, repo):
+            if h.id == hallazgo_id:
+                return h
+        raise HTTPException(404, f"el hallazgo {hallazgo_id!r} no existe")
+
+    @app.get("/api/ejecuciones/{ejecucion_id}/hallazgos", response_model=list[HallazgoVista])
+    def api_hallazgos_ejecucion(ejecucion_id: str):
+        corrida_id = ejecucion_id.rsplit("-E", 1)[0]
+        return [
+            h for h in _hallazgos(Path(raiz), corrida_id, repo) if h.ejecucion_id == ejecucion_id
+        ]
+
     @app.get("/api/corridas/{corrida_id}/plan", response_model=list[CasoVista])
     def api_plan(corrida_id: str):
         r = casos(Path(raiz), corrida_id)
