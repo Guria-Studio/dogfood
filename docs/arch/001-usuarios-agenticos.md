@@ -199,7 +199,7 @@ Todo vive en `src/dogfood/`.
 - `ejecuciones.driver` admite `ios`; `ejecuciones.motor` admite `patrol` e `integration_test`.
 - `TipoHallazgo` suma `accesibilidad`.
 - `Escenario` suma `motor` y `deterministico` (ver *Interfaces*); `Escenario.driver` y `Ejecucion.driver` admiten `ios`.
-- `Observacion` suma `cobertura: CoberturaSemantica | None`.
+- `Observacion` suma `cobertura: CoberturaSemantica | None`; `Paso` también (F8.3.T3), para que el detector la lea en cualquier driver.
 - Carpeta de la ejecución determinista: `deterministico/{test.dart, salida.log, reporte.json}`, `capturas/final.png`. Ejecución iOS: lo mismo que Android, con `syslog.txt` en lugar de `logcat.txt`.
 - Copias de trabajo de apps Flutter en `flutter.copia_trabajo` (por defecto `/mnt/storage/cache/dogfood/flutter/<nombre>`), nunca dentro del repo de la app ni de dogfood.
 
@@ -780,4 +780,5 @@ Archivos compartidos encadenados: `agente/bucle.py` (F8.3.T2 → F8.4.T3), `corr
 - **F8.5 — motor determinista**: T1 `deterministico/corredor.py`; T2 `deterministico/generador.py` y escenarios de ejemplo; T3 `corrida.py`, `comandos/run.py`. T2 depende de F8.1; T1 de T2 (usa el generador); T3 de T1, T2 y F8.4.T3.
 - **F8.6 — nodo iOS**: T1 `nodos/cliente.py`; T2 `nodos/runner.py`, `comandos/nodo.py`; T3 `drivers/ios.py`; T4 `objetivos/ios/`, `corrida.py`, `comandos/run.py`. T1 y T2 dependen de F8.5.T1 (`a_ejecucion` y el corredor); T3 de F8.1 y F8.3.T1; T4 de T1, T3 y F8.5.T3.
 - **F8.7 — filtro web**: T1 `drivers/web.py`, `objetivos/flutter_web/`; T2 integración real con una copia de `mobile-mao` (`tests/integracion/test_flutter_web.py`, `docs/notas/m8-flutter-web.md`). T1 depende de F8.3.T1 y F8.5.T1 (copia de trabajo); T2 de T1.
+- **Seguimiento de la integración M8 (`docs/notas/m8-flutter-web.md`)**: F8.3.T3 guarda `Paso.cobertura` (`dominio.py`, `agente/bucle.py`) y el detector la usa para cualquier driver, web incluido; F8.5.T4 hace que la copia de trabajo traiga las dependencias `path:` hermanas de un monorepo (`mobile-mao` usa `../../packages/*`); F8.7.T3 compila el filtro web con `--no-web-resources-cdn` (build hermético, sin `gstatic`) y limpia la integración. F8.3.T3 depende de F8.4.T3 y F8.7.T2; F8.5.T4 de F8.7.T2; F8.7.T3 de F8.5.T4 y F8.9.T1.
 - **F8.9 — operación**: T1 `docs/ops/android.md`, `docs/ops/flutter.md`; T2 `docs/ops/ios-nodo-mac.md`. T1 depende de F8.2, F8.3.T2, F8.4.T2, F8.4.T3, F8.5.T3 y F8.7.T1; T2 de F8.6.T2 y F8.6.T4.

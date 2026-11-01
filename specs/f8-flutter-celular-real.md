@@ -168,6 +168,29 @@ Done when: estos tests pasan en `tests/test_flutter_android.py` con un runner de
   - `src/dogfood/agente/prompts_bucle.py`
   - `tests/test_flutter_android.py`
 
+### F8.3.T3 — Cobertura guardada por paso y detector para cualquier driver
+
+Sale de `docs/notas/m8-flutter-web.md` (F8.7.T2): el detector de `deteccion/flutter.py` solo lee árboles XML de ejecuciones `android`/`ios`, así que en el filtro web (driver `web` con Flutter) nunca reportaría una pantalla ciega aunque `Observacion.cobertura` la marque.
+1. `src/dogfood/dominio.py`: `Paso.cobertura: CoberturaSemantica | None = None` (con valor por defecto: los `pasos.jsonl` viejos siguen cargando).
+2. `src/dogfood/agente/bucle.py`: cada `Paso` registrado guarda `obs.cobertura`. No cambies nada más del bucle.
+3. `src/dogfood/deteccion/flutter.py`: usa `Paso.cobertura` cuando existe (cualquier driver, incluido `web`) y solo si falta la calcula del XML como hoy; mantiene un hallazgo por pantalla y corrida, las mismas gravedades y huellas.
+
+Done when: estos tests pasan en `tests/test_flutter_cobertura_paso.py` y `tests/test_flutter_semantica.py`, `tests/test_flutter_android.py` y `tests/test_bucle.py` siguen verdes:
+- un `Paso` serializado sin `cobertura` carga con `None`;
+- el bucle con un `DriverFalso` que devuelve cobertura ciega deja esa cobertura en el `Paso`;
+- una ejecución `web` con pasos de cobertura ciega y `flutter == True` da un hallazgo `accesibilidad` `media`; una web sin cobertura no da ninguno;
+- una ejecución Android sin `Paso.cobertura` sigue usando el XML.
+
+- **Modelo**: claude/claude-sonnet-5-5
+- **Estimación**: 2h
+- **Razón**: Cambio acotado en tres archivos conocidos; tier estándar.
+- **Dependencies**: F8.4.T3, F8.7.T2
+- **Files**:
+  - `src/dogfood/dominio.py`
+  - `src/dogfood/agente/bucle.py`
+  - `src/dogfood/deteccion/flutter.py`
+  - `tests/test_flutter_cobertura_paso.py`
+
 ## F8.4 — Package: pantalla real en vista y panel
 
 ### F8.4.T1 — Fuentes de frames: screencap, screenrecord con ffmpeg y MJPEG de WebDriverAgent
@@ -327,6 +350,28 @@ Done when: estos tests pasan en `tests/test_corrida_deterministico.py` (objetivo
   - `src/dogfood/comandos/run.py`
   - `tests/test_corrida_deterministico.py`
 
+### F8.5.T4 — Copia de trabajo de apps en monorepo (dependencias `path:` hermanas)
+
+Sale de `docs/notas/m8-flutter-web.md` (F8.7.T2): `mobile-mao` depende de `../../packages/{core_api,core_auth,design_system,subscription}` (`/mnt/storage/rupies/packages`), así que la copia de trabajo de `CorredorFlutter.copia_de_trabajo`, que solo trae la carpeta de la app, no resuelve dependencias y ni `flutter build web` ni `flutter test` funcionan. Afecta al motor determinista y al filtro web.
+
+En `src/dogfood/deterministico/corredor.py`, `copia_de_trabajo(proyecto)` pasa a: leer `pubspec.yaml` de la app (con `yaml.safe_load`) y juntar las dependencias con `path:` de `dependencies`, `dev_dependencies` y `dependency_overrides`, resolviendo cada ruta relativa a su pubspec y siguiendo de forma recursiva los `path:` de esos paquetes (sin ciclos); calcular el ancestro común de la app y de esos paquetes; y copiar con `rsync -a --delete` (mismas exclusiones que hoy: `build/`, `.dart_tool/`, `.git/`) cada uno a `copia_trabajo/<nombre de la app>/<ruta relativa al ancestro común>`, de modo que las rutas relativas del pubspec sigan valiendo. Devuelve la ruta de la app dentro de la copia (la firma no cambia). Nunca escribe en el origen ni crea enlaces simbólicos hacia él. Una ruta `path:` que no existe da un error que la nombra. Sin dependencias `path:` externas, el comportamiento es el de hoy (la app en `copia_trabajo/<nombre>`).
+
+Done when: estos tests pasan en `tests/test_copia_monorepo.py` con un monorepo armado en `tmp_path` (`apps/app_a` que depende de `../../packages/core` y `core` que depende de `../util`) y el runner de `rsync` real o uno falso que copie con `shutil` (elige y dilo en el PR):
+- la copia contiene `apps/app_a`, `packages/core` y `packages/util` con la misma disposición y la función devuelve `<copia>/apps/app_a`;
+- los `path:` del pubspec copiado resuelven a directorios que existen dentro de la copia;
+- un `path:` inexistente da un error con su ruta;
+- una app sin `path:` externos se copia como antes;
+- el origen no cambia (comparando un hash de los archivos antes y después);
+- `tests/test_deterministico_corredor.py` sigue verde.
+
+- **Modelo**: claude/claude-sonnet-5-5
+- **Estimación**: 2h
+- **Razón**: Resolución de rutas y copia con casos borde; tier estándar.
+- **Dependencies**: F8.7.T2
+- **Files**:
+  - `src/dogfood/deterministico/corredor.py`
+  - `tests/test_copia_monorepo.py`
+
 ## F8.6 — Package: nodo iOS en el Mac
 
 ### F8.6.T1 — Cliente del nodo: estado, trabajos por SSH, artefactos por rsync y túnel
@@ -477,6 +522,28 @@ Done when: el test de integración pasa (o se salta con un motivo documentado qu
 - **Files**:
   - `tests/integracion/test_flutter_web.py`
   - `docs/notas/m8-flutter-web.md`
+
+### F8.7.T3 — Filtro web hermético y sin trucos en la integración
+
+Sale de `docs/notas/m8-flutter-web.md` (F8.7.T2): el build web por defecto baja CanvasKit y fuentes de `gstatic.com` y, con la lista blanca del objetivo, la app queda en blanco; la integración tuvo que permitir esos orígenes y enlazar los paquetes hermanos a mano.
+1. `src/dogfood/objetivos/flutter_web/__init__.py`: compila con `build web --release --no-web-resources-cdn` (comprobado en Flutter 3.47.9) para que el build sea hermético, y usa la copia de trabajo de monorepo de F8.5.T4. `url_permitida` no agrega orígenes de Google por su cuenta.
+2. `tests/test_flutter_web.py`: el comando de compilación incluye `--no-web-resources-cdn`.
+3. `tests/integracion/test_flutter_web.py`: quita el enlace manual a `/mnt/storage/rupies/packages` y los orígenes de `gstatic` en `api_permitidas`; debe pasar solo con el objetivo tal cual. Córrelo a mano (`export PATH=/mnt/storage/flutter/bin:$PATH PUB_CACHE=/mnt/storage/flutter/.pub-cache; uv run pytest -m integracion tests/integracion/test_flutter_web.py -s`) y pega la salida en el PR.
+4. `docs/notas/m8-flutter-web.md`: agrega una sección «Después de F8.7.T3» con los números de esa corrida (tiempo de compilación, elementos y cobertura por pantalla), sin borrar lo anterior.
+5. `docs/ops/flutter.md`: una nota sobre apps en monorepo (las dependencias `path:` se copian solas), el build hermético, y que `mobile-mao` hoy solo tiene login con Google, así que el escenario `login-determinista` (email y contraseña) es un ejemplo a adaptar con las `Key` reales de la app.
+
+Done when: `tests/test_flutter_web.py` pasa con el flag nuevo, la integración pasa (o se salta con un motivo que viene de la corrida real) sin enlaces ni orígenes extra, la nota y la guía están actualizadas y `uv run pytest` sigue verde.
+
+- **Modelo**: claude/claude-sonnet-5-5
+- **Estimación**: 2h
+- **Razón**: Ajuste acotado con una verificación real con el SDK; tier estándar.
+- **Dependencies**: F8.5.T4, F8.9.T1
+- **Files**:
+  - `src/dogfood/objetivos/flutter_web/__init__.py`
+  - `tests/test_flutter_web.py`
+  - `tests/integracion/test_flutter_web.py`
+  - `docs/notas/m8-flutter-web.md`
+  - `docs/ops/flutter.md`
 
 ## F8.9 — Package: operación
 
