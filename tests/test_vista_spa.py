@@ -16,6 +16,6 @@ def test_con_build_sirve_la_spa_y_el_ws(tmp_path):
         assert ws.receive_json()["accion"] == "x"
 
 
-def test_sin_build_sirve_la_pagina_de_hoy(tmp_path):
-    r = TestClient(crear_app_vista(BusVivo(), spa=tmp_path)).get("/")
-    assert r.status_code == 200 and "<canvas" in r.text
+def test_sin_build_503(tmp_path):
+    r = TestClient(crear_app_vista(BusVivo(), spa=tmp_path)).get("/vista")
+    assert r.status_code == 503 and "scripts/build-web.sh" in r.text

@@ -28,7 +28,15 @@ uv run dogfood run --target predicts --vista --vista-puerto 7461
 - Si el puerto está ocupado, la corrida avisa y sigue sin vista; nunca falla por la vista.
 - Clic en una tarjeta la amplía; `Esc` la cierra. El rótulo «latencia» es el tiempo entre que se capturó el último frame y que lo dibuja el navegador (mide menos de 1 s en la prueba de integración).
 
-## 2. Abrir el panel
+## 2. Construir el frontend y abrir el panel
+
+El panel y la vista son una SPA (React + Vite) que sirve FastAPI. Hay que construirla una vez, y de nuevo cada vez que cambie `web/`:
+
+```bash
+scripts/build-web.sh   # npm ci + tipos de la API + build en src/dogfood/panel/estatico/
+```
+
+Sin ese build, `dogfood panel` sale con código 2 y el mensaje «falta el build del panel: corre `scripts/build-web.sh`»; la vista responde 503 con el mismo texto (el WebSocket sigue funcionando).
 
 ```bash
 uv run dogfood panel
@@ -37,8 +45,23 @@ uv run dogfood panel --puerto 7471 --raiz runs
 
 - Puerto por defecto: **7470** (`panel.puerto`). Host por defecto: `127.0.0.1` (`panel.host`).
 - Necesita `runs/dogfood.db`: corre `dogfood run` al menos una vez.
-- `/` lista las ejecuciones y filtra por recorrido, resultado, versión, persona, driver y motor. `/corridas/<id>` resume una corrida y compara motores. `/recorridos` cuenta resultados por recorrido. `/ejecuciones/<id>` es el detalle.
+- `/` es la portada de corridas: KPIs y la tabla de ejecuciones y filtra por recorrido, resultado, versión, persona, driver y motor. `/corridas/<id>` resume una corrida y compara motores. `/recorridos` cuenta resultados por recorrido. `/ejecuciones/<id>` es el detalle.
 - En el detalle: **← / →** (o los botones y la línea de tiempo) cambian de paso; cada paso muestra captura, acción, razonamiento, esperado/observado y la consola y red de esa pantalla. Debajo, el video, el `trace.zip` (`uv run playwright show-trace trace.zip`), el logcat en Android y la opinión de la persona agrupada por pantalla.
+
+### Desarrollo del frontend
+
+```bash
+uv run dogfood panel --raiz runs   # el backend, en 127.0.0.1:7470
+cd web && npm run dev              # Vite con recarga en caliente; proxifica /api y /archivos al backend
+npm run gen:api                    # regenera src/api/schema.ts si cambió la API
+npx vitest run && npx playwright test   # unitarios y e2e (el e2e necesita el build)
+```
+
+`npx playwright test` levanta su propio panel en el puerto 7481 sobre un `runs/` de prueba (`web/e2e/preparar_runs.py`) y recorre corridas, ejecución, recorridos, dispositivos, ayuda y tema oscuro.
+
+### El ⓘ y la ayuda
+
+Junto al título de cada pantalla hay un **ⓘ** («Ayuda de esta pantalla») que abre `/ayuda?pantalla=<pantalla>` con los documentos que declaran esa pantalla en el `pantallas:` de su frontmatter (los de `docs/ayuda/` y `docs/ops/`). `/ayuda` tiene un buscador sobre todos los documentos. Para que un documento salga bajo el ⓘ de una pantalla, añade su nombre a `pantallas:`.
 
 ## 3. Verlos desde otra máquina (Tailscale)
 
@@ -60,7 +83,7 @@ Opción B, dejarlos en `127.0.0.1` y abrir un túnel SSH desde tu máquina:
 ssh -N -L 7470:127.0.0.1:7470 -L 7460:127.0.0.1:7460 usuario@server
 ```
 
-Luego abre `http://127.0.0.1:7470/` (panel) y `http://127.0.0.1:7460/` (vista) en tu navegador local. Es la opción más segura: nada escucha en la red.
+Luego abre `http://127.0.0.1:7470/` (panel) y `http://127.0.0.1:7460/` (la vista redirige a `/vista`) en tu navegador local. Es la opción más segura: nada escucha en la red.
 
 ## 4. Qué significa cada resultado
 

@@ -4,22 +4,19 @@ import asyncio
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import RedirectResponse
-from fastapi.staticfiles import StaticFiles
 from starlette.routing import Route
 
 from dogfood.eventos import BusVivo, EventoVivo, Suscripcion
 from dogfood.panel.spa import montar_spa
-from dogfood.web import crear_app_base, validar_host
+from dogfood.web import validar_host
 
-_AQUI = Path(__file__).parent
-_ESTATICO_SPA = _AQUI.parent / "panel" / "estatico"
+_ESTATICO_SPA = Path(__file__).parents[1] / "panel" / "estatico"
 
 
 def crear_app_vista(bus: BusVivo, spa: Path = _ESTATICO_SPA) -> FastAPI:
-    app, plantillas = crear_app_base("En vivo", _AQUI / "plantillas")
-    app.mount("/vista-estatico", StaticFiles(directory=_AQUI / "estatico"), name="vista")
+    app = FastAPI(title="En vivo")
     # ejecucion_id -> {tipo: último evento}; el servidor guarda esto para los clientes tardíos
     estado: dict[str, dict[str, EventoVivo]] = {}
 
@@ -39,10 +36,6 @@ def crear_app_vista(bus: BusVivo, spa: Path = _ESTATICO_SPA) -> FastAPI:
 
     bus._suscripciones.add(_Registro(bus, 1))
 
-    @app.get("/")
-    async def pagina(request: Request):
-        return plantillas.TemplateResponse(request, "vista.html")
-
     @app.websocket("/ws")
     async def ws(websocket: WebSocket) -> None:
         await websocket.accept()
@@ -60,11 +53,10 @@ def crear_app_vista(bus: BusVivo, spa: Path = _ESTATICO_SPA) -> FastAPI:
         finally:
             sub.close()
 
-    if (spa / "index.html").is_file():  # con build, la SPA reemplaza la página propia
-        montar_spa(app, spa)
-        app.router.routes.insert(
-            0, Route("/", lambda r: RedirectResponse("/vista"), methods=["GET", "HEAD"])
-        )
+    montar_spa(app, spa)  # sin build responde 503 con el mensaje de scripts/build-web.sh
+    app.router.routes.insert(
+        0, Route("/", lambda r: RedirectResponse("/vista"), methods=["GET", "HEAD"])
+    )
 
     return app
 

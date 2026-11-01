@@ -22,5 +22,5 @@ export default defineConfig({
       '/ws': { target: BACKEND, ws: true },
     },
   },
-  test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'] },
+  test: { environment: 'jsdom', setupFiles: ['./src/test/setup.ts'], exclude: ['e2e/**', 'node_modules/**'] },
 })

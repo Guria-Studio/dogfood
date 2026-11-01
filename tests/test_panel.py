@@ -111,22 +111,17 @@ def cliente(raiz):
     return TestClient(crear_app_panel(raiz))
 
 
-def _ids(html):
-    return {i for i in ("e1", "e2", "e3", "e4", "e5", "e6") if f'/ejecuciones/{i}"' in html}
+def _ids(r):
+    return {x["id"] for x in r.json()}
 
 
-def test_lista_todo_con_insignia_y_costo(cliente):
-    html = cliente.get("/").text
-    assert _ids(html) == {"e1", "e2", "e3", "e4", "e5", "e6"}
-    for esperado in (
-        "res-aprobado",
-        "res-fallo",
-        "res-no_concluyente",
-        "0.3000",
-        "0.5000",
-        "Ana (es)",
-    ):
-        assert esperado in html
+def test_lista_todo_con_resultado_y_costo(cliente):
+    filas = cliente.get("/api/ejecuciones").json()
+    assert {f["id"] for f in filas} == {"e1", "e2", "e3", "e4", "e5", "e6"}
+    por_id = {f["id"]: f for f in filas}
+    assert {f["resultado"] for f in filas} == {"aprobado", "fallo", "no_concluyente"}
+    assert por_id["e2"]["costo_usd"] == 0.30 and por_id["e4"]["costo_equivalente_usd"] == 0.50
+    assert por_id["e1"]["persona_nombre"] == "Ana"
 
 
 @pytest.mark.parametrize(
@@ -145,40 +140,46 @@ def test_lista_todo_con_insignia_y_costo(cliente):
     ],
 )
 def test_filtros(cliente, query, esperado):
-    assert _ids(cliente.get(f"/?{query}").text) == esperado
+    assert _ids(cliente.get(f"/api/ejecuciones?{query}")) == esperado
 
 
 def test_recorridos_muestra_contrato_y_conteos(raiz, cliente):
     esc = {r.id: r for r in recorridos(raiz)}
     assert esc["demo"].por_resultado == {"aprobado": 3, "fallo": 0, "no_concluyente": 1}
     assert esc["login-fallido"].por_resultado["fallo"] == 2
-    html = cliente.get("/recorridos").text
-    assert "res-aprobado" in html
+    api = {r["id"]: r for r in cliente.get("/api/recorridos").json()}
+    assert api["demo"]["por_resultado"] == esc["demo"].por_resultado
     for r in esc.values():
         if r.contrato:
-            assert r.contrato.resultado_esperado in html
+            assert api[r.id]["contrato"]["resultado_esperado"] == r.contrato.resultado_esperado
 
 
 def test_comparacion_de_motores(cliente):
-    html = cliente.get("/corridas/c1").text
-    assert "browser_use" in html and "33%" in html  # 1 de 3
-    # tokens/ejec. 150; costo/ejec. (0.1+0.3+0.2)/3 = 0.2
-    assert ">150<" in html and "0.2000" in html
-    html = cliente.get("/corridas/c2").text
-    assert "claude_code" in html and "67%" in html and "0.3000" in html  # equiv. 0.9/3
+    [f] = cliente.get("/api/corridas/c1").json()["comparacion"]
+    assert f["motor"] == "browser_use" and round(f["tasa_aprobacion"], 2) == 0.33  # 1 de 3
+    assert f["tokens"] == 150 and round(f["costo_usd"], 4) == 0.2  # por ejecución
+    [f] = cliente.get("/api/corridas/c2").json()["comparacion"]
+    assert f["backend"] == "claude_code" and round(f["tasa_aprobacion"], 2) == 0.67
+    assert round(f["costo_equivalente_usd"], 4) == 0.3
 
 
 def test_corrida_inexistente(cliente):
-    assert cliente.get("/corridas/nada").status_code == 404
+    assert cliente.get("/api/corridas/nada").status_code == 404
 
 
 def test_solo_lectura(raiz, cliente):
     db = raiz / "dogfood.db"
     antes = hashlib.sha256(db.read_bytes()).hexdigest()
-    for ruta in ("/", "/?motor=bucle", "/recorridos", "/corridas/c1"):
+    for ruta in ("/api/ejecuciones?motor=bucle", "/api/recorridos", "/api/corridas/c1"):
         assert cliente.get(ruta).status_code == 200
     assert hashlib.sha256(db.read_bytes()).hexdigest() == antes
     assert sorted(p.name for p in raiz.iterdir()).count("dogfood.db-journal") == 0
+
+
+def test_panel_sin_build_falla_con_codigo_2(raiz, monkeypatch, tmp_path):
+    monkeypatch.setattr("dogfood.comandos.panel.ESTATICO", tmp_path / "no")
+    r = runner.invoke(cli, ["panel", "--raiz", str(raiz)])
+    assert r.exit_code == 2 and "scripts/build-web.sh" in r.output
 
 
 def test_cli_rechaza_host_publico(raiz):
