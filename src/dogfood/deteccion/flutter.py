@@ -9,15 +9,17 @@ def detectar(ctx: ContextoDeteccion) -> list[Hallazgo]:
     vistas: set[str] = set()  # pantalla ya reportada en la corrida
     hallazgos: list[Hallazgo] = []
     for e in ctx.ejecuciones:
-        if e.driver not in ("android", "ios"):
-            continue
         for p in e.pasos:
-            if p.arbol is None or p.url in vistas or not p.arbol.is_file():
+            if p.url in vistas:
                 continue
-            xml = p.arbol.read_text(errors="replace")
-            if not xml.lstrip().startswith("<"):
-                continue
-            cob = cobertura_xml(xml, umbral=umbral)
+            cob = p.cobertura
+            if cob is None:
+                if e.driver not in ("android", "ios") or p.arbol is None or not p.arbol.is_file():
+                    continue
+                xml = p.arbol.read_text(errors="replace")
+                if not xml.lstrip().startswith("<"):
+                    continue
+                cob = cobertura_xml(xml, umbral=umbral)
             if not cob.flutter:
                 continue
             numeros = (
@@ -50,7 +52,7 @@ def detectar(ctx: ContextoDeteccion) -> list[Hallazgo]:
                 titulo=titulo,
                 descripcion=desc,
                 evidencia=([Evidencia(tipo="captura", ruta=p.captura)] if p.captura else [])
-                + [Evidencia(tipo="texto", ruta=p.arbol)],
+                + ([Evidencia(tipo="texto", ruta=p.arbol)] if p.arbol else []),
                 ejecucion_id=e.id,
                 semilla=ctx.corrida.semilla,
                 commit=ctx.instancia.commit,

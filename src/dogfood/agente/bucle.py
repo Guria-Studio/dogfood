@@ -194,6 +194,7 @@ async def ejecutar(
                 observado=sin_clave(observado),
                 arbol=obs.arbol,
                 punto=punto,
+                cobertura=obs.cobertura,
             )
             e.pasos.append(paso)
             bus.publicar(

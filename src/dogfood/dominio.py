@@ -174,6 +174,7 @@ class Paso(BaseModel):
     observado: str = ""
     arbol: Path | None = None
     punto: tuple[int, int] | None = None
+    cobertura: CoberturaSemantica | None = None
 
     @field_validator("texto_visible")
     @classmethod
