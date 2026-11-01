@@ -85,7 +85,7 @@ def test_compila_en_la_copia_y_sirve_build_web(tmp_path):
         llamadas.append((args, cwd))
         if args[0] == "rsync":
             (cfg.flutter.copia_trabajo / "app").mkdir(parents=True, exist_ok=True)
-        elif args[1:4] == ["build", "web", "--release"]:
+        elif args[1:5] == ["build", "web", "--release", "--no-web-resources-cdn"]:
             web = cwd / "build" / "web"
             web.mkdir(parents=True)
             (web / "index.html").write_text("ok")
@@ -94,8 +94,9 @@ def test_compila_en_la_copia_y_sirve_build_web(tmp_path):
     obj = FlutterWebObjetivo(cfg, runner)
     inst = obj.preparar("main", None)
     try:
-        build = [c for c in llamadas if c[0][1:4] == ["build", "web", "--release"]]
+        build = [c for c in llamadas if c[0][1:3] == ["build", "web"]]
         assert len(build) == 1
+        assert "--no-web-resources-cdn" in build[0][0]
         assert build[0][1] == cfg.flutter.copia_trabajo.resolve() / "app" != app
         assert inst.parametros["build_dir"] == str(build[0][1] / "build" / "web")
         assert httpx.get(inst.base_url).text == "ok"

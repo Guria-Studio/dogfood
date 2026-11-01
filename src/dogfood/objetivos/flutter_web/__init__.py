@@ -42,7 +42,7 @@ class FlutterWebObjetivo:
         corredor = CorredorFlutter(cfg, self._runner)
         copia = await corredor.copia_de_trabajo(cfg.flutter.proyecto)
         env = defines(RecorridoDeterministico(dart_defines=cfg.flutter_web.dart_defines), cfg)
-        args = [str(cfg.flutter.sdk), "build", "web", "--release"]
+        args = [str(cfg.flutter.sdk), "build", "web", "--release", "--no-web-resources-cdn"]
         for k, v in env.items():
             args += ["--dart-define", f"{k}={v}"]
         codigo, _, err = await corredor._correr(args, copia)

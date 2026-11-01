@@ -31,3 +31,19 @@ El test arma un `ContextoDeteccion` con las dos observaciones y llama a `detecta
 - «Termos» y «Privacidade» (enlaces dentro del texto) no salen como interactivos: darles `Semantics(link: true, label: 'Termos')` / `'Privacidade'`.
 - El nodo sin etiqueta del árbol (primer elemento, texto vacío) es ruido: revisar que el logo tenga `Semantics(label: 'Rupies Mão')` o `excludeSemantics: true`.
 - Las pantallas siguientes (tras el login) no se pudieron explorar: el login es solo con Google. Para recorrerlas hace falta un modo de prueba (p. ej. un `--dart-define` que omita el login) o credenciales.
+
+## Después de F8.7.T3
+
+`FlutterWebObjetivo` compila con `flutter build web --release --no-web-resources-cdn` (build hermético: CanvasKit y fuentes salen del propio `build/web`) y la copia de trabajo de F8.5.T4 trae sola los paquetes `path:` hermanos. El test de integración ya no enlaza `packages/` ni agrega orígenes de `gstatic` a `api_permitidas`; corre con el objetivo tal cual (`1 passed in 92.14s`).
+
+| Dato | Valor |
+|------|-------|
+| Flutter | 3.47.9 (stable) |
+| Compilación (copia, `pub get` y build) | **83,5 s** |
+| Pantallas observadas | 2 (ambas `#/sign-in`) |
+| Pantalla 1 | 2 elementos (1 etiquetado), 1 interactivo, 1 etiquetado, 0 con id, 2 nodos, **no ciega** |
+| Pantalla 2 | igual que la 1 (tras tocar «Entrar com Google G») |
+| Red con error (>= 400) | ninguna; consola solo con avisos de WebGL y un recurso bloqueado por el cliente |
+| Hallazgos del detector | 0 |
+
+La app ya no queda en blanco con la lista blanca solo local. Sigue pendiente lo de la sección anterior (detector sin lectura de `Observacion.cobertura` en web, ids 0/1).

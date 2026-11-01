@@ -47,17 +47,9 @@ def test_mobile_mao_compilada_a_web(tmp_path_factory):
     ).stdout
     try:
         cfg = Config.cargar(RAIZ)
-        # la app depende de ../../packages (monorepo): la copia vive en <trabajo>/apps/ y los
-        # paquetes se enlazan (solo lectura) en <trabajo>/packages
-        (trabajo / "packages").symlink_to(APP.parent.parent / "packages")
         cfg.flutter.proyecto, cfg.flutter.copia_trabajo = APP, trabajo / "apps"
         cfg.flutter.sdk = SDK
         cfg.flutter_web.puerto, cfg.flutter_web.build_dir = 0, None
-        # el build por defecto baja CanvasKit y las fuentes de gstatic: sin esto la app queda en blanco
-        cfg.flutter_web.api_permitidas = [
-            "https://www.gstatic.com",
-            "https://fonts.gstatic.com",
-        ]
         env = {
             "PATH": f"{SDK.parent}:{__import__('os').environ['PATH']}",
             "PUB_CACHE": "/mnt/storage/flutter/.pub-cache",
