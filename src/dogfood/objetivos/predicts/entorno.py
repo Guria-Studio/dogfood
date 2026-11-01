@@ -148,7 +148,8 @@ def preparar(ref: str, corrida: Corrida, timeout_s: float = 600) -> Instancia:
     _esperar_salud(f"{base}/api/salud", timeout_s)
     return Instancia(
         base_url=base,
-        api_url=f"http://localhost:{PUERTO_API}",
+        # Por el proxy /api del web, como el front: la API sirve sus rutas sin /api.
+        api_url=base,
         proyecto_compose=PROYECTO,
         commit=commit,
         parametros=_parametros(compose, env),

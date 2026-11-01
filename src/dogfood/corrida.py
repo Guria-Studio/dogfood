@@ -39,7 +39,6 @@ from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
 from dogfood.llm import (
     ContadorUso,
     backend_para,
-    cliente_para,
     completar_json,
     indice_modelo,
 )
@@ -437,14 +436,14 @@ async def correr(op: Opciones) -> Corrida:
         for servicio, texto in logs.items():
             (almacen.dir_corrida(corrida.id) / "logs" / f"{servicio}.log").write_text(texto)
 
-        from dogfood.objetivos.predicts.cliente import PredictsCliente  # ponytail: solo predicts
+        from dogfood.objetivos.predicts.cliente import cliente_para  # ponytail: solo predicts
 
         ctx = ContextoDeteccion(
             corrida=corrida,
             instancia=instancia,
             ejecuciones=ejecuciones,
             datasets=datasets,
-            cliente_api=lambda _persona: PredictsCliente(instancia.api_url),
+            cliente_api=lambda persona: cliente_para(instancia, persona),
             logs=logs,
         )
         hallazgos = deteccion.ejecutar_detectores(ctx)

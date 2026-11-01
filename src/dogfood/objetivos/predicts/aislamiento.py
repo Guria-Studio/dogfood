@@ -5,6 +5,7 @@ recursos de otra empresa A, enumerando las rutas con parámetro de ruta del Open
 Cualquier respuesta que no sea 401/403/404 y traiga datos de A es un fallo de aislamiento crítico.
 """
 
+import logging
 import re
 from typing import Any
 
@@ -17,6 +18,10 @@ from dogfood.dominio import (
     Hallazgo,
     TipoHallazgo,
 )
+from dogfood.objetivos.predicts.cliente import ErrorSesion
+from dogfood.objetivos.predicts.reglas import _personas
+
+log = logging.getLogger("dogfood")
 
 # Rutas GET que el spec exige probar aunque el OpenAPI no las liste (exportación y stream SSE).
 EXTRA_GET = ("/api/analisis/{id}/exportar", "/api/trabajos/{id}/eventos")
@@ -56,13 +61,20 @@ def _empresas_con_datos(ctx: ContextoDeteccion) -> list[tuple[str, Any, dict[str
     """Una entrada por empresa distinta (con ejecución) que tenga proyecto, dataset y análisis."""
     vistas: list[tuple[str, Any, dict[str, str]]] = []
     seen: set[str] = set()
+    personas = _personas(ctx)
     for e in ctx.ejecuciones:
         emp = e.empresa_id
         if not emp or emp in seen:
             continue
         seen.add(emp)
-        cli = ctx.cliente_api(e.persona_id)
-        base = _ids_base(cli)
+        # `cliente_api` recibe la Persona (antes iba el persona_id y el login lanzaba
+        # AttributeError); sin personas.json queda el id, como en los ctx armados a mano.
+        try:
+            cli = ctx.cliente_api(personas.get(e.persona_id) or e.persona_id)
+            base = _ids_base(cli)
+        except (httpx.HTTPError, ErrorSesion) as exc:
+            log.warning("aislamiento: sin sesión para %s: %s", e.persona_id, exc)
+            continue
         if base is not None:
             vistas.append((emp, cli, base))
     return vistas
@@ -112,15 +124,21 @@ def _proyecto_de_auditoria(cli: Any) -> dict[str, str]:
 
 def _rutas_con_parametro(cli: Any) -> list[tuple[str, str, list[str]]]:
     """(método, plantilla, colecciones) de cada ruta GET/PATCH/DELETE con parámetro de ruta."""
-    r = cli._http.request("GET", "/openapi.json")
-    paths = _json(r).get("paths", {}) if r.status_code == 200 else {}
+    # `api_url` es el proxy del web: el OpenAPI de la API queda bajo /api y sus rutas, sin /api.
+    paths: dict = {}
+    for ruta in ("/openapi.json", "/api/openapi.json"):
+        cuerpo = _json(cli._http.request("GET", ruta))
+        if isinstance(cuerpo, dict) and isinstance(cuerpo.get("paths"), dict):
+            paths = cuerpo["paths"]
+            break
     rutas: list[tuple[str, str, list[str]]] = []
     vistas: set[tuple[str, str]] = set()
-    for plantilla in list(paths) + list(EXTRA_GET):
+    for crudo in list(paths) + list(EXTRA_GET):
+        plantilla = crudo if crudo.startswith("/api/") else "/api" + crudo
         cols = _colecciones(plantilla)
         if not cols:
             continue
-        metodos = [m.upper() for m in paths.get(plantilla, {})] or ["GET"]
+        metodos = [m.upper() for m in paths.get(crudo, {})] or ["GET"]
         for metodo in metodos:
             if metodo not in ("GET", *METODOS_MUTAN) or (metodo, plantilla) in vistas:
                 continue

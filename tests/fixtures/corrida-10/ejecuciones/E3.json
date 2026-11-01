@@ -1,0 +1,372 @@
+{
+  "id": "20261101-125232-2-85b1-E3",
+  "persona_id": "P003",
+  "escenario_id": "login-fallido",
+  "dataset_id": null,
+  "modelo": "ag/gemini-3.8-flash",
+  "estado": "ok",
+  "pasos": [
+    {
+      "n": 1,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 7, \"text\": \"vitoria.esteves.3@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 9, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 155}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-001.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:02:51.147706-03:00",
+      "razonamiento": "Vou inserir o meu e-mail e uma senha incorreta pela primeira vez, conforme solicitado no teste de erro de login.",
+      "paso_contrato": "Preencher e-mail e senha errada e clicar em Entrar pela 1ª vez.",
+      "esperado": "",
+      "observado": "A página de login carregou corretamente.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 2,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"outrasenhaerrada\", \"clear\": true}}, {\"click\": {\"index\": 155}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-002.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:03:06.631810-03:00",
+      "razonamiento": "Na primeira tentativa, digitei a senha errada e cliquei em Entrar. A mensagem 'O e-mail ou a senha estão incorretos.' apareceu, confirmando que a primeira tentativa com senha incorreta foi realizada. O pedido pede para repetir isso três vezes no total (ou seja, mais duas vezes com senha incorreta), e depois colocar a senha correta e entrar. Vou agora fazer a 2ª tentativa com senha incorreta.",
+      "paso_contrato": "Digitar senha incorreta novamente no campo de senha e clicar em Entrar (tentativa 2 de 3).",
+      "esperado": "",
+      "observado": "A primeira tentativa de login com senha incorreta foi realizada com sucesso e exibiu o erro esperado.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 3,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"terceirasenhaerrada\", \"clear\": true}}, {\"click\": {\"index\": 155}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-003.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:03:20.561609-03:00",
+      "razonamiento": "Realizei a 2ª tentativa com senha errada no passo anterior. O sistema exibiu a mensagem 'O e-mail ou a senha estão incorretos.'. Agora devo realizar a 3ª e última tentativa com senha incorreta antes de inserir a senha correta.",
+      "paso_contrato": "Inserir uma senha incorreta pela 3ª vez e clicar em Entrar.",
+      "esperado": "",
+      "observado": "A 2ª tentativa de login com senha incorreta foi executada e a mensagem de erro foi exibida. Sucesso.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 4,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 155}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-004.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:03:36.572310-03:00",
+      "razonamiento": "Já realizamos as 3 tentativas com senha incorreta conforme solicitado pelo usuário. Agora, o próximo passo é preencher a senha correta ('***') no campo de senha (elemento 9) e clicar no botão 'Entrar' (elemento 155) para acessar a conta.",
+      "paso_contrato": "Preencher a senha correta no campo de senha e clicar em Entrar.",
+      "esperado": "",
+      "observado": "A terceira tentativa com senha incorreta foi realizada com sucesso, confirmando as 3 tentativas exigidas.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 5,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-005.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:03:55.510871-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 6,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-006.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:04:19.984307-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 7,
+      "url": "http://localhost:18080/registro",
+      "pantalla": "registro",
+      "accion": "[{\"click\": {\"index\": 10}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-007.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nCriar conta\n\nCrie a conta da sua empresa em um minuto.\n\nNome da empresa\nE-mail\nSenha\nIdioma\nPortuguês\nEspañol\nEnglish\nCriar conta\n\nJá tem conta? Entrar",
+      "ts": "2026-11-01T13:04:47.906066-03:00",
+      "razonamiento": "O usuário pede: 'Con una cuenta ya creada, en \"Iniciar sesión\" escribe tu correo con una contraseña equivocada y pulsa \"Iniciar sesión\"; repítelo tres veces en total. Después escribe la contraseña correcta y entra. Para registrarte o entrar usa el email vitoria.esteves.3@dogfood.example.com y la contraseña ***.'\nAo tentar entrar com a senha correta no passo 4, deu erro 'O e-mail ou a senha estão incorretos.'. Isso sugere que a conta ainda não foi criada no banco de dados, ou a conta precisa ser registrada primeiro ('Para registrarte o entrar usa...').\nVou clicar em 'Criar conta' para verificar se a conta já existe ou se precisamos registrá-la.",
+      "paso_contrato": "Clicar em 'Criar conta' para checar o status do registro do usuário.",
+      "esperado": "",
+      "observado": "A tentativa anterior de login falhou com 'O e-mail ou a senha estão incorretos.', possivelmente porque a conta ainda não foi criada.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 8,
+      "url": "http://localhost:18080/proyectos",
+      "pantalla": "proyectos",
+      "accion": "[{\"input\": {\"index\": 326, \"text\": \"Pet Shop Duarte\", \"clear\": true}}, {\"input\": {\"index\": 329, \"text\": \"vitoria.esteves.3@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 332, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 354}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-008.png",
+      "texto_visible": "Pular para o conteúdo\npredicts\n\nESPAÇO DE TRABALHO\n\nProjetos\nP\n\nPet Shop Duarte\n\nvitoria.esteves.3@dogfood.example.com\n\nProjetos\nPT\nES\nEN\nVE\nvitoria.esteves.3@dogfood.example.com\nProjetos\n\nCada projeto reúne os dados e as análises de um negócio ou marca.\n\nVocê ainda não tem projetos\n\nCrie seu primeiro projeto para começar a enviar dados e analisá-los.\n\n1\nEnvie um CSV de compras\n2\nEscolha o que analisar\n3\nContate quem vai recomprar\nCriar seu primeiro projeto\nTestar com dados de exemplo\n\nSó quer ver como funciona? Experimente com dados de exemplo.",
+      "ts": "2026-11-01T13:05:03.103780-03:00",
+      "razonamiento": "O usuário instruiu a realizar o fluxo com uma conta criada. Como a senha correta falhou no login anterior, é provável que a conta ainda não tenha sido registrada no banco de dados. Estou na tela de registro. Vou preencher os dados da empresa 'Pet Shop Duarte', e-mail 'vitoria.esteves.3@dogfood.example.com' e a senha '***' e clicar em 'Criar conta'.",
+      "paso_contrato": "Preencher o formulário de cadastro e clicar em Criar conta.",
+      "esperado": "",
+      "observado": "Naveguei com sucesso até a página de registro (/registro).",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 9,
+      "url": "http://localhost:18080/proyectos",
+      "pantalla": "proyectos",
+      "accion": "[{\"click\": {\"index\": 487}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-009.png",
+      "texto_visible": "Pular para o conteúdo\npredicts\n\nESPAÇO DE TRABALHO\n\nProjetos\nP\n\nPet Shop Duarte\n\nvitoria.esteves.3@dogfood.example.com\n\nProjetos\nPT\nES\nEN\nVE\nvitoria.esteves.3@dogfood.example.com\nProjetos\n\nCada projeto reúne os dados e as análises de um negócio ou marca.\n\nVocê ainda não tem projetos\n\nCrie seu primeiro projeto para começar a enviar dados e analisá-los.\n\n1\nEnvie um CSV de compras\n2\nEscolha o que analisar\n3\nContate quem vai recomprar\nCriar seu primeiro projeto\nTestar com dados de exemplo\n\nSó quer ver como funciona? Experimente com dados de exemplo.\n\nvitoria.esteves.3@dogfood.example.com\nPet Shop Duarte\nSair",
+      "ts": "2026-11-01T13:05:22.874019-03:00",
+      "razonamiento": "A conta acabou de ser criada, mas a instrução solicitava explicitamente: 'Con una cuenta ya creada, en Iniciar sesión escribe tu correo con una contraseña equivocada y pulsa Iniciar sesión; repítelo tres veces en total. Después escribe la contraseña correcta y entra.' Como as tentativas anteriores foram feitas antes da conta existir, agora preciso deslogar (sair), realizar as 3 tentativas com senha errada na tela de login e em seguida logar com a senha correta.",
+      "paso_contrato": "Abrir o menu de usuário para realizar logout.",
+      "esperado": "",
+      "observado": "A conta foi criada com sucesso e o sistema entrou diretamente no painel de projetos.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 10,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"click\": {\"index\": 587}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-010.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:05:33.269395-03:00",
+      "razonamiento": "O menu de usuário está aberto e a opção 'Sair' está visível no elemento 587. Vou clicar em 'Sair' para deslogar da conta recém-criada e poder cumprir o fluxo exato solicitado: com a conta já existente, tentar o login com senha errada 3 vezes e depois entrar com a senha correta.",
+      "paso_contrato": "Clicar em 'Sair' para deslogar da aplicação.",
+      "esperado": "",
+      "observado": "Abri o menu de perfil com sucesso e a opção 'Sair' está disponível. Veredito: Sucesso.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 11,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 680, \"text\": \"vitoria.esteves.3@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 685, \"text\": \"senhaerrada1\", \"clear\": true}}, {\"click\": {\"index\": 688}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-011.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:05:44.852118-03:00",
+      "razonamiento": "Estamos na tela de login e a conta já foi criada com sucesso. Agora vamos executar o procedimento solicitado: com a conta já criada, inserir o e-mail e uma senha incorreta e clicar em Entrar (tentativa 1 de 3).",
+      "paso_contrato": "Preencher e-mail e senha incorreta e clicar em Entrar (tentativa 1 de 3).",
+      "esperado": "",
+      "observado": "Desloguei com sucesso e retornei à tela de login com a conta já existente. Veredito: Sucesso.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 12,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 685, \"text\": \"outrasenhaerrada2\", \"clear\": true}}, {\"click\": {\"index\": 688}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-012.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 708 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:06:03.462615-03:00",
+      "razonamiento": "A primeira tentativa com senha incorreta foi realizada e a mensagem 'O e-mail ou a senha estão incorretos.' apareceu na tela. Agora vou realizar a segunda tentativa com senha incorreta, digitando novamente uma senha errada no campo de senha e clicando em Entrar.",
+      "paso_contrato": "Inserir uma segunda senha incorreta e clicar no botão Entrar.",
+      "esperado": "",
+      "observado": "A primeira tentativa com senha incorreta na conta criada foi concluída e o erro foi exibido. Sucesso.",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 13,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 685, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 688}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-013.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 683 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:06:27.861478-03:00",
+      "razonamiento": "O sistema exibiu a mensagem de bloqueio: 'Muitas tentativas. Tente de novo em 708 segundos.' Como o objetivo pede para tentar a senha correta e entrar, vou testar inserir a senha correta ('***') e clicar em Entrar para verificar se o bloqueio impede completamente o acesso ou se a senha correta é aceita.",
+      "paso_contrato": "Inserir a senha correta e clicar em Entrar para ver se o login é permitido.",
+      "esperado": "",
+      "observado": "A 2ª tentativa incorreta resultou em bloqueio por excesso de tentativas: 'Muitas tentativas. Tente de novo em 708 segundos.'",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 14,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-014.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 683 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:06:43.679419-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 15,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"done\": {\"text\": \"Fricção / Rendição:\\n\\nApós realizar as tentativas com senha incorreta no login da conta recém-criada (vitoria.esteves.3@dogfood.example.com), a tela exibiu o seguinte bloqueio:\\n\\\"Muitas tentativas. Tente de novo em 683 segundos.\\\"\\n\\nMesmo ao preencher a senha correta ('***') e clicar em 'Entrar', o acesso continuou bloqueado pela restrição de tempo de mais de 11 minutos.\\n\\nComo Vitória Esteves (Pet Shop Duarte), com paciência 2/5 e pouca destreza digital, esperar mais de 10 minutos para conseguir entrar na conta é inaceitável e frustrante. Diante disso, decidi me render e não continuar usando o aplicativo.\", \"success\": false, \"files_to_display\": []}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/capturas/paso-015.png",
+      "texto_visible": "predicts\nSaiba quem vai comprar de novo, e quando.\n\nEnvie seu histórico de compras e o predicts estima a próxima compra de cada cliente, detecta quem está prestes a sair e sugere o que oferecer.\n\nLembretes de recompra por cliente e produto\nAlertas de abandono com o valor em jogo\nMensagens prontas para enviar, escritas com IA\nPrecisão medida com backtest, sem caixas-pretas\n\nComece com um CSV de compras. Sem integrações.\n\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 683 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:07:16.708967-03:00",
+      "razonamiento": "Após criar a conta e realizar as tentativas com senha incorreta no login, o sistema ativou uma proteção de limite de taxa (rate limiting), exibindo a mensagem: 'Muitas tentativas. Tente de novo em 683 segundos.' Ao tentar inserir a senha correta e clicar em Entrar, o login permaneceu bloqueado por essa contagem regressiva de mais de 11 minutos. Como a persona Vitória Esteves possui baixa paciência (2/5) e não é viável nem razoável aguardar mais de 10 minutos para entrar no sistema, ela se rende e abandona a aplicação neste ponto.",
+      "paso_contrato": "Finalizar a execução reportando a impossibilidade de login devido ao bloqueio temporário e a desistência da usuária.",
+      "esperado": "",
+      "observado": "A tentativa de entrar com a senha correta permaneceu bloqueada pela mensagem de muitas tentativas.",
+      "arbol": null,
+      "punto": null
+    }
+  ],
+  "red": [
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 1.823
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 1.621
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 93.256
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 92.27
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 87.712
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 89.443
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 2.749
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 2.124
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 82.51
+    }
+  ],
+  "consola": [
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+      "url": "http://localhost:18080/api/auth/login"
+    }
+  ],
+  "fricciones": [],
+  "descargas": [],
+  "exito": false,
+  "motivo_juez": "el juez falló: HTTPStatusError(\"Server error '503 Service Unavailable' for url 'https://routers.usebot.chat/v1/chat/completions'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503\")",
+  "duracion_s": 284.88,
+  "ruta_historial": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/historial.json",
+  "empresa_id": null,
+  "notas": [
+    "429 esperado en /auth/login (2)"
+  ],
+  "driver": "web",
+  "motor": "browser_use",
+  "backend": "api",
+  "resultado": "fallo",
+  "metricas": {
+    "tokens_in": 141767,
+    "tokens_out": 3585,
+    "capturas": 0,
+    "costo_usd": 0.0514926,
+    "costo_equivalente_usd": 0.0514926
+  },
+  "video": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/video/page@e1d7a8420e69844d50d5fa43f48ea3c1.webm",
+  "trace": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E3/trace.zip",
+  "evidencia_driver": []
+}

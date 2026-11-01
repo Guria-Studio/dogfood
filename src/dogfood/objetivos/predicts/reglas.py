@@ -6,8 +6,10 @@ ellas no hay cliente de API ni idioma, y las reglas que los necesitan no se eval
 
 import csv
 import io
+import json
 import re
 from collections import defaultdict
+from pathlib import Path
 from urllib.parse import urlparse
 
 import httpx
@@ -36,6 +38,11 @@ PUERTOS_SMTP = {25, 465, 587, 2525}
 
 _PALABRAS = {
     "pt": [
+        # «o» y «se» también son del español: quedan en _COMUNES y no cuentan (F10.1.T3: «revise
+        # o que…» salía como español). «e» (y) es solo del portugués.
+        "o",
+        "e",
+        "se",
         "não",
         "você",
         "uma",
@@ -286,7 +293,15 @@ def _hallazgo(
 
 
 def _personas(ctx: ContextoDeteccion) -> dict[str, Persona]:
-    lista = ctx.corrida.parametros.get("personas", [])
+    """De `corrida.parametros["personas"]` o, si no están (la corrida real no las pone ahí), del
+    `personas.json` de la corrida: `runs/<corrida>/ejecuciones/<id>/historial.json` → `runs/<corrida>`.
+    """
+    lista = ctx.corrida.parametros.get("personas")
+    if not lista:
+        rutas = [Path(e.ruta_historial).parents[2] for e in ctx.ejecuciones if e.ruta_historial]
+        rutas += [Path(ds.ruta_verdad).parents[2] for ds in ctx.datasets.values()]
+        archivo = next((r / "personas.json" for r in rutas if (r / "personas.json").exists()), None)
+        lista = json.loads(archivo.read_text()) if archivo else []
     return {p.id: p for p in (Persona.model_validate(x) for x in lista)}
 
 
