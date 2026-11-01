@@ -94,7 +94,7 @@ def test_url_permitida_y_pantalla():
 
 
 def test_escenarios_login():
-    (login,) = objetivo(Falso(), serial="S").escenarios()
+    login = next(e for e in objetivo(Falso(), serial="S").escenarios() if e.id == "login")
     assert login.id == "login"
     assert login.driver == "android"
     assert login.superficies == ["login"]
