@@ -22,7 +22,9 @@ def run(
     driver: Annotated[
         str | None, typer.Option(help="Driver: web o android (pisa el del escenario).")
     ] = None,
-    motor: Annotated[str | None, typer.Option(help="Motor: browser_use o bucle.")] = None,
+    motor: Annotated[
+        str | None, typer.Option(help="Motor: browser_use, bucle, patrol o integration_test.")
+    ] = None,
     vista: Annotated[
         bool, typer.Option("--vista", help="Vista en vivo de las ejecuciones.")
     ] = False,
@@ -35,8 +37,10 @@ def run(
 ) -> None:
     if driver not in (None, "web", "android"):
         raise typer.BadParameter("web o android", param_hint="--driver")
-    if motor not in (None, "browser_use", "bucle"):
-        raise typer.BadParameter("browser_use o bucle", param_hint="--motor")
+    if motor not in (None, "browser_use", "bucle", "patrol", "integration_test"):
+        raise typer.BadParameter(
+            "browser_use, bucle, patrol o integration_test", param_hint="--motor"
+        )
     corrida = asyncio.run(
         correr(
             Opciones(

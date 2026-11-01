@@ -20,6 +20,8 @@ from dogfood.almacen import Almacen
 from dogfood.config import Config
 from dogfood.datos.defectos import aplicar
 from dogfood.datos.generador import generar
+from dogfood.deterministico import ResultadoDeterministico
+from dogfood.deterministico.corredor import CorredorFlutter, a_ejecucion
 from dogfood.dominio import (
     ContextoDeteccion,
     Corrida,
@@ -31,7 +33,7 @@ from dogfood.dominio import (
 )
 from dogfood.drivers.android import Adb, DriverAndroid
 from dogfood.drivers.web import DriverWeb
-from dogfood.eventos import BUS_NULO, BusVivo
+from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
 from dogfood.llm import (
     ContadorUso,
     backend_para,
@@ -121,6 +123,55 @@ def _driver(nombre: str, cfg: Config, objetivo: Objetivo, instancia: Instancia, 
         flutter=bool(instancia.parametros.get("flutter")),
         umbral_cobertura=cfg.flutter.umbral_cobertura,
     )
+
+
+async def _determinista(
+    herramienta, driver, cfg, instancia, persona, escenario, carpeta, ejecucion_id, bus, corrida_id
+) -> Ejecucion:
+    """FR-36: corre Patrol / integration_test en lugar del bucle; no usa LLM."""
+    base = {
+        "corrida_id": corrida_id,
+        "ejecucion_id": ejecucion_id,
+        "persona": persona.nombre,
+        "escenario": escenario.id,
+    }
+    if driver == "ios":
+        raise NotImplementedError("iOS determinista va por el nodo (F8.6.T4)")
+    bus.publicar(EventoVivo(**base, tipo="inicio"))
+    inicio = time.monotonic()
+    proyecto = cfg.flutter.proyecto
+    if proyecto is None:
+        det = carpeta / "deterministico"
+        det.mkdir(parents=True, exist_ok=True)
+        motivo = "falta `flutter.proyecto` en la config: no sé qué app Flutter probar"
+        (det / "salida.log").write_text(motivo + "\n")
+        r = ResultadoDeterministico(
+            herramienta=herramienta, codigo_salida=-1, motivo="sin_proyecto", log=det / "salida.log"
+        )
+    else:
+        p, d = instancia.parametros, cfg.driver
+        adb = Adb(p.get("serial") or d.serial, p.get("host_puerto") or d.host_puerto)
+
+        async def capturar(destino: Path) -> Path | None:
+            try:
+                destino.write_bytes(await adb.ejecutar("exec-out", "screencap", "-p", binario=True))
+            except Exception as exc:  # noqa: BLE001 - la captura final no tumba el resultado
+                log.warning("no pude capturar la pantalla final: %s", exc)
+                return None
+            return destino
+
+        r = await CorredorFlutter(cfg).correr(
+            escenario,
+            herramienta,
+            adb.destino,
+            carpeta,
+            proyecto=proyecto,
+            capturar=capturar,
+        )
+    e = a_ejecucion(r, persona, escenario, ejecucion_id, driver)
+    e.duracion_s = round(time.monotonic() - inicio, 2)
+    bus.publicar(EventoVivo(**base, tipo="fin", resultado=e.resultado))
+    return e
 
 
 def _dataset(e: Escenario, semilla: int, almacen: Almacen, corrida_id: str) -> DatasetSintetico:
@@ -238,6 +289,7 @@ async def correr(op: Opciones) -> Corrida:
                 extra["herramientas_extra"] = cuentas.herramientas_extra(instancia, persona)
             carpeta = almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}")
             driver = op.driver or escenario.driver
+            motor = op.motor or escenario.motor
             por_bucle = driver == "android" or op.motor == "bucle"
             if not por_bucle and cfg.motores["persona"] == "claude_code":
                 log.info(
@@ -245,7 +297,12 @@ async def correr(op: Opciones) -> Corrida:
                     "API, uso el bucle propio con el driver web"
                 )
                 por_bucle = True
-            if por_bucle:
+            if motor in ("patrol", "integration_test") and escenario.deterministico:
+                e = await _determinista(
+                    motor, driver, cfg, instancia, persona, escenario, carpeta,
+                    f"{corrida.id}-E{n}", bus, corrida.id,
+                )  # fmt: skip
+            elif por_bucle:
                 indice = indice_modelo("persona", n, semilla, cfg)
                 drv = _driver(driver, cfg, objetivo, instancia, persona)
                 e = await bucle.ejecutar(
@@ -289,7 +346,8 @@ async def correr(op: Opciones) -> Corrida:
                     contador=contador,
                     **extra,
                 )
-            e.resultado = contrato.resultado(e)
+            if e.motor not in ("patrol", "integration_test"):  # el determinista ya trae el suyo
+                e.resultado = contrato.resultado(e)
             if escenario.carril == "login_fallido":
                 esperados = [r for r in e.red if r.estado == 429 and "/auth/login" in r.url]
                 if esperados:
