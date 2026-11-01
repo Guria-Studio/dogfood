@@ -1,3 +1,11 @@
+---
+titulo: Android real con ADB
+seccion: guias
+orden: 5
+pantallas:
+  - dispositivos
+---
+
 # Android real con dogfood: ADB por USB o Tailscale
 
 Guía para probar una app Android real con el driver `android` (FR-29, FR-34, FR-37, issue #32). Cubre preparar el teléfono, emparejarlo y conectarlo, la configuración de `dogfood.yaml`, correr el login agéntico o determinista, ver la pantalla en vivo y la verificación manual que aún falta.
