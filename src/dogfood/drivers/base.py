@@ -7,7 +7,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel
 
-from dogfood.dominio import Evidencia
+from dogfood.dominio import CoberturaSemantica, Evidencia
 
 
 class ElementoUI(BaseModel):
@@ -32,6 +32,7 @@ class Observacion(BaseModel):
     captura: Path | None = None  # PNG del paso
     arbol: Path | None = None  # árbol crudo
     ts: datetime
+    cobertura: CoberturaSemantica | None = None
 
 
 class Accion(BaseModel):

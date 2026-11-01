@@ -1,12 +1,13 @@
 from collections.abc import Callable
 
-from dogfood.deteccion import friccion, objetivo, tecnicos
+from dogfood.deteccion import flutter, friccion, objetivo, tecnicos
 from dogfood.dominio import ContextoDeteccion, Gravedad, Hallazgo, TipoHallazgo
 
 DETECTORES: list[Callable[[ContextoDeteccion], list[Hallazgo]]] = [
     tecnicos.detectar,
     friccion.detectar,
     objetivo.detectar,
+    flutter.detectar,
 ]
 
 

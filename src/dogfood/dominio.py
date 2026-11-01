@@ -14,6 +14,8 @@ from pydantic import BaseModel, Field, field_validator
 
 MAX_TEXTO_VISIBLE = 4000
 
+Plataforma = Literal["web", "android", "ios"]
+
 
 class Idioma(StrEnum):
     pt_BR = "pt-BR"
@@ -70,6 +72,7 @@ class TipoHallazgo(StrEnum):
     aislamiento = "aislamiento"
     regla = "regla"
     friccion = "friccion"
+    accesibilidad = "accesibilidad"
 
 
 class Persona(BaseModel):
@@ -105,6 +108,31 @@ class ContratoRecorrido(BaseModel):
     evidencia_requerida: list[str] = []
 
 
+class PasoDeterministico(BaseModel):
+    accion: Literal["tocar", "escribir", "esperar_texto", "ver_texto", "deslizar", "volver"]
+    key: str | None = None  # ValueKey / Semantics(identifier:) del widget
+    texto: str | None = None  # texto visible a buscar
+    valor: str | None = None  # lo que se escribe; "{env:NOMBRE}" → String.fromEnvironment
+    timeout_s: float = 10
+
+
+class RecorridoDeterministico(BaseModel):
+    archivo: str | None = None  # test existente, relativo a la raíz de la app
+    pasos: list[PasoDeterministico] = []  # si no hay archivo, se genera
+    dart_defines: dict[str, str] = {}  # literales o "{env:NOMBRE}" (secretos de ~/.config/dogfood)
+
+
+class CoberturaSemantica(BaseModel):
+    flutter: bool = False
+    nodos: int = 0  # nodos de la app (bajo FlutterView, o todos si no es Flutter)
+    interactivos: int = 0  # clicables, editables, enfocables o desplazables
+    etiquetados: int = 0  # interactivos con texto o content-desc/label
+    con_id: int = 0  # interactivos con resource-id / identifier estable
+    ratio_etiqueta: float = 1.0  # etiquetados / interactivos (1.0 si no hay interactivos)
+    ratio_id: float = 1.0
+    ciega: bool = False  # flutter y (nodos == 0 o ratio_etiqueta < umbral)
+
+
 class Escenario(BaseModel):
     id: str
     titulo: str
@@ -116,7 +144,9 @@ class Escenario(BaseModel):
     max_pasos: int = Field(default=60, gt=0)
     carril: Literal["normal", "login_fallido"] = "normal"
     contrato: ContratoRecorrido | None = None
-    driver: Literal["web", "android"] = "web"
+    driver: Plataforma = "web"
+    motor: Literal["browser_use", "bucle", "patrol", "integration_test"] | None = None
+    deterministico: RecorridoDeterministico | None = None
 
 
 class DatasetSintetico(BaseModel):
@@ -204,7 +234,7 @@ class Ejecucion(BaseModel):
     ruta_historial: Path | None = None
     empresa_id: str | None = None
     notas: list[str] = []
-    driver: Literal["web", "android"] = "web"
+    driver: Plataforma = "web"
     motor: str = "browser_use"
     backend: str = "api"
     resultado: Literal["aprobado", "fallo", "no_concluyente"] | None = None

@@ -405,37 +405,47 @@ dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
 ### v0.3 — Dominio (`dominio.py`, `drivers/base.py`)
 ```python
 Plataforma = Literal["web", "android", "ios"]
-class TipoHallazgo(StrEnum): ...; accesibilidad = "accesibilidad"
+
+
+class TipoHallazgo(StrEnum):
+    ...
+    accesibilidad = "accesibilidad"
+
 
 class PasoDeterministico(BaseModel):
     accion: Literal["tocar", "escribir", "esperar_texto", "ver_texto", "deslizar", "volver"]
-    key: str | None = None        # ValueKey / Semantics(identifier:) del widget
-    texto: str | None = None      # texto visible a buscar
-    valor: str | None = None      # lo que se escribe; "{env:NOMBRE}" → String.fromEnvironment
+    key: str | None = None  # ValueKey / Semantics(identifier:) del widget
+    texto: str | None = None  # texto visible a buscar
+    valor: str | None = None  # lo que se escribe; "{env:NOMBRE}" → String.fromEnvironment
     timeout_s: float = 10
 
+
 class RecorridoDeterministico(BaseModel):
-    archivo: str | None = None              # test existente, relativo a la raíz de la app
-    pasos: list[PasoDeterministico] = []    # si no hay archivo, se genera
-    dart_defines: dict[str, str] = {}       # literales o "{env:NOMBRE}" (secretos de ~/.config/dogfood)
+    archivo: str | None = None  # test existente, relativo a la raíz de la app
+    pasos: list[PasoDeterministico] = []  # si no hay archivo, se genera
+    dart_defines: dict[str, str] = {}  # literales o "{env:NOMBRE}" (secretos de ~/.config/dogfood)
+
 
 class Escenario(BaseModel):  # suma
     driver: Plataforma = "web"
     motor: Literal["browser_use", "bucle", "patrol", "integration_test"] | None = None
     deterministico: RecorridoDeterministico | None = None
 
+
 class Ejecucion(BaseModel):  # cambia
     driver: Plataforma = "web"
 
+
 class CoberturaSemantica(BaseModel):
     flutter: bool = False
-    nodos: int = 0            # nodos de la app (bajo FlutterView, o todos si no es Flutter)
-    interactivos: int = 0     # clicables, editables, enfocables o desplazables
-    etiquetados: int = 0      # interactivos con texto o content-desc/label
-    con_id: int = 0           # interactivos con resource-id / identifier estable
-    ratio_etiqueta: float = 1.0   # etiquetados / interactivos (1.0 si no hay interactivos)
+    nodos: int = 0  # nodos de la app (bajo FlutterView, o todos si no es Flutter)
+    interactivos: int = 0  # clicables, editables, enfocables o desplazables
+    etiquetados: int = 0  # interactivos con texto o content-desc/label
+    con_id: int = 0  # interactivos con resource-id / identifier estable
+    ratio_etiqueta: float = 1.0  # etiquetados / interactivos (1.0 si no hay interactivos)
     ratio_id: float = 1.0
-    ciega: bool = False       # flutter y (nodos == 0 o ratio_etiqueta < umbral)
+    ciega: bool = False  # flutter y (nodos == 0 o ratio_etiqueta < umbral)
+
 
 class Observacion(BaseModel):  # suma
     cobertura: CoberturaSemantica | None = None
@@ -510,22 +520,28 @@ class Trabajo(BaseModel):
     tipo: Literal["estado", "patrol", "sesion_appium", "cerrar_sesion"]
     udid: str | None = None
     bundle_id: str | None = None
-    proyecto: str | None = None             # ruta de la app en el Mac (patrol)
-    escenario: Escenario | None = None      # patrol: con su bloque deterministico
-    dart_defines: dict[str, str] = {}       # viajan solo por stdin; el nodo no los escribe a disco
+    proyecto: str | None = None  # ruta de la app en el Mac (patrol)
+    escenario: Escenario | None = None  # patrol: con su bloque deterministico
+    dart_defines: dict[str, str] = {}  # viajan solo por stdin; el nodo no los escribe a disco
     timeout_s: float = 1800
 
+
 class EstadoNodo(BaseModel):
-    xcode: str | None = None; flutter: str | None = None; patrol: str | None = None
-    appium: bool = False; dispositivos: list[dict[str, str]] = []   # {udid, nombre, os}
+    xcode: str | None = None
+    flutter: str | None = None
+    patrol: str | None = None
+    appium: bool = False
+    dispositivos: list[dict[str, str]] = []  # {udid, nombre, os}
+
 
 class ResultadoTrabajo(BaseModel):
     id: str
     estado: Literal["ok", "fallo", "error"]
     mensaje: str = ""
-    deterministico: ResultadoDeterministico | None = None   # rutas relativas a dir_trabajo/<id>/
+    deterministico: ResultadoDeterministico | None = None  # rutas relativas a dir_trabajo/<id>/
     artefactos: list[str] = []
-    appium_url: str | None = None; mjpeg_url: str | None = None
+    appium_url: str | None = None
+    mjpeg_url: str | None = None
     estado_nodo: EstadoNodo | None = None
 ```
 Transporte: `ssh -o BatchMode=yes -o ConnectTimeout=10 -p <puerto_ssh> <usuario>@<host> <comando> ejecutar` con el `Trabajo` en JSON por stdin; la última línea no vacía de stdout es el `ResultadoTrabajo`. Artefactos: `rsync -a -e "ssh -p <p>" <usuario>@<host>:<dir_trabajo>/<id>/ <carpeta>/`.

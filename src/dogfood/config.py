@@ -7,7 +7,10 @@ from typing import Literal
 
 import yaml
 from dotenv import dotenv_values
-from pydantic import BaseModel, Field, PrivateAttr
+from pydantic import BaseModel, Field, PrivateAttr, field_validator
+
+from dogfood.dominio import Plataforma
+from dogfood.web import validar_host
 
 log = logging.getLogger("dogfood")
 
@@ -55,12 +58,60 @@ class Agente(BaseModel):
 
 
 class Driver(BaseModel):
-    tipo: Literal["web", "android"] = "web"
+    tipo: Plataforma = "web"
     serial: str | None = None
     host_puerto: str | None = None
     paquete: str | None = None
     actividad: str | None = None
     apk: Path | None = None
+    nodo: str | None = None  # ios: nombre en `nodos`
+    udid: str | None = None  # ios
+    bundle_id: str | None = None  # ios
+
+
+class Pantalla(BaseModel):
+    android: Literal["screencap", "screenrecord"] = "screencap"
+    fps: float = Field(default=2, gt=0)
+
+
+class Flutter(BaseModel):
+    sdk: Path = Path("/mnt/storage/flutter/bin/flutter")
+    patrol: Path = Path("/mnt/storage/flutter/.pub-cache/bin/patrol")
+    pub_cache: Path = Path("/mnt/storage/flutter/.pub-cache")
+    proyecto: Path | None = None  # raíz de la app Flutter (solo lectura)
+    copia_trabajo: Path = Path("/mnt/storage/cache/dogfood/flutter")
+    umbral_cobertura: float = Field(default=0.6, ge=0, le=1)
+    timeout_s: float = Field(default=1800, gt=0)
+
+    @field_validator("copia_trabajo", mode="after")
+    @classmethod
+    def _expandir(cls, v: Path) -> Path:
+        return v.expanduser()
+
+
+class FlutterWeb(BaseModel):
+    build_dir: Path | None = (
+        None  # build/web ya compilado; si no, se compila desde flutter.proyecto
+    )
+    host: str = "127.0.0.1"
+    puerto: int = 7480
+    api_permitidas: list[str] = []  # orígenes que la app web puede llamar
+    dart_defines: dict[str, str] = {}
+
+    _host = field_validator("host")(validar_host)
+
+
+class Nodo(BaseModel):
+    """Nodo iOS (Mac) al que se mandan trabajos por SSH: solo loopback o Tailscale (NFR-12)."""
+
+    host: str
+    usuario: str
+    puerto_ssh: int = 22
+    comando: str = "dogfood nodo"  # en el PATH del Mac
+    dir_trabajo: str = "~/dogfood-nodo"  # ruta en el Mac: no se expande aquí
+    proyectos: dict[str, str] = {}  # nombre → ruta de la app en el Mac
+
+    _host = field_validator("host")(validar_host)
 
 
 class Servidor(BaseModel):
@@ -87,6 +138,10 @@ class Config(BaseModel):
     driver: Driver = Field(default_factory=Driver)
     vista: Servidor = Field(default_factory=lambda: Servidor(puerto=7460))
     panel: Servidor = Field(default_factory=lambda: Servidor(puerto=7470))
+    pantalla: Pantalla = Field(default_factory=Pantalla)
+    flutter: Flutter = Field(default_factory=Flutter)
+    flutter_web: FlutterWeb = Field(default_factory=FlutterWeb)
+    nodos: dict[str, Nodo] = Field(default_factory=dict)
     _dir_secretos: Path = PrivateAttr(default_factory=Path)
     _secretos: dict[str, str] = PrivateAttr(default_factory=dict)
 

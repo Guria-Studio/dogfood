@@ -36,12 +36,48 @@ agente:
   resolucion_max: 1024        # lado mayor de la captura enviada al modelo
 
 driver:
-  tipo: web                   # web | android
+  tipo: web                   # web | android | ios
   serial: null                # Android por USB, o
   host_puerto: null           # 127.0.0.1:<p> o <ip de Tailscale>:<p>; nunca otra red
   paquete: null               # com.ejemplo.app
   actividad: null
   apk: null
+  nodo: null                  # ios: nombre en `nodos`
+  udid: null                  # ios
+  bundle_id: null             # ios
+
+# Pantalla en vivo de Android para la vista y el panel
+pantalla:
+  android: screencap          # screencap | screenrecord (necesita ffmpeg)
+  fps: 2
+
+# Apps Flutter: SDK, Patrol y copias de trabajo (nunca dentro del repo de la app)
+flutter:
+  sdk: /mnt/storage/flutter/bin/flutter
+  patrol: /mnt/storage/flutter/.pub-cache/bin/patrol
+  pub_cache: /mnt/storage/flutter/.pub-cache
+  proyecto: null              # raíz de la app Flutter (solo lectura)
+  copia_trabajo: /mnt/storage/cache/dogfood/flutter
+  umbral_cobertura: 0.6       # bajo esto, una pantalla Flutter es «ciega»
+  timeout_s: 1800
+
+# Filtro web: la app Flutter compilada a web, servida solo en loopback o Tailscale
+flutter_web:
+  build_dir: null             # build/web ya compilado; si no, se compila desde flutter.proyecto
+  host: 127.0.0.1
+  puerto: 7480
+  api_permitidas: []          # orígenes que la app web puede llamar
+  dart_defines: {}
+
+# Nodos iOS (Mac) por SSH: host solo 127.0.0.1 o una IP de Tailscale
+nodos: {}
+#  mac:
+#    host: 100.x.y.z
+#    usuario: hector
+#    puerto_ssh: 22
+#    comando: dogfood nodo     # en el PATH del Mac
+#    dir_trabajo: ~/dogfood-nodo
+#    proyectos: {}             # nombre → ruta de la app en el Mac
 
 # Vista en vivo y panel: solo 127.0.0.1 o una IP de Tailscale, nunca 0.0.0.0
 vista: { host: 127.0.0.1, puerto: 7460 }
