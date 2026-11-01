@@ -26,4 +26,4 @@ def panel(
     if not (raiz / "dogfood.db").exists():
         typer.echo(f"error: no hay {raiz / 'dogfood.db'}; corre `dogfood run` primero", err=True)
         raise typer.Exit(1)
-    servir(crear_app_panel(raiz), host, puerto or cfg.panel.puerto)
+    servir(crear_app_panel(raiz, cfg), host, puerto or cfg.panel.puerto)

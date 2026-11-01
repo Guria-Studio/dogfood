@@ -3,7 +3,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 
-from dogfood.panel import consultas, detalle
+from dogfood.config import Config
+from dogfood.panel import consultas, detalle, dispositivos
 from dogfood.web import crear_app_base
 
 _PLANTILLAS = Path(__file__).parent / "plantillas"
@@ -49,8 +50,9 @@ def registrar_rutas(app: FastAPI, plantillas: Jinja2Templates, raiz: Path) -> No
         )
 
 
-def crear_app_panel(raiz: Path) -> FastAPI:
+def crear_app_panel(raiz: Path, cfg: Config | None = None) -> FastAPI:
     app, plantillas = crear_app_base("Panel", _PLANTILLAS)
     registrar_rutas(app, plantillas, Path(raiz))
     detalle.registrar_rutas(app, plantillas, Path(raiz))
+    dispositivos.registrar_rutas(app, plantillas, Path(raiz), cfg)
     return app
