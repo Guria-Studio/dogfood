@@ -1,0 +1,8 @@
+{
+  "value": [
+    {"timestamp": 1730000000001, "level": "ALL", "message": "Nov  1 12:00:00 iPhone Runner[812] <Notice>: arrancó la app"},
+    {"timestamp": 1730000000002, "level": "ALL", "message": "Nov  1 12:00:01 iPhone SpringBoard[60] <Notice>: ruido de otro proceso"},
+    {"timestamp": 1730000000003, "level": "ALL", "message": "Nov  1 12:00:02 iPhone Runner[812] <Error>: [ERROR:flutter] Unhandled Exception: login falló"},
+    {"timestamp": 1730000000004, "level": "ALL", "message": "Nov  1 12:00:03 iPhone Runner[812] <Fault>: crash: EXC_BAD_ACCESS"}
+  ]
+}
