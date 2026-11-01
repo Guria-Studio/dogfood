@@ -33,3 +33,18 @@ class PredictsObjetivo:
 
     def logs(self, instancia: Instancia, desde: datetime) -> dict[str, str]:
         return entorno.logs(instancia, desde)
+
+    def rutas_esperadas(self) -> list[dict]:
+        """Respuestas de red que no son hallazgo (`esperada`) o que son una carrera (`carrera`)."""
+        return [
+            # la sesión se consulta al abrir la app: sin login es un 401 normal
+            {"ruta": "/api/auth/yo", "estados": [401], "antes_de_login": True},
+            {"ruta": "/api/auth/login", "estados": [401, 429], "carril": "login_fallido"},
+            {
+                "tipo": "carrera",
+                "ruta": "/api/datasets/{id}/calidad",
+                "estados": [404],
+                "tras": ("POST", "/api/proyectos/{id}/datasets"),
+                "hipotesis": "carrera entre la subida y el cálculo de calidad",
+            },
+        ]

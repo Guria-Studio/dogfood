@@ -1,0 +1,6 @@
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":10.29}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":9.881}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":134.955}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":6.563}
+{"metodo":"GET","url":"http://localhost:18080/api/datasets/01a197d3-31ad-7230-a2b4-f034628e3baa/calidad","estado":404,"ms":6.835}
+{"metodo":"GET","url":"http://localhost:18080/api/datasets/01a197d3-31ad-7230-a2b4-f034628e3baa/calidad","estado":404,"ms":15.058}

@@ -1,0 +1,3 @@
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":3.169}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":2.558}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":3.116}

@@ -1,0 +1,4 @@
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":18.698}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":10.972}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":3.88}
+{"metodo":"GET","url":"http://localhost:18080/api/datasets/01a197d4-ccad-7573-9e7d-e2ebbef35406/calidad","estado":404,"ms":8.848}
