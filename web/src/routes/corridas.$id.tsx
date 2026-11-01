@@ -1,12 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
+import { PantallaCorrida } from '@/features/corridas/PantallaCorrida'
 
 export const Route = createFileRoute('/corridas/$id')({
-  component: () => (
-    <>
-      <PageHeader titulo="Corrida" ayuda="corrida" />
-      <p className="text-muted-foreground">en construcción</p>
-    </>
-  ),
+  component: function Corrida() {
+    return <PantallaCorrida id={Route.useParams().id} />
+  },
 })

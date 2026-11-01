@@ -1,12 +1,5 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
+import { PantallaRecorridos } from '@/features/corridas/PantallaRecorridos'
 
-export const Route = createFileRoute('/recorridos')({
-  component: () => (
-    <>
-      <PageHeader titulo="Recorridos" ayuda="recorridos" />
-      <p className="text-muted-foreground">en construcción</p>
-    </>
-  ),
-})
+export const Route = createFileRoute('/recorridos')({ component: PantallaRecorridos })
