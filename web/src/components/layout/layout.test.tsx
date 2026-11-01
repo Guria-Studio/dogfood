@@ -17,7 +17,7 @@ async function montar(contenido: ReactNode) {
         <SidebarProvider>{contenido}</SidebarProvider>
       </TooltipProvider>
     ) })
-  const rutas = ['/', '/recorridos', '/dispositivos', '/vista', '/ayuda'].map((path) =>
+  const rutas = ['/', '/casos', '/recorridos', '/dispositivos', '/vista', '/ayuda'].map((path) =>
     createRoute({ getParentRoute: () => raiz, path }),
   )
   const router = createRouter({
@@ -33,11 +33,12 @@ beforeEach(() => {
 })
 
 describe('layout', () => {
-  it('la barra lateral tiene los 5 enlaces', async () => {
+  it('la barra lateral tiene los 6 enlaces', async () => {
     await montar(<BarraLateral />)
     const enlaces = await screen.findAllByRole('link')
     expect(enlaces.map((e) => e.textContent)).toEqual([
       'Corridas',
+      'Casos de prueba',
       'Recorridos',
       'Dispositivos',
       'Vista en vivo',

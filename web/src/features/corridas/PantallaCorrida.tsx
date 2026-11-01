@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { Link } from '@tanstack/react-router'
+import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { SearchX } from 'lucide-react'
 
 import { cliente } from '@/api/cliente'
@@ -8,6 +8,8 @@ import { Vacio } from '@/components/layout/Vacio'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TablaCasos } from '@/features/plan/TablaCasos'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { BadgeResultado, duracion, fecha, usd } from './comun'
 
@@ -23,6 +25,8 @@ function Tarjeta({ titulo, valor }: { titulo: string; valor: string | number }) 
 }
 
 export function PantallaCorrida({ id }: { id: string }) {
+  const { pestana } = useSearch({ strict: false }) as { pestana?: string }
+  const navigate = useNavigate()
   const corrida = useQuery({
     queryKey: ['corrida', id],
     queryFn: async () => {
@@ -64,6 +68,20 @@ export function PantallaCorrida({ id }: { id: string }) {
   return (
     <>
       {cabecera}
+      <Tabs
+        value={pestana === 'casos' ? 'casos' : 'resumen'}
+        onValueChange={(v) =>
+          navigate({ to: '/corridas/$id', params: { id }, search: v === 'casos' ? { pestana: 'casos' } : {} })
+        }
+      >
+        <TabsList className="mb-4">
+          <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="casos">Casos de prueba</TabsTrigger>
+        </TabsList>
+        <TabsContent value="casos">
+          <TablaCasos corridaId={id} />
+        </TabsContent>
+        <TabsContent value="resumen">
       <p className="mb-4 text-sm text-muted-foreground">
         {r.objetivo}@{r.ref} · versión {r.version} · {r.estado} · {fecha(r.inicio)} · {r.ejecuciones}{' '}
         ejecuciones
@@ -116,6 +134,8 @@ export function PantallaCorrida({ id }: { id: string }) {
           Ver ejecuciones
         </Link>
       </p>
+        </TabsContent>
+      </Tabs>
     </>
   )
 }

@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as CasosRouteImport } from './routes/casos'
 import { Route as DispositivosRouteImport } from './routes/dispositivos'
 import { Route as RecorridosRouteImport } from './routes/recorridos'
 import { Route as VistaRouteImport } from './routes/vista'
@@ -21,6 +22,11 @@ import { Route as EjecucionesIdRouteImport } from './routes/ejecuciones.$id'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CasosRoute = CasosRouteImport.update({
+  id: '/casos',
+  path: '/casos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DispositivosRoute = DispositivosRouteImport.update({
@@ -61,6 +67,7 @@ const EjecucionesIdRoute = EjecucionesIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
@@ -71,6 +78,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
@@ -82,6 +90,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
@@ -94,6 +103,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/casos'
     | '/dispositivos'
     | '/recorridos'
     | '/vista'
@@ -104,6 +114,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/casos'
     | '/dispositivos'
     | '/recorridos'
     | '/vista'
@@ -114,6 +125,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/casos'
     | '/dispositivos'
     | '/recorridos'
     | '/vista'
@@ -125,6 +137,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  CasosRoute: typeof CasosRoute
   DispositivosRoute: typeof DispositivosRoute
   RecorridosRoute: typeof RecorridosRoute
   VistaRoute: typeof VistaRoute
@@ -141,6 +154,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/casos': {
+      id: '/casos'
+      path: '/casos'
+      fullPath: '/casos'
+      preLoaderRoute: typeof CasosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dispositivos': {
@@ -197,6 +217,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  CasosRoute: CasosRoute,
   DispositivosRoute: DispositivosRoute,
   RecorridosRoute: RecorridosRoute,
   VistaRoute: VistaRoute,
