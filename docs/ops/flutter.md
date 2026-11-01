@@ -46,6 +46,12 @@ flutter:
 - Si la copia y el proyecto se solapan (una dentro de la otra), dogfood se niega a seguir.
 - Sin `flutter.proyecto`, un escenario determinista termina `no_concluyente` con el motivo `sin_proyecto`; no falla en silencio.
 
+**Apps en monorepo.** Si el `pubspec.yaml` tiene dependencias `path:` fuera de la app (como `../../packages/core_api` en `mobile-mao`; también en `dev_dependencies` y `dependency_overrides`), la copia de trabajo las sigue sola: calcula el ancestro común y copia app y paquetes con la misma estructura relativa dentro de `copia_trabajo`. No hace falta enlazar nada a mano. Si un `path:` no existe, falla con la ruta.
+
+**Build web hermético.** El filtro web compila con `flutter build web --release --no-web-resources-cdn`: CanvasKit y las fuentes salen del propio `build/web`, no de `gstatic.com`. Así la lista blanca del objetivo (solo origen local) basta y no hay que agregar orígenes de Google a `flutter_web.api_permitidas`. Medido en `docs/notas/m8-flutter-web.md` («Después de F8.7.T3»).
+
+**Login de `mobile-mao`.** Hoy `mobile-mao` solo tiene login con Google (botón «Entrar com Google»), sin campos de email y contraseña. El escenario `login-determinista` (email y contraseña) es un **ejemplo a adaptar** con las `Key` reales de la app; tal cual no pasará contra ella.
+
 Las apps de referencia del proyecto son `mobile-mao` (`br.com.rupies.profissional`) y `mobile-empresa` (`br.com.rupies.empresa`), en `/mnt/storage/rupies/apps`.
 
 ## 3. Cobertura de Semantics y hallazgos `accesibilidad`
