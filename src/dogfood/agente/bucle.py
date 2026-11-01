@@ -22,11 +22,12 @@ from dogfood.config import Config
 from dogfood.dominio import Ejecucion, Escenario, Friccion, Gravedad, Paso, Persona
 from dogfood.drivers.base import Accion, Driver, ElementoUI, arbol_a_texto
 from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
+from dogfood.frames import FuenteDeDriver, FuenteFrames
 from dogfood.objetivos.base import Objetivo
 
 N_HISTORIAL = 8
 MIN_ELEMENTOS_UTILES = 3
-INTERVALO_FRAME_S = {"web": 0.2, "android": 1.0}
+INTERVALO_FRAME_S = {"web": 0.2, "android": 1.0, "ios": 1.0}
 
 
 class DecisionPaso(BaseModel):
@@ -51,18 +52,17 @@ def _reducir(captura: Path, lado: int, destino: Path) -> Path:
     return destino
 
 
-async def _frames(driver: Driver, bus: BusVivo, base: dict) -> None:
-    intervalo = INTERVALO_FRAME_S.get(driver.nombre, 1.0)
+async def _frames(fuente: FuenteFrames, bus: BusVivo, base: dict) -> None:
     while True:
         try:
-            jpeg = await driver.frame()
+            jpeg = await fuente.frame()
         except Exception:  # noqa: BLE001 - la vista nunca frena ni rompe la corrida (NFR-11)
             jpeg = None
         if jpeg:
             bus.publicar(
                 EventoVivo(**base, tipo="frame", frame_jpeg_b64=base64.b64encode(jpeg).decode())
             )
-        await asyncio.sleep(intervalo)
+        await asyncio.sleep(fuente.intervalo_s)
 
 
 async def ejecutar(
@@ -78,6 +78,7 @@ async def ejecutar(
     corrida_id: str = "",
     objetivo: Objetivo | None = None,
     timeout_s: float = TIMEOUT_S,
+    fuente_frames: FuenteFrames | None = None,
 ) -> Ejecucion:
     carpeta = Path(carpeta)
     para_llm = carpeta / "capturas"
@@ -217,13 +218,18 @@ async def ejecutar(
 
     inicio = time.monotonic()
     frames: asyncio.Task | None = None
+    fuente: FuenteFrames | None = None
     plazo = asyncio.timeout(timeout_s)
     try:
         async with plazo:
             await driver.iniciar(carpeta)
             bus.publicar(EventoVivo(**base, tipo="inicio"))
             if bus.activo:
-                frames = asyncio.create_task(_frames(driver, bus, base))
+                fuente = fuente_frames or FuenteDeDriver(
+                    driver, INTERVALO_FRAME_S.get(driver.nombre, 1.0)
+                )
+                await fuente.iniciar()
+                frames = asyncio.create_task(_frames(fuente, bus, base))
             e.estado, e.motivo_juez = await recorrer()
     except Exception as exc:  # noqa: BLE001 - la ejecución queda como `error`, no se pierde
         if isinstance(exc, TimeoutError) and plazo.expired():
@@ -235,6 +241,11 @@ async def ejecutar(
             frames.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await frames
+        if fuente:
+            try:
+                await fuente.cerrar()
+            except Exception as exc:  # noqa: BLE001 - cerrar la fuente nunca rompe la ejecución
+                e.notas.append(sin_clave(f"no pude cerrar la fuente de frames: {exc!r}"))
         try:
             for ev in await driver.evidencia():
                 if ev.tipo == "video":
