@@ -62,47 +62,54 @@ def _cargar(raiz: Path, ejecucion_id: str) -> tuple[Ejecucion, Corrida, Persona,
     return e, corrida, persona, carpeta
 
 
+def datos_ejecucion(raiz: Path, ejecucion_id: str) -> dict:
+    """Datos del detalle de una ejecución (los usan la ruta HTML y la API JSON)."""
+    e, corrida, persona, carpeta = _cargar(raiz, ejecucion_id)
+    pasos: list[Paso] = _jsonl(carpeta / "pasos.jsonl", Paso) or e.pasos
+    red: list[EventoRed] = _jsonl(carpeta / "red.jsonl", EventoRed) or e.red
+    consola: list[EventoConsola] = _jsonl(carpeta / "consola.jsonl", EventoConsola) or e.consola
+    logcat = carpeta / "logcat.txt"
+    lineas = logcat.read_text(errors="replace").splitlines() if logcat.is_file() else []
+    graves = [x for x in lineas if x.startswith("E/") or "FATAL" in x]
+    vistas = [
+        {
+            "p": p,
+            "captura": _url(p.captura, raiz, carpeta),
+            # ponytail: los eventos no llevan marca de tiempo; se asocian por URL del paso
+            "consola": [c for c in consola if c.url and c.url == p.url],
+            "red": [r for r in red if p.url and r.url == p.url],
+        }
+        for p in pasos
+    ]
+    por_pantalla: dict[str, list] = {}
+    for f in e.fricciones:
+        por_pantalla.setdefault(f.pantalla, []).append(
+            {"f": f, "captura": _url(f.captura, raiz, carpeta)}
+        )
+    return {
+        "e": e,
+        "corrida": corrida,
+        "persona": persona,
+        "pasos": vistas,
+        "consola": consola,
+        "red": red,
+        "logcat": "\n".join((graves or lineas)[-40:]),
+        "video": _url(e.video, raiz, carpeta),
+        "trace": _url(e.trace, raiz, carpeta),
+        "fricciones": por_pantalla,
+        "resultado": e.resultado or ("aprobado" if e.exito else "fallo"),
+    }
+
+
 def registrar_rutas(app: FastAPI, plantillas: Jinja2Templates, raiz: Path) -> None:
     @app.get("/ejecuciones/{ejecucion_id}")
     def ejecucion(request: Request, ejecucion_id: str):
-        e, corrida, persona, carpeta = _cargar(raiz, ejecucion_id)
-        pasos: list[Paso] = _jsonl(carpeta / "pasos.jsonl", Paso) or e.pasos
-        red: list[EventoRed] = _jsonl(carpeta / "red.jsonl", EventoRed) or e.red
-        consola: list[EventoConsola] = _jsonl(carpeta / "consola.jsonl", EventoConsola) or e.consola
-        logcat = carpeta / "logcat.txt"
-        lineas = logcat.read_text(errors="replace").splitlines() if logcat.is_file() else []
-        graves = [x for x in lineas if x.startswith("E/") or "FATAL" in x]
-        vistas = [
-            {
-                "p": p,
-                "captura": _url(p.captura, raiz, carpeta),
-                # ponytail: los eventos no llevan marca de tiempo; se asocian por URL del paso
-                "consola": [c for c in consola if c.url and c.url == p.url],
-                "red": [r for r in red if p.url and r.url == p.url],
-            }
-            for p in pasos
-        ]
-        por_pantalla: dict[str, list] = {}
-        for f in e.fricciones:
-            por_pantalla.setdefault(f.pantalla, []).append(
-                {"f": f, "captura": _url(f.captura, raiz, carpeta)}
-            )
         return plantillas.TemplateResponse(
             request,
             "ejecucion.html",
             {
-                "e": e,
-                "corrida": corrida,
-                "persona": persona,
-                "pasos": vistas,
-                "consola": consola,
-                "red": red,
-                "logcat": "\n".join((graves or lineas)[-40:]),
-                "video": _url(e.video, raiz, carpeta),
-                "trace": _url(e.trace, raiz, carpeta),
-                "fricciones": por_pantalla,
+                **datos_ejecucion(raiz, ejecucion_id),
                 "etiquetas": consultas.ETIQUETAS,
-                "resultado": e.resultado or ("aprobado" if e.exito else "fallo"),
                 "tipos": [t.value for t in TipoHallazgo],
                 "gravedades": [g.value for g in Gravedad],
             },

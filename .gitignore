@@ -25,3 +25,8 @@ tasks.json.bak-*
 runs/
 .env
 dogfood.yaml
+
+# panel React: build y tipos generados
+src/dogfood/panel/estatico/
+web/src/api/openapi.json
+web/src/api/schema.ts
