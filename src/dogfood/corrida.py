@@ -14,6 +14,7 @@ from typing import Any
 
 from dogfood import contrato, deteccion, frames
 from dogfood import escenarios as esc
+from dogfood import plan as plan_pruebas
 from dogfood.agente import bucle, navegador
 from dogfood.agente.navegador import ESCRITORIO, MOVIL
 from dogfood.almacen import Almacen
@@ -312,6 +313,11 @@ async def correr(op: Opciones) -> Corrida:
             for k in range(1, op.repeat + 1)
             for p, e in base
         ]
+        # el plan de la corrida: el caso i corre como E{i}, E{i + len(base)}, … (una por repetición)
+        plan = plan_pruebas.plan_de(objetivo.nombre, semilla, base)
+        for i, caso in enumerate(plan.casos, 1):
+            caso.ejecuciones = [f"{corrida.id}-E{i + k * len(base)}" for k in range(op.repeat)]
+        (almacen.dir_corrida(corrida.id) / "plan.json").write_text(plan.model_dump_json(indent=2))
 
         def llm_de(n: int):
             return op.llm or cliente_para("persona", indice_modelo("persona", n, semilla, cfg), cfg)
@@ -342,6 +348,7 @@ async def correr(op: Opciones) -> Corrida:
             if objetivo.nombre == "predicts" and escenario.id == "recuperar-contrasena":
                 extra["herramientas_extra"] = cuentas.herramientas_extra(instancia, persona)
             carpeta = almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}")
+            carpeta.mkdir(parents=True, exist_ok=True)  # el plan la ve «en curso»
             driver = op.driver or escenario.driver
             motor = op.motor or escenario.motor
             por_bucle = driver in ("android", "ios") or op.motor == "bucle"

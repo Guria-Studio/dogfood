@@ -11,6 +11,8 @@ export function migasDe(ruta: string): Miga[] {
       return [corridas, { texto: `Corrida ${b}` }]
     case 'ejecuciones':
       return [corridas, { texto: `Ejecución ${b}` }]
+    case 'casos':
+      return [corridas, { texto: 'Casos de prueba' }]
     case 'recorridos':
       return [corridas, { texto: 'Recorridos' }]
     case 'dispositivos':
