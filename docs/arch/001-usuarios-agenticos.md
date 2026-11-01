@@ -1,11 +1,11 @@
 ---
 type: arch
 project_id: dogfood
-version: 0.2
+version: 0.3
 depends_on:
   - docs/prd/001-usuarios-agenticos.md
 generated_by: orch-arch
-generated_at: 2026-10-29
+generated_at: 2026-11-01
 title: Usuarios agénticos para predicts — arquitectura
 ---
 
@@ -37,6 +37,8 @@ El primer objetivo es **predicts** (`/mnt/storage/project/predicts`). Lo que imp
 **Qué NO se copia:**
 - El Chrome CDP compartido de `:9222`: es un solo perfil y las sesiones se cruzarían.
 - La instancia de predicts en `:8080`.
+
+**v0.3 (PRD v0.4, M8 — Flutter en celular real).** F0–F7 están hechas: hay interfaz `Driver` con driver web y Android (ADB), bucle agéntico, contrato de resultado, vista en vivo y panel. El driver Android nunca se probó con un celular (no hay KVM ni dispositivo conectado). M8 suma: ADB sobre Tailscale con comandos de operación, soporte Flutter (detección, cobertura de Semantics, hallazgo de pantalla «ciega» y respaldo por visión), un motor determinista Patrol / `integration_test`, una interfaz de **fuente de frames** para ver la pantalla real (Android y iPhone) en la vista y en el panel, un **nodo iOS** en el Mac M1 de Héctor al que guria manda trabajos por SSH sobre Tailscale, y un filtro web con la app Flutter compilada a web. Las apps de referencia son `/mnt/storage/rupies/apps/mobile-mao` (`br.com.rupies.profissional`) y `mobile-empresa` (`br.com.rupies.empresa`): Flutter ≥ 3.1, carpeta `web/` presente, casi sin `Semantics` ni `ValueKey` y sin Patrol ni `integration_test`; son **solo lectura** (dogfood trabaja sobre copias). El SDK de Flutter está en `/mnt/storage/flutter` (`PUB_CACHE=/mnt/storage/flutter/.pub-cache`).
 
 ## Componentes
 
@@ -128,6 +130,41 @@ Todo vive en `src/dogfood/`.
 ### Objetivo Android (`objetivos/android/`) — v0.2
 - `AndroidObjetivo` cumple el protocolo `Objetivo`: `preparar` verifica el dispositivo (`adb get-state`), instala el `apk` si hay y devuelve una `Instancia` con `base_url = android://<paquete>` y `parametros = {serial, paquete, version_app}` (de `dumpsys package`); `destruir` hace `force-stop` y `pm clear`; `url_permitida` acepta solo `android://<paquete>`; `pantalla` es la actividad; `logs` devuelve el logcat; `verificadores()` es `[]` en la v1. Escenarios en `objetivos/android/escenarios/*.yaml` (login de ejemplo).
 
+### Android por Tailscale (`drivers/adb_red.py`, `comandos/android.py`) — v0.3, FR-34
+- **`drivers/adb_red.py`:** operaciones de red de ADB sin estado de driver: `emparejar(host_puerto)` (`adb pair` heredando la terminal: el código lo escribe Héctor en el prompt de `adb`, dogfood no lo lee ni lo guarda), `conectar(host_puerto)` (`adb connect` + `get-state`), `listar()` (`adb devices -l` → `DispositivoAdb` con `permitido` según `validar_destino`) y `servidor_local_ok()` (el servidor `adb` en `:5037` escucha solo en loopback; mira `ss -ltn`). Runner inyectable.
+- **`comandos/android.py`:** `dogfood android emparejar|conectar|estado|desconectar`.
+- **`drivers/android.py`:** `Adb.ejecutar` reconecta **una vez** si el destino es `host_puerto` y `adb` responde `device offline` / `not found` / `no devices` (Tailscale se cayó), y reintenta el comando; un segundo fallo es `AdbError`. `DriverAndroid` acepta `grabar_video` (por defecto `True`; `False` cuando la fuente de frames `screenrecord` ya graba).
+
+### Flutter (`flutter/semantica.py`, `deteccion/flutter.py`) — v0.3, FR-35
+- **`flutter/semantica.py`:** `es_flutter(xml, actividad)` (clases `io.flutter.embedding.android.FlutterView`/`FlutterSurfaceView`/`FlutterTextureView` en el árbol, o `FlutterActivity`/`io.flutter` en la actividad) y la cobertura de Semantics, sobre el XML crudo de `uiautomator` (Android) o de `/source` de XCUITest (iOS), y sobre una lista de `ElementoUI` (web, iOS). Ver *Interfaces* «v0.3 — Flutter».
+- **`drivers/android.py`** rellena `Observacion.cobertura` en cada `observar` cuando la app es Flutter.
+- **`agente/bucle.py`:** si `obs.cobertura.ciega`, adjunta la captura (dentro de `max_capturas_por_paso`) aunque el árbol tenga elementos, y el prompt dice que la pantalla no expone Semantics y que actúe por coordenadas `x`/`y` sobre la captura.
+- **`deteccion/flutter.py`:** detector registrado en `DETECTORES`: recorre los `Paso.arbol` de las ejecuciones Android/iOS, agrupa por pantalla y emite un `Hallazgo` `accesibilidad` por pantalla ciega (gravedad `media`) y uno por pantalla con ids estables insuficientes (`ratio_id < 0.5`, gravedad `baja`, «testabilidad»), con los números y la captura.
+
+### Motor determinista (`deterministico/`) — v0.3, FR-36
+- **`deterministico/generador.py`:** de `Escenario.deterministico.pasos` genera un test Dart: Patrol (`patrolTest`, `$(#key).tap()`, `$(#key).enterText(...)`, `$('texto').waitUntilVisible()`) o `integration_test` (`testWidgets`, `find.byKey(ValueKey(...))`, `find.text`). Los valores `{env:NOMBRE}` se leen con `String.fromEnvironment('NOMBRE')` y viajan por `--dart-define`; el archivo nunca lleva un secreto.
+- **`deterministico/corredor.py`:** `CorredorFlutter` prepara una **copia de trabajo** de la app (`rsync -a --delete` sin `build/`, `.dart_tool/` ni `.git/` a `flutter.copia_trabajo/<nombre>`), escribe el test generado en `integration_test/dogfood/`, agrega `integration_test` a `dev_dependencies` de la copia si falta (Patrol exige que la app ya esté preparada; si no, el resultado es `no_concluyente` con la instrucción), corre `flutter test … --reporter json` o `patrol test …` con timeout y parsea el resultado. `a_ejecucion` lo convierte en una `Ejecucion` (`motor` = `patrol`/`integration_test`, un `Paso` por test, log y reporte como evidencia, captura final del dispositivo).
+- Integración en `corrida.py`: `escenario.motor` o `--motor patrol|integration_test` usan el corredor en lugar del bucle; en iOS el trabajo va al nodo.
+
+### Fuentes de frames (`frames/`) — v0.3, FR-37
+- **`frames/base.py`:** el protocolo `FuenteFrames`, `FuenteDeDriver` (envuelve `driver.frame()`, lo de siempre) y `validar_url_local` (NFR-12).
+- **`frames/android.py`:** `FuenteScreencap` (`exec-out screencap -p` → JPEG ≤ 720 px, a `pantalla.fps`) y `FuenteScreenrecord` (`adb exec-out screenrecord --output-format=h264 -` → `ffmpeg -f h264 -i - -f image2pipe -c:v mjpeg -q:v 7 -r <fps> -`, cortando los JPEG por sus marcadores SOI/EOI; reinicia cada 170 s; si falta `ffmpeg` o el stream muere, cae a `FuenteScreencap`). Además graba el mismo H.264 en `video/` para que el driver no lance un segundo `screenrecord`.
+- **`frames/mjpeg.py`:** `FuenteMjpeg(url)`: lee el `multipart/x-mixed-replace` de WebDriverAgent (puerto 9100) con `httpx` en streaming y guarda el último JPEG; reconecta con espera creciente.
+- **`frames/__init__.py`:** `crear_fuente(cfg, driver, parametros) -> FuenteFrames` según `driver.nombre` y `cfg.pantalla`.
+- **`agente/bucle.py`:** el emisor de frames usa la `FuenteFrames` que recibe (por defecto `FuenteDeDriver`).
+- **`panel/dispositivos.py`:** página «Dispositivos» del panel (`GET /dispositivos`) con los Android visibles por `adb` (solo los permitidos) y los nodos iOS de `cfg.nodos`, cada uno con su pantalla en vivo (`GET /dispositivos/{id}/mjpeg`, un `multipart/x-mixed-replace` armado desde su `FuenteFrames`).
+
+### Nodo iOS (`nodos/`, `drivers/ios.py`, `objetivos/ios/`) — v0.3, FR-38
+- **`nodos/protocolo.py`:** `Trabajo`, `ResultadoTrabajo`, `EstadoNodo` (ver *Interfaces*). Un trabajo es un JSON por stdin; el resultado es la **última línea** de stdout en JSON; los logs van a stderr.
+- **`nodos/cliente.py`** (corre en guria): `ClienteNodo(nodo_cfg, runner)`: valida el host (loopback o Tailscale), `estado()` (`ssh -o BatchMode=yes -o ConnectTimeout=10 -p <p> usuario@host <comando> estado --json`), `enviar(trabajo, carpeta)` (`ssh … <comando> ejecutar` con el trabajo por stdin; después `rsync -a usuario@host:<dir_trabajo>/<id>/ <carpeta>/`) y `tunel(puertos)` (`ssh -N -L 127.0.0.1:<p>:127.0.0.1:<p>` en segundo plano, para Appium `4723` y el MJPEG `9100`, que en el Mac escuchan solo en loopback).
+- **`nodos/runner.py` + `comandos/nodo.py`** (corre en el Mac): `dogfood nodo estado [--json]` (versión de Xcode con `xcodebuild -version`, iPhones con `xcrun xctrace list devices`, Appium en `127.0.0.1:4723/status`, `patrol --version`, `flutter --version`) y `dogfood nodo ejecutar` (lee el `Trabajo`): `patrol` usa `CorredorFlutter` con `--device <udid>` en `dir_trabajo/<id>/`; `sesion_appium` arranca `appium --address 127.0.0.1 --port 4723` si no responde y devuelve las URLs locales; `cerrar_sesion` lo detiene si lo arrancó el nodo.
+- **`drivers/ios.py`:** `DriverIos` cumple `Driver` hablando WebDriver/Appium por HTTP (`httpx`, sin cliente de Appium): sesión XCUITest (`appium:udid`, `appium:bundleId`, `appium:mjpegServerPort: 9100`, `appium:noReset`), `observar` con `GET /source` (XML `XCUIElementType*` → `ElementoUI` con `name`/`label`/`value` y `x`/`y`/`width`/`height`) y `GET /screenshot`; `actuar` con acciones W3C de puntero (tocar, deslizar), `element/{id}/value` o teclas W3C (escribir), `mobile: activateApp`/`terminateApp`; «volver» es un deslizamiento desde el borde izquierdo; `evidencia` con `mobile: startRecordingScreen`/`stopRecordingScreen` (mp4) y el `syslog` (`POST /se/log`); cobertura con `flutter/semantica.py`.
+- **`objetivos/ios/`:** `IosObjetivo`: `preparar` verifica el nodo, abre el túnel, pide `sesion_appium` y devuelve `Instancia(base_url=ios://<bundle_id>, parametros={nodo, udid, bundle_id, appium_url, mjpeg_url, version_app})`; `destruir` cierra la sesión y el túnel. Escenarios en `objetivos/ios/escenarios/`.
+
+### Filtro web Flutter (`objetivos/flutter_web/`, `drivers/web.py`) — v0.3, FR-39
+- **`objetivos/flutter_web/`:** `FlutterWebObjetivo` sirve `flutter_web.build_dir` (o compila `flutter build web --release` en la copia de trabajo de `flutter.proyecto`) con un servidor estático en un hilo, en `flutter_web.host:puerto` (validado con `validar_host`); `url_permitida` acepta su origen y `flutter_web.api_permitidas`; `pantalla` es la ruta del hash (`/#/login` → `login`); `parametros.flutter = True`.
+- **`drivers/web.py`:** con `flutter=True`, tras cargar espera `flutter-view`/`flt-glass-pane`, activa los Semantics (clic en `flt-semantics-placeholder`, «Enable accessibility») y vuelve a activarlos si una observación no encuentra `flt-semantics`; `JS_ELEMENTOS` incluye `flt-semantics` con `role` o `aria-label`; cada observación lleva `cobertura`.
+
 ## Modelo de datos
 
 **Carpeta por corrida:** `runs/<corrida_id>/` (gitignored).
@@ -157,6 +194,14 @@ Todo vive en `src/dogfood/`.
 - `uso_llm`: `backend TEXT DEFAULT 'api'`, `costo_equivalente_usd REAL DEFAULT 0`.
 - Carpeta de la ejecución: además `arboles/paso-NNN.xml|.json`, `video/*.webm|*.mp4`, `trace.zip` (web), `logcat.txt` (Android).
 - `Paso` suma `razonamiento`, `paso_contrato`, `esperado`, `observado`, `arbol` (ruta) y `punto` (x, y de la acción). `Ejecucion` suma `driver`, `motor`, `backend`, `resultado`, `metricas: MetricasEjecucion` (tokens_in, tokens_out, capturas, costo_usd, costo_equivalente_usd), `video`, `trace` y `evidencia_driver: list[Evidencia]`. `Escenario` suma `contrato: ContratoRecorrido | None` (estado_inicial, acciones, resultado_esperado, evidencia_requerida) y `driver: web | android` (por defecto `web`). `UsoLlm` suma `backend` y `costo_equivalente_usd`. `Corrida` suma `version_app`. Todos los campos nuevos tienen valor por defecto: los JSON de corridas viejas siguen cargando.
+
+**Cambios v0.3 (sin migración: las columnas `TEXT` ya admiten los valores nuevos; una sola tarea toca `dominio.py`/`config.py`: F8.1.T1):**
+- `ejecuciones.driver` admite `ios`; `ejecuciones.motor` admite `patrol` e `integration_test`.
+- `TipoHallazgo` suma `accesibilidad`.
+- `Escenario` suma `motor` y `deterministico` (ver *Interfaces*); `Escenario.driver` y `Ejecucion.driver` admiten `ios`.
+- `Observacion` suma `cobertura: CoberturaSemantica | None`.
+- Carpeta de la ejecución determinista: `deterministico/{test.dart, salida.log, reporte.json}`, `capturas/final.png`. Ejecución iOS: lo mismo que Android, con `syslog.txt` en lugar de `logcat.txt`.
+- Copias de trabajo de apps Flutter en `flutter.copia_trabajo` (por defecto `/mnt/storage/cache/dogfood/flutter/<nombre>`), nunca dentro del repo de la app ni de dogfood.
 
 ## Interfaces
 
@@ -357,6 +402,181 @@ dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
 ```
 `cli.py` descubre los comandos de `comandos/` con `pkgutil` (cada módulo expone `app` y opcionalmente `NOMBRE`), así que un comando nuevo solo agrega su archivo.
 
+### v0.3 — Dominio (`dominio.py`, `drivers/base.py`)
+```python
+Plataforma = Literal["web", "android", "ios"]
+class TipoHallazgo(StrEnum): ...; accesibilidad = "accesibilidad"
+
+class PasoDeterministico(BaseModel):
+    accion: Literal["tocar", "escribir", "esperar_texto", "ver_texto", "deslizar", "volver"]
+    key: str | None = None        # ValueKey / Semantics(identifier:) del widget
+    texto: str | None = None      # texto visible a buscar
+    valor: str | None = None      # lo que se escribe; "{env:NOMBRE}" → String.fromEnvironment
+    timeout_s: float = 10
+
+class RecorridoDeterministico(BaseModel):
+    archivo: str | None = None              # test existente, relativo a la raíz de la app
+    pasos: list[PasoDeterministico] = []    # si no hay archivo, se genera
+    dart_defines: dict[str, str] = {}       # literales o "{env:NOMBRE}" (secretos de ~/.config/dogfood)
+
+class Escenario(BaseModel):  # suma
+    driver: Plataforma = "web"
+    motor: Literal["browser_use", "bucle", "patrol", "integration_test"] | None = None
+    deterministico: RecorridoDeterministico | None = None
+
+class Ejecucion(BaseModel):  # cambia
+    driver: Plataforma = "web"
+
+class CoberturaSemantica(BaseModel):
+    flutter: bool = False
+    nodos: int = 0            # nodos de la app (bajo FlutterView, o todos si no es Flutter)
+    interactivos: int = 0     # clicables, editables, enfocables o desplazables
+    etiquetados: int = 0      # interactivos con texto o content-desc/label
+    con_id: int = 0           # interactivos con resource-id / identifier estable
+    ratio_etiqueta: float = 1.0   # etiquetados / interactivos (1.0 si no hay interactivos)
+    ratio_id: float = 1.0
+    ciega: bool = False       # flutter y (nodos == 0 o ratio_etiqueta < umbral)
+
+class Observacion(BaseModel):  # suma
+    cobertura: CoberturaSemantica | None = None
+```
+
+### v0.3 — Flutter (`flutter/semantica.py`)
+```python
+def es_flutter(xml: str, actividad: str = "") -> bool
+def cobertura_xml(xml: str, *, umbral: float = 0.6, actividad: str = "") -> CoberturaSemantica
+    # uiautomator (node: text, content-desc, resource-id, clickable, focusable, scrollable, class)
+    # y XCUITest (XCUIElementType*: name, label, value, accessible, type)
+def cobertura_elementos(elementos: Sequence[ElementoUI], *, flutter: bool, umbral: float = 0.6) -> CoberturaSemantica
+```
+
+### v0.3 — Fuente de frames (`frames/`)
+```python
+class FuenteFrames(Protocol):
+    nombre: str                # "driver" | "screencap" | "screenrecord" | "mjpeg"
+    intervalo_s: float         # cada cuánto la pide el emisor de la vista
+    async def iniciar(self) -> None
+    async def frame(self) -> bytes | None   # último JPEG; barato, nunca espera a la red más de intervalo_s
+    async def cerrar(self) -> None
+
+class FuenteDeDriver:  # FuenteFrames sobre driver.frame(); intervalo según driver.nombre
+    def __init__(self, driver: Driver, intervalo_s: float | None = None)
+
+def validar_url_local(url: str) -> str     # http(s) con host 127.0.0.1/localhost/::1 o 100.64.0.0/10; si no, ValueError (NFR-12)
+def crear_fuente(cfg: Config, driver: Driver, parametros: dict) -> FuenteFrames   # frames/__init__.py
+class FuenteScreencap:   def __init__(self, adb: Adb, fps: float = 2)
+class FuenteScreenrecord: def __init__(self, adb: Adb, carpeta_video: Path, fps: float = 5, runner_ffmpeg=None)
+class FuenteMjpeg:       def __init__(self, url: str, cliente: httpx.AsyncClient | None = None)
+```
+
+### v0.3 — Motor determinista (`deterministico/`)
+```python
+Herramienta = Literal["patrol", "integration_test"]
+RunnerProceso = Callable[..., Awaitable[tuple[int, bytes, bytes]]]
+    # (args: list[str], *, cwd: Path, env: dict[str, str], timeout_s: float) -> (código, stdout, stderr)
+
+def generar_test(escenario: Escenario, herramienta: Herramienta) -> str          # generador.py
+def defines(recorrido: RecorridoDeterministico, cfg: Config) -> dict[str, str]  # resuelve {env:X}
+
+class ResultadoTest(BaseModel):
+    nombre: str; estado: Literal["ok", "fallo", "error", "saltado"]; ms: int = 0; mensaje: str = ""
+
+class ResultadoDeterministico(BaseModel):
+    herramienta: Herramienta
+    codigo_salida: int | None          # None = timeout
+    tests: list[ResultadoTest] = []
+    motivo: str = ""                    # compilacion | sin_dispositivo | timeout | sin_tests | app_sin_patrol
+    log: Path; reporte: Path | None = None; captura_final: Path | None = None
+    def resultado(self) -> Resultado    # aprobado: código 0, ≥1 test y todos ok; fallo: algún test en fallo; resto no_concluyente
+
+class CorredorFlutter:                  # corredor.py
+    def __init__(self, cfg: Config, runner: RunnerProceso | None = None)
+    def copia_de_trabajo(self, proyecto: Path) -> Path
+    def comando(self, herramienta: Herramienta, test: Path, dispositivo: str, defines: dict[str, str]) -> list[str]
+    async def correr(self, escenario: Escenario, herramienta: Herramienta, dispositivo: str, carpeta: Path,
+                     *, proyecto: Path | None = None,
+                     capturar: Callable[[Path], Awaitable[Path | None]] | None = None) -> ResultadoDeterministico
+
+def a_ejecucion(r: ResultadoDeterministico, persona: Persona, escenario: Escenario, ejecucion_id: str,
+                driver: Plataforma) -> Ejecucion
+    # exito = r.resultado() == "aprobado"; motivo_juez = resumen de tests; estado: ok | fallo | error
+```
+Comandos exactos: `flutter test integration_test/dogfood/<id>_test.dart -d <dispositivo> --reporter json --dart-define K=V …` y `patrol test --target integration_test/dogfood/<id>_test.dart --device <dispositivo> --dart-define K=V …`, con `cwd` en la copia de trabajo, `PUB_CACHE` de la config y los defines solo en el entorno del proceso y en argv (nunca en el log de dogfood: se redactan).
+
+### v0.3 — Nodo iOS (`nodos/protocolo.py`)
+```python
+class Trabajo(BaseModel):
+    id: str
+    tipo: Literal["estado", "patrol", "sesion_appium", "cerrar_sesion"]
+    udid: str | None = None
+    bundle_id: str | None = None
+    proyecto: str | None = None             # ruta de la app en el Mac (patrol)
+    escenario: Escenario | None = None      # patrol: con su bloque deterministico
+    dart_defines: dict[str, str] = {}       # viajan solo por stdin; el nodo no los escribe a disco
+    timeout_s: float = 1800
+
+class EstadoNodo(BaseModel):
+    xcode: str | None = None; flutter: str | None = None; patrol: str | None = None
+    appium: bool = False; dispositivos: list[dict[str, str]] = []   # {udid, nombre, os}
+
+class ResultadoTrabajo(BaseModel):
+    id: str
+    estado: Literal["ok", "fallo", "error"]
+    mensaje: str = ""
+    deterministico: ResultadoDeterministico | None = None   # rutas relativas a dir_trabajo/<id>/
+    artefactos: list[str] = []
+    appium_url: str | None = None; mjpeg_url: str | None = None
+    estado_nodo: EstadoNodo | None = None
+```
+Transporte: `ssh -o BatchMode=yes -o ConnectTimeout=10 -p <puerto_ssh> <usuario>@<host> <comando> ejecutar` con el `Trabajo` en JSON por stdin; la última línea no vacía de stdout es el `ResultadoTrabajo`. Artefactos: `rsync -a -e "ssh -p <p>" <usuario>@<host>:<dir_trabajo>/<id>/ <carpeta>/`.
+
+### v0.3 — `dogfood.yaml`
+```yaml
+driver:
+  tipo: android                 # web | android | ios
+  nodo: null                    # ios: nombre en `nodos`
+  udid: null                    # ios
+  bundle_id: null               # ios
+pantalla:
+  android: screencap            # screencap | screenrecord
+  fps: 2
+flutter:
+  sdk: /mnt/storage/flutter/bin/flutter
+  patrol: /mnt/storage/flutter/.pub-cache/bin/patrol
+  pub_cache: /mnt/storage/flutter/.pub-cache
+  proyecto: null                # raíz de la app Flutter (solo lectura)
+  copia_trabajo: /mnt/storage/cache/dogfood/flutter
+  umbral_cobertura: 0.6
+  timeout_s: 1800
+flutter_web:
+  build_dir: null               # build/web ya compilado; si no, se compila desde flutter.proyecto
+  host: 127.0.0.1
+  puerto: 7480
+  api_permitidas: []            # orígenes que la app web puede llamar
+  dart_defines: {}
+nodos:
+  mac:
+    host: 100.x.y.z             # Tailscale (o 127.0.0.1)
+    usuario: hector
+    puerto_ssh: 22
+    comando: dogfood nodo       # en el PATH del Mac
+    dir_trabajo: ~/dogfood-nodo
+    proyectos: {}               # nombre → ruta de la app en el Mac
+```
+
+### v0.3 — HTTP local y CLI
+| App | Método y ruta | Qué hace |
+| --- | --- | --- |
+| panel | `GET /dispositivos` | Android permitidos por `adb` y nodos iOS, con su pantalla en vivo |
+| panel | `GET /dispositivos/{id}/mjpeg` | `multipart/x-mixed-replace; boundary=frame` desde la `FuenteFrames` del dispositivo |
+
+```
+dogfood android emparejar <ip:puerto> | conectar [<ip:puerto>] | estado | desconectar [<ip:puerto>]
+dogfood nodo estado [--json] | ejecutar          # en el Mac
+dogfood run … [--driver web|android|ios] [--motor browser_use|bucle|patrol|integration_test]
+dogfood run --target flutter_web …               # filtro web
+```
+
 ## Decisiones
 
 - **D1 — Motor del agente.** Elegido: la librería `browser-use`, con LLM por 9router. Trae visión, acciones y un historial que se puede repetir. Descartados: un bucle propio sobre Playwright, porque es mucho trabajo para lo mismo; y el `browser_exec` de Hermes, que es un solo Chrome compartido.
@@ -386,6 +606,16 @@ dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
 - **D21 — Exposición local.** Vista y panel solo en loopback o una IP de Tailscale, ADB solo USB/loopback/Tailscale (NFR-10); `validar_host` lo hace cumplir y los tests lo prueban. Descartado: auth propia, porque no hay exposición pública que proteger.
 - **D22 — Tests sin dispositivo ni `claude` real.** El `adb` y el `claude` se reemplazan por *runners* falsos (y un script `claude` falso en el PATH) con salidas grabadas. Las pruebas con dispositivo real y con la sesión de Claude Code son manuales y llevan la marca `integracion`.
 
+- **D23 — Android real por ADB inalámbrico sobre Tailscale.** Elegido: `adb pair` + `adb connect` a la IP `100.x` del teléfono, con el emparejamiento hecho a mano una vez y el código tecleado en el prompt de `adb`; reconexión automática una sola vez. Descartado: `adb tcpip 5555` en la LAN, porque deja el ADB abierto a toda la red (NFR-10), y guardar el código de emparejamiento, porque es un secreto de un solo uso.
+- **D24 — Pantalla Android: `screencap` por defecto, `screenrecord`+`ffmpeg` opcional.** `screencap` a 2 fps cumple la latencia < 2 s sin procesos extra; el stream H.264 de `screenrecord` decodificado con `ffmpeg` (instalado en el homelab) da más fps y además sirve de video de evidencia. Descartados: `ws-scrcpy`, porque es un servicio Node aparte que expone el control del dispositivo en un navegador (otra superficie que proteger), y `scrcpy`, que no está instalado y es un cliente con ventana pensado para un humano.
+- **D25 — Pantalla iPhone: MJPEG de WebDriverAgent.** Elegido: `appium:mjpegServerPort: 9100` y un túnel SSH a `127.0.0.1:9100`. Descartado: pedir `GET /screenshot` en bucle, que tarda ~1 s por imagen y compite con las acciones.
+- **D26 — Cobertura de Semantics sobre el árbol crudo.** Elegido: medir sobre el XML de `uiautomator`/XCUITest que ya se guarda en cada paso, y tratar la pantalla ciega como hallazgo (`accesibilidad`) más captura forzada para el modelo. Descartado: Flutter Driver o el VM service, que exigen un build de depuración instrumentado y no reflejan lo que ve un lector de pantalla.
+- **D27 — Motor determinista por CLI en una copia de trabajo.** Elegido: generar o reutilizar tests de Patrol / `integration_test` y correrlos con su CLI en una copia de la app, con el resultado mapeado al contrato de FR-30. `integration_test` es el valor por defecto para tests generados (no pide configuración nativa); Patrol solo si la app ya lo tiene configurado. Descartados: repetir login y pago con el bucle agéntico, que no es determinista para recorridos críticos; y escribir tests en el repo de la app, que es de Héctor y solo lectura para dogfood.
+- **D28 — Nodo iOS por SSH sobre Tailscale.** Elegido: protocolo JSON por stdin/stdout de `ssh`, artefactos por `rsync`, Appium y WDA escuchando solo en loopback del Mac y alcanzados por túnel SSH. Descartados: un servicio HTTP propio en el Mac (otro puerto que exponer y autenticar), y Appium remoto sin nodo, que no cubre Patrol ni la verificación de Xcode.
+- **D29 — Driver iOS por HTTP W3C, sin cliente de Appium.** Elegido: `httpx` contra la API WebDriver de Appium. Descartado: `Appium-Python-Client`, que arrastra Selenium y es síncrono, para pocas rutas.
+- **D30 — Filtro web con Flutter web y Semantics habilitados.** Elegido: servir el `build/web` y activar `flt-semantics` desde el driver web existente, para probar lógica y recorridos antes del celular sin hardware. Descartado: actuar solo por visión sobre el canvas de Flutter, que es caro y no mide la cobertura.
+- **D31 — SDK de Flutter fuera del home.** El SDK y su `PUB_CACHE` viven en `/mnt/storage/flutter` (el NVMe es solo del sistema); los tests no lo necesitan (runners falsos). Descartado: instalarlo en `~` o con snap.
+
 ## Riesgos
 
 - **Que browser-use se trabe en pantallas 3D o con SSE** (universo, procesamiento en vivo). *Mitigación:* límite de pasos y timeout por ejecución; la pantalla 3D se marca como «solo mirar» en los escenarios; un timeout es un hallazgo técnico solo si lo confirma el trabajo en la API.
@@ -395,6 +625,12 @@ dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
 - **Costo de IA en predicts** (Jev en cada mapeo y mensajes por análisis) con más de 100 personas. *Mitigación:* lo mide D12, y existe `--tope-usd`.
 - **Latencia de `claude -p` por paso** (arranque de varios segundos). *Mitigación:* `--resume` para no reenviar contexto, `timeout_s` configurable y comparación de tiempos en el panel; si no alcanza, el backend `api` sigue disponible.
 - **`uiautomator dump` lento o vacío** en pantallas con animaciones o WebView. *Mitigación:* reintento corto, captura como respaldo para el modelo y la opción B (D18) si los números del spike lo justifican.
+- **Tailscale en el teléfono se duerme** (Android mata la VPN en segundo plano o cambia el puerto de depuración). *Mitigación:* reconexión una vez, mensaje con el comando `dogfood android conectar`, y la guía pide excluir Tailscale de la optimización de batería.
+- **Apps Flutter casi sin Semantics** (`mobile-mao` tiene 5 `Semantics(` y ningún `identifier`): el agente vería pantallas ciegas. *Mitigación:* respaldo por visión (captura + coordenadas) y el hallazgo de accesibilidad, que es justamente lo que hay que arreglar en la app.
+- **Patrol exige configuración nativa** (runner de instrumentación en Android, target de UI tests en iOS). *Mitigación:* `integration_test` por defecto para tests generados; Patrol solo con la app preparada, y si no, `no_concluyente` con la instrucción.
+- **El Mac no está siempre encendido o en la tailnet.** *Mitigación:* `ClienteNodo.estado()` con `ConnectTimeout` corto; la corrida iOS falla temprano con un mensaje claro y no bloquea Android/web.
+- **Firma de WebDriverAgent caduca** (perfil de desarrollo de 7 días con cuenta gratuita). *Mitigación:* la guía pide cuenta de desarrollador paga y `dogfood nodo estado` reporta si Appium puede abrir sesión.
+- **Compilar Flutter web en el homelab** usa CPU y memoria. *Mitigación:* se compila una vez por commit en la copia de trabajo y se reutiliza el `build/web`.
 - **Frames que saturan la memoria o la CPU con varias ejecuciones.** *Mitigación:* JPEG de baja calidad, tope de fps, cola acotada que descarta frames viejos (NFR-11) y la vista solo con `--vista`.
 
 ## Cobertura de requisitos
@@ -445,6 +681,14 @@ dogfood panel [--host 127.0.0.1] [--puerto 7470] [--raiz runs]
 | FR-33 | panel/issue.py, reporte/redactar.py, reporte/issues.py |
 | NFR-10 | web/ (`validar_host`), drivers/android.py (destino ADB) |
 | NFR-11 | eventos.py (cola acotada), agente/bucle.py (emisor de frames) |
+| FR-34 | drivers/adb_red.py, comandos/android.py, drivers/android.py (reconexión), docs/ops/android.md |
+| FR-35 | flutter/semantica.py, drivers/android.py (cobertura), agente/bucle.py (captura forzada), deteccion/flutter.py |
+| FR-36 | deterministico/generador.py, deterministico/corredor.py, corrida.py, objetivos/android/escenarios (login y pago) |
+| FR-37 | frames/, agente/bucle.py (fuente), corrida.py, panel/dispositivos.py |
+| FR-38 | nodos/protocolo.py, nodos/cliente.py, nodos/runner.py, comandos/nodo.py, drivers/ios.py, objetivos/ios/, docs/ops/ios-nodo-mac.md |
+| FR-39 | objetivos/flutter_web/, drivers/web.py (Semantics de Flutter web), flutter/semantica.py |
+| NFR-12 | frames/base.py (`validar_url_local`), nodos/cliente.py (host), drivers/adb_red.py (servidor local), drivers/ios.py |
+| NFR-13 | runners inyectables en adb_red, corredor, cliente/runner del nodo, frames y driver iOS; config `flutter.sdk` |
 
 ## Desglose del trabajo
 
@@ -510,3 +754,14 @@ Las fases siguen los milestones del PRD (M1 = F1, …) y van precedidas de F0 co
 - **F7.4 — panel: listas y filtros**: `panel/{__init__,app,consultas}.py`, plantillas de listas, `comandos/panel.py`. Depende de F7.1.
 - **F7.5 — panel: detalle y crear issue**: `panel/{detalle,issue}.py`, `panel/app.py`, `plantillas/ejecucion.html`. Depende de F7.4.
 - **F7.9 — integración M7**: `tests/integracion/test_panel_vista.py`, `docs/ops/panel-y-vista.md`. Depende de F7.3 y F7.5.
+
+### F8 — Flutter en celular real (M8)
+Archivos compartidos encadenados: `agente/bucle.py` (F8.3.T2 → F8.4.T3), `corrida.py` y `comandos/run.py` (F8.4.T3 → F8.5.T3 → F8.6.T4), `drivers/android.py` (F8.2.T1 → F8.3.T2). `dominio.py`, `config.py`, `dogfood.example.yaml`, `objetivos/__init__.py` y `deteccion/__init__.py` solo los toca F8.1.
+- **F8.1 — contratos v0.3** (esqueleto): `dominio.py`, `config.py`, `dogfood.example.yaml`, `drivers/base.py` (`Observacion.cobertura`), `drivers/android.py` (`grabar_video`), `frames/{__init__,base}.py`, `nodos/{__init__,protocolo}.py`, `flutter/__init__.py`, `deterministico/__init__.py`, `deteccion/{__init__,flutter}.py` (stub registrado), `objetivos/__init__.py` (registra `ios` y `flutter_web`), stubs `objetivos/{ios,flutter_web}/__init__.py`.
+- **F8.2 — Android por Tailscale**: `drivers/adb_red.py`, `comandos/android.py`, `drivers/android.py` (reconexión). Depende de F8.1.
+- **F8.3 — Flutter en Android**: T1 `flutter/semantica.py`, `deteccion/flutter.py`; T2 `drivers/android.py` (cobertura), `agente/bucle.py`, `agente/prompts_bucle.py`. T1 depende de F8.1; T2 de T1 y F8.2.
+- **F8.4 — fuentes de frames**: T1 `frames/{__init__,android,mjpeg}.py`; T2 `panel/dispositivos.py`, `panel/app.py`, plantilla, `web/plantillas/base.html`; T3 `agente/bucle.py`, `corrida.py` (fuente, driver web Flutter, ios en el emisor). T1 depende de F8.1; T2 de T1 y F8.2; T3 de T1, F8.3.T2 y F8.7.T1.
+- **F8.5 — motor determinista**: T1 `deterministico/corredor.py`; T2 `deterministico/generador.py` y escenarios de ejemplo; T3 `corrida.py`, `comandos/run.py`. T2 depende de F8.1; T1 de T2 (usa el generador); T3 de T1, T2 y F8.4.T3.
+- **F8.6 — nodo iOS**: T1 `nodos/cliente.py`; T2 `nodos/runner.py`, `comandos/nodo.py`; T3 `drivers/ios.py`; T4 `objetivos/ios/`, `corrida.py`, `comandos/run.py`. T1 y T2 dependen de F8.5.T1 (`a_ejecucion` y el corredor); T3 de F8.1 y F8.3.T1; T4 de T1, T3 y F8.5.T3.
+- **F8.7 — filtro web**: T1 `drivers/web.py`, `objetivos/flutter_web/`; T2 integración real con una copia de `mobile-mao` (`tests/integracion/test_flutter_web.py`, `docs/notas/m8-flutter-web.md`). T1 depende de F8.3.T1 y F8.5.T1 (copia de trabajo); T2 de T1.
+- **F8.9 — operación**: T1 `docs/ops/android.md`, `docs/ops/flutter.md`; T2 `docs/ops/ios-nodo-mac.md`. T1 depende de F8.2, F8.3.T2, F8.4.T2, F8.4.T3, F8.5.T3 y F8.7.T1; T2 de F8.6.T2 y F8.6.T4.

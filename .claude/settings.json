@@ -15,7 +15,10 @@
     "additionalDirectories": [
       "/mnt/storage/project/predicts",
       "/home/knaimero/.cache/dogfood",
-      "/home/knaimero/.config/dogfood"
+      "/home/knaimero/.config/dogfood",
+      "/mnt/storage/rupies/apps",
+      "/mnt/storage/flutter",
+      "/mnt/storage/cache/dogfood"
     ]
   }
 }
