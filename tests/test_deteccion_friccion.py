@@ -90,5 +90,5 @@ def test_objetivo_llama_a_todos_los_verificadores(caplog):
     obj = SimpleNamespace(verificadores=lambda: [roto, bueno, bueno])
     with caplog.at_level(logging.ERROR):
         hs = objetivo.detectar(ctx([], obj))
-    assert llamados == ["bueno", "bueno"] and len(hs) == 2
+    assert llamados == ["bueno", "bueno"] and len(hs) == 3  # + el hallazgo de `roto` (F10.1.T3)
     assert "roto" in caplog.text

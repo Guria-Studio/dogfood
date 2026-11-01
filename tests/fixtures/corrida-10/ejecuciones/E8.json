@@ -1,0 +1,402 @@
+{
+  "id": "20261101-125232-2-85b1-E8",
+  "persona_id": "P010",
+  "escenario_id": "login-fallido",
+  "dataset_id": null,
+  "modelo": "ag/gemini-3.8-flash",
+  "estado": "ok",
+  "pasos": [
+    {
+      "n": 1,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-001.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:07:37.480501-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 2,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 7, \"text\": \"carlos.correia.10@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 9, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 156}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-002.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:07:53.425224-03:00",
+      "razonamiento": "Vou tentar fazer o primeiro login com a senha errada, conforme solicitado no teste. O e-mail é carlos.correia.10@dogfood.example.com e vou colocar uma senha qualquer incorreta primeiro.",
+      "paso_contrato": "Preencher o e-mail e uma senha incorreta e clicar em Entrar (tentativa 1 de 3).",
+      "esperado": "",
+      "observado": "Página de login carregada com sucesso. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 3,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 156}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-003.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:08:16.456287-03:00",
+      "razonamiento": "Na etapa anterior realizei a primeira tentativa com senha incorreta. O sistema exibiu a mensagem de erro esperada: 'O e-mail ou a senha estão incorretos.'. Agora devo realizar a segunda tentativa com a senha incorreta, conforme solicitado pelo usuário (são 3 tentativas com senha errada no total, antes de inserir a correta). Vou preencher novamente a senha incorreta e clicar em Entrar.",
+      "paso_contrato": "Digitar senha incorreta no campo de senha e clicar em Entrar para a tentativa 2 de 3.",
+      "esperado": "",
+      "observado": "A primeira tentativa com senha incorreta foi realizada e o erro foi exibido. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 4,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 156}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-004.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:08:29.072613-03:00",
+      "razonamiento": "Já realizamos 2 tentativas com a senha incorreta. Agora faremos a 3ª e última tentativa com a senha errada, conforme solicitado nas instruções ('repítelo tres veces en total'). Após isso, digitaremos a senha correta.",
+      "paso_contrato": "Digitar senha incorreta pela 3ª vez e clicar em Entrar.",
+      "esperado": "",
+      "observado": "Segunda tentativa com senha incorreta executada e mensagem de erro exibida. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 5,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 9, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 156}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-005.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:08:41.638802-03:00",
+      "razonamiento": "Completamos com sucesso as 3 tentativas com senha incorreta conforme solicitado no pedido do usuário. Agora devemos digitar a senha correta (***) no campo de senha e clicar em 'Entrar'.",
+      "paso_contrato": "Digitar a senha correta no campo de senha e clicar no botão Entrar.",
+      "esperado": "",
+      "observado": "A terceira tentativa com a senha incorreta foi submetida com sucesso, totalizando 3 repetições. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 6,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-006.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:08:59.870102-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 7,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-007.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:09:23.988434-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 8,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-008.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:09:49.566154-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 9,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-009.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:10:16.834441-03:00",
+      "razonamiento": "",
+      "paso_contrato": "",
+      "esperado": "",
+      "observado": "",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 10,
+      "url": "http://localhost:18080/registro",
+      "pantalla": "registro",
+      "accion": "[{\"click\": {\"index\": 10}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-010.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nCriar conta\n\nCrie a conta da sua empresa em um minuto.\n\nNome da empresa\nE-mail\nSenha\nIdioma\nPortuguês\nEspañol\nEnglish\nCriar conta\n\nJá tem conta? Entrar",
+      "ts": "2026-11-01T13:10:49.804683-03:00",
+      "razonamiento": "O usuário solicitou: 'Con una cuenta ya creada, en \"Iniciar sesión\" escribe tu correo con una contraseña equivocada y pulsa \"Iniciar sesión\"; repítelo tres veces en total. Después escribe la contraseña correcta y entra. Para registrarte o entrar usa el email carlos.correia.10@dogfood.example.com y la contraseña ***.'\nAnteriormente, o agente tentou 3 vezes com senha incorreta e depois tentou com a senha correta, mas recebeu 'O e-mail ou a senha estão incorretos'. Isso indica que a conta ainda não foi criada ('Para registrarte o entrar usa...').\nVou clicar em 'Criar conta' (índice 10) para verificar se a conta existe ou registrá-la.",
+      "paso_contrato": "Clicar em 'Criar conta' para registrar o usuário.",
+      "esperado": "",
+      "observado": "A tentativa de login com a senha indicada falhou com erro de credenciais incorretas, sugerindo que a conta ainda não existe. Verdict: Uncertain",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 11,
+      "url": "http://localhost:18080/proyectos",
+      "pantalla": "proyectos",
+      "accion": "[{\"input\": {\"index\": 326, \"text\": \"Café Campos\", \"clear\": true}}, {\"input\": {\"index\": 329, \"text\": \"carlos.correia.10@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 332, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 354}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-011.png",
+      "texto_visible": "Pular para o conteúdo\nProjetos\nCC\nProjetos\n\nCada projeto reúne os dados e as análises de um negócio ou marca.\n\nVocê ainda não tem projetos\n\nCrie seu primeiro projeto para começar a enviar dados e analisá-los.\n\n1\nEnvie um CSV de compras\n2\nEscolha o que analisar\n3\nContate quem vai recomprar\nCriar seu primeiro projeto\nTestar com dados de exemplo\n\nSó quer ver como funciona? Experimente com dados de exemplo.",
+      "ts": "2026-11-01T13:11:03.738020-03:00",
+      "razonamiento": "Estou na tela de registro ('Criar conta'). Preciso criar a conta com os dados informados: empresa 'Café Campos', e-mail 'carlos.correia.10@dogfood.example.com' e a senha '***'. Depois de registrar, se a conta já entrar ou redirecionar para login, seguirei conforme o fluxo.",
+      "paso_contrato": "Preencher o formulário de cadastro com nome da empresa, e-mail e senha, e clicar em Criar conta.",
+      "esperado": "",
+      "observado": "Acessada a tela de registro com sucesso. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 12,
+      "url": "http://localhost:18080/proyectos",
+      "pantalla": "proyectos",
+      "accion": "[{\"click\": {\"index\": 489}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-012.png",
+      "texto_visible": "Pular para o conteúdo\nProjetos\nCC\nProjetos\n\nCada projeto reúne os dados e as análises de um negócio ou marca.\n\nVocê ainda não tem projetos\n\nCrie seu primeiro projeto para começar a enviar dados e analisá-los.\n\n1\nEnvie um CSV de compras\n2\nEscolha o que analisar\n3\nContate quem vai recomprar\nCriar seu primeiro projeto\nTestar com dados de exemplo\n\nSó quer ver como funciona? Experimente com dados de exemplo.\n\ncarlos.correia.10@dogfood.example.com\nCafé Campos\nSair",
+      "ts": "2026-11-01T13:11:16.720632-03:00",
+      "razonamiento": "A conta agora foi criada com sucesso e estou logado na plataforma. O enunciado dizia: 'Con una cuenta ya creada, en \"Iniciar sesión\" escribe tu correo con una contraseña equivocada y pulsa \"Iniciar sesión\"; repítelo tres veces en total. Después escribe la contraseña correcta y entra.' Como a conta não existia antes, agora que a conta está criada, preciso sair (logout), fazer as 3 tentativas com senha errada na conta existente, e em seguida entrar com a senha correta.",
+      "paso_contrato": "Abrir o menu da conta para fazer logout.",
+      "esperado": "",
+      "observado": "Conta criada com sucesso e sessão iniciada. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 13,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"click\": {\"index\": 589}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-013.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:11:28.973829-03:00",
+      "razonamiento": "Agora que a conta já foi criada, preciso sair para voltar à tela de login e realizar o procedimento com a conta existente: tentar 3 vezes com senha incorreta e depois entrar com a senha correta.",
+      "paso_contrato": "Clicar em Sair para deslogar da conta e retornar à tela de login.",
+      "esperado": "",
+      "observado": "Abri o menu de perfil com sucesso para realizar o logout. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 14,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 682, \"text\": \"carlos.correia.10@dogfood.example.com\", \"clear\": true}}, {\"input\": {\"index\": 687, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 690}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-014.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nO e-mail ou a senha estão incorretos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:11:39.897090-03:00",
+      "razonamiento": "Agora que a conta já foi criada e saímos para a tela de login, podemos cumprir exatamente o que foi pedido com a conta já existente:\n1. Inserir o e-mail e uma senha incorreta e clicar em Entrar (tentativa 1 de 3).\n2. Repetir com senha incorreta (tentativa 2 de 3).\n3. Repetir com senha incorreta (tentativa 3 de 3).\n4. Inserir a senha correta e entrar.\n\nAgora vamos executar a tentativa 1.",
+      "paso_contrato": "Preencher o e-mail e a senha incorreta no login e clicar em Entrar (tentativa 1 de 3).",
+      "esperado": "",
+      "observado": "Logout realizado com sucesso, retornando à tela de login com a conta devidamente criada. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 15,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 687, \"text\": \"senhaerrada123\", \"clear\": true}}, {\"click\": {\"index\": 690}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-015.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 656 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:11:57.345767-03:00",
+      "razonamiento": "Realizei a primeira tentativa de login com senha incorreta e a mensagem de erro foi exibida ('O e-mail ou a senha estão incorretos.'). Agora vou fazer a segunda tentativa (2 de 3) com senha incorreta.",
+      "paso_contrato": "Inserir a senha incorreta no campo de senha e clicar em Entrar para a tentativa 2 de 3.",
+      "esperado": "",
+      "observado": "A primeira tentativa com senha incorreta foi submetida e o erro foi exibido com sucesso. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 16,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"input\": {\"index\": 687, \"text\": \"***\", \"clear\": true}}, {\"click\": {\"index\": 690}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-016.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 627 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:12:25.978905-03:00",
+      "razonamiento": "Após a tentativa anterior com senha incorreta, apareceu a mensagem de bloqueio por rate limit: 'Muitas tentativas. Tente de novo em 656 segundos.'. Conforme solicitado na instrução do usuário ('escribe tu correo con una contraseña equivocada y pulsa \"Iniciar sesión\"; repítelo tres veces en total. Después escribe la contraseña correcta y entra'), vou inserir a senha correta '***' no campo de senha (687) e clicar em Entrar (690) para verificar se o sistema permite o acesso com a senha correta ou se permanece bloqueado pelo limite de tentativas.",
+      "paso_contrato": "Preencher a senha correta no campo de senha e clicar em Entrar.",
+      "esperado": "",
+      "observado": "Submeti a senha incorreta e o sistema disparou a mensagem de erro de excesso de tentativas. Verdict: Success",
+      "arbol": null,
+      "punto": null
+    },
+    {
+      "n": 17,
+      "url": "http://localhost:18080/login",
+      "pantalla": "login",
+      "accion": "[{\"done\": {\"text\": \"anotar_friccion:\\nFui bloqueado ao tentar realizar o login após erros de senha. A aplicação exibiu a seguinte mensagem na tela: \\\"Muitas tentativas. Tente de novo em 627 segundos.\\\". Não faz sentido travar o acesso por mais de 10 minutos sem uma opção clara de recuperação imediata.\\n\\nrendirse:\\nMotivo: Como cliente da Café Campos e com paciência muito curta, não vou ficar esperando mais de 10 minutos (627 segundos) na frente da tela apenas para conseguir colocar minha senha correta e entrar. Desisto de continuar usando o serviço neste momento.\", \"success\": false, \"files_to_display\": []}}]",
+      "captura": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/capturas/paso-017.png",
+      "texto_visible": "predicts\nPT\nES\nEN\nEntrar\n\nEntre para ver suas previsões.\n\nE-mail\nSenha\nEsqueceu sua senha?\n\nMuitas tentativas. Tente de novo em 627 segundos.\n\nEntrar\n\nNão tem conta? Criar conta",
+      "ts": "2026-11-01T13:12:59.633245-03:00",
+      "razonamiento": "Avaliação da situação atual: Após criar a conta e tentar realizar o teste solicitado (inserir senha errada 3 vezes e depois a senha correta), a aplicação ativou um bloqueio de taxa (rate limit) exibindo a mensagem na tela: \"Muitas tentativas. Tente de novo em 627 segundos.\".\nAo tentar digitar a senha correta e clicar em Entrar, o sistema não permite o login e mantém o bloqueio de mais de 10 minutos (627 segundos).\nDe acordo com a minha persona (Carlos Correia, Café Campos, paciência 1/5):\n- Tenho pouquíssima paciência e me rendo rápido quando algo dá errado ou demora.\n- Diante de um bloqueio de mais de 10 minutos para poder tentar entrar novamente, qualquer cliente comum com paciência 1/5 abandona a aplicação imediatamente.\n- Devo anotar a fricção com a citação textual da tela e registrar a desistência (rendirse).\n- Como a ação `done` é a forma padrão da plataforma de finalizar a tarefa quando é impossível continuar, chamo `done` com `success: false`, detalhando a fricção e o motivo da desistência em português brasileiro.",
+      "paso_contrato": "Finalizar a sessão registrando a fricção encontrada e a desistência devido ao tempo de espera absurdo imposto pela tela de login.",
+      "esperado": "",
+      "observado": "A tentativa de entrar com a senha correta foi bloqueada pelo sistema com a mensagem de excesso de tentativas. Verdict: Failure",
+      "arbol": null,
+      "punto": null
+    }
+  ],
+  "red": [
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 1.959
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 1.699
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 114.628
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 111.545
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 89.121
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 88.394
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 3.264
+    },
+    {
+      "metodo": "GET",
+      "url": "http://localhost:18080/api/auth/yo",
+      "estado": 401,
+      "ms": 7.427
+    },
+    {
+      "metodo": "POST",
+      "url": "http://localhost:18080/api/auth/login",
+      "estado": 401,
+      "ms": 81.954
+    }
+  ],
+  "consola": [
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/yo"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+      "url": "http://localhost:18080/api/auth/login"
+    },
+    {
+      "nivel": "error",
+      "texto": "Failed to load resource: the server responded with a status of 429 (Too Many Requests)",
+      "url": "http://localhost:18080/api/auth/login"
+    }
+  ],
+  "fricciones": [],
+  "descargas": [],
+  "exito": false,
+  "motivo_juez": "el juez falló: HTTPStatusError(\"Server error '503 Service Unavailable' for url 'https://routers.usebot.chat/v1/chat/completions'\\nFor more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/503\")",
+  "duracion_s": 341.55,
+  "ruta_historial": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/historial.json",
+  "empresa_id": null,
+  "notas": [
+    "429 esperado en /auth/login (2)"
+  ],
+  "driver": "web",
+  "motor": "browser_use",
+  "backend": "api",
+  "resultado": "fallo",
+  "metricas": {
+    "tokens_in": 136923,
+    "tokens_out": 3298,
+    "capturas": 0,
+    "costo_usd": 0.0493219,
+    "costo_equivalente_usd": 0.0493219
+  },
+  "video": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/video/page@4e7109816712e868dc82181f556cfb17.webm",
+  "trace": "runs/20261101-125232-2-85b1/ejecuciones/20261101-125232-2-85b1-E8/trace.zip",
+  "evidencia_driver": []
+}
