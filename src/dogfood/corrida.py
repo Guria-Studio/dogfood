@@ -298,6 +298,10 @@ async def correr(op: Opciones) -> Corrida:
         personas = generar_personas(op.personas, semilla, op.idiomas)
         almacen.guardar_personas(corrida.id, personas)
         base = esc.asignar(personas, todos, semilla)
+        for aviso in base.avisos:
+            print(f"Aviso: {aviso}")
+        if base.avisos:
+            corrida.parametros["avisos_asignacion"] = base.avisos
         # cada repetición necesita su propia cuenta: el email lleva el sufijo +r<k>
         pares = [
             (
@@ -409,6 +413,8 @@ async def correr(op: Opciones) -> Corrida:
                     e.empresa_id = await asyncio.to_thread(confirmar, instancia, persona)
                 except Exception:
                     log.exception("no pude confirmar el registro de %s", persona.id)
+            if persona.id in base.notas:
+                e.notas.append(base.notas[persona.id])
             almacen.guardar_ejecucion(corrida.id, e)
             resultados[n] = e
 
