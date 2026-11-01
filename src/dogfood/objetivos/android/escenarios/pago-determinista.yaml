@@ -1,0 +1,36 @@
+# Compra de créditos por Patrol. Textos reales de mobile-mao
+# (lib/features/plano/screens: plano_screen, buy_credits_screen, payment_pending_screen).
+# Faltan hoy en la app (no hay ninguna Key ni Semantics(identifier:) en esas pantallas;
+# los pasos usan texto): tab/entrada «Plano» (key plano_tab), tarjeta de paquete en la lista
+# de PACOTES (key pacote_0), botón «Continuar · R$ …» (key boton_continuar) y la pantalla
+# «Pagamento em confirmação» (identifier pago_pendiente). Con esas keys los pasos de texto
+# pasan a `key:` y dejan de depender del idioma y del precio.
+id: pago-determinista
+titulo: Comprar créditos (determinista)
+superficies: [pago]
+driver: android
+motor: patrol
+objetivo: Ir a Plano, elegir un paquete de candidaturas, confirmar y ver el pago pendiente.
+criterio_exito: Se ve la pantalla «Pagamento em confirmação» tras confirmar la compra.
+max_pasos: 10
+contrato:
+  estado_inicial: sesión iniciada en la pantalla principal
+  acciones:
+    - ir a Plano
+    - pulsar Comprar
+    - elegir un paquete
+    - confirmar con Continuar
+  resultado_esperado: se ve la pantalla de pago en confirmación
+  evidencia_requerida:
+    - captura del paso final
+deterministico:
+  pasos:
+    - {accion: tocar, texto: Meu plano}
+    - {accion: ver_texto, texto: Meu plano}
+    - {accion: tocar, texto: Comprar}
+    - {accion: esperar_texto, texto: Comprar candidaturas}
+    - {accion: tocar, texto: MELHOR VALOR}
+    - {accion: tocar, texto: Pix}
+    - {accion: deslizar}
+    - {accion: tocar, texto: Continuar}
+    - {accion: esperar_texto, texto: Pagamento em confirmação, timeout_s: 30}
