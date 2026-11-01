@@ -18,6 +18,7 @@ import { Route as AyudaIndexRouteImport } from './routes/ayuda.index'
 import { Route as AyudaSlugRouteImport } from './routes/ayuda.$slug'
 import { Route as CorridasIdRouteImport } from './routes/corridas.$id'
 import { Route as EjecucionesIdRouteImport } from './routes/ejecuciones.$id'
+import { Route as LanzamientosIdRouteImport } from './routes/lanzamientos.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -64,6 +65,11 @@ const EjecucionesIdRoute = EjecucionesIdRouteImport.update({
   path: '/ejecuciones/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LanzamientosIdRoute = LanzamientosIdRouteImport.update({
+  id: '/lanzamientos/$id',
+  path: '/lanzamientos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -74,6 +80,7 @@ export interface FileRoutesByFullPath {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/corridas/$id': typeof CorridasIdRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
+  '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
 }
 export interface FileRoutesByTo {
@@ -85,6 +92,7 @@ export interface FileRoutesByTo {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/corridas/$id': typeof CorridasIdRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
+  '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda': typeof AyudaIndexRoute
 }
 export interface FileRoutesById {
@@ -97,6 +105,7 @@ export interface FileRoutesById {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/corridas/$id': typeof CorridasIdRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
+  '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
 }
 export interface FileRouteTypes {
@@ -110,6 +119,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/corridas/$id'
     | '/ejecuciones/$id'
+    | '/lanzamientos/$id'
     | '/ayuda/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/corridas/$id'
     | '/ejecuciones/$id'
+    | '/lanzamientos/$id'
     | '/ayuda'
   id:
     | '__root__'
@@ -132,6 +143,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/corridas/$id'
     | '/ejecuciones/$id'
+    | '/lanzamientos/$id'
     | '/ayuda/'
   fileRoutesById: FileRoutesById
 }
@@ -144,6 +156,7 @@ export interface RootRouteChildren {
   AyudaSlugRoute: typeof AyudaSlugRoute
   CorridasIdRoute: typeof CorridasIdRoute
   EjecucionesIdRoute: typeof EjecucionesIdRoute
+  LanzamientosIdRoute: typeof LanzamientosIdRoute
   AyudaIndexRoute: typeof AyudaIndexRoute
 }
 
@@ -212,6 +225,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EjecucionesIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lanzamientos/$id': {
+      id: '/lanzamientos/$id'
+      path: '/lanzamientos/$id'
+      fullPath: '/lanzamientos/$id'
+      preLoaderRoute: typeof LanzamientosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -224,6 +244,7 @@ const rootRouteChildren: RootRouteChildren = {
   AyudaSlugRoute: AyudaSlugRoute,
   CorridasIdRoute: CorridasIdRoute,
   EjecucionesIdRoute: EjecucionesIdRoute,
+  LanzamientosIdRoute: LanzamientosIdRoute,
   AyudaIndexRoute: AyudaIndexRoute,
 }
 export const routeTree = rootRouteImport

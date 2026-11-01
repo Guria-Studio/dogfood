@@ -3,6 +3,7 @@ import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import { cliente } from '@/api/cliente'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { NuevaCorrida } from '@/features/acciones/NuevaCorrida'
 import { Kpis } from './Kpis'
 import { FILTROS, type Filtros, TablaEjecuciones } from './TablaEjecuciones'
 
@@ -19,7 +20,7 @@ export function PantallaCorridas() {
 
   return (
     <>
-      <PageHeader titulo="Corridas" ayuda="corridas" descripcion="Cómo les fue a las personas en cada recorrido." />
+      <PageHeader titulo="Corridas" ayuda="corridas" acciones={<NuevaCorrida />} descripcion="Cómo les fue a las personas en cada recorrido." />
       <Kpis />
       <h2 className="mb-3 text-lg font-semibold tracking-tight">Ejecuciones</h2>
       <div className="mb-4 flex flex-wrap gap-3">

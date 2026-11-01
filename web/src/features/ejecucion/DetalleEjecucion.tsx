@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
 import { TarjetaSugerencia } from '@/features/sugerencia/TarjetaSugerencia'
+import { RepetirCaso } from '@/features/acciones/RepetirCaso'
 import { CrearIssue } from './CrearIssue'
 import { lineaConsola, lineaRed } from './lineas'
 import { Bloque, VisorPasos } from './VisorPasos'
@@ -221,7 +222,7 @@ export function DetalleEjecucion({ id }: { id: string }) {
         titulo={`Ejecución ${id}`}
         ayuda="ejecucion"
         descripcion={d ? `${d.persona.nombre} en ${d.ejecucion.escenario_id}` : undefined}
-        acciones={d && <CrearIssue ejecucionId={id} titulo={titulo} />}
+        acciones={d && (<div className="flex gap-2"><RepetirCaso ejecucionId={id} /><CrearIssue ejecucionId={id} titulo={titulo} /></div>)}
       />
       {q.isPending && <Skeleton className="h-64 w-full" />}
       {q.isError && (
