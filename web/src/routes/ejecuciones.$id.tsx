@@ -1,12 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
+import { DetalleEjecucion } from '@/features/ejecucion/DetalleEjecucion'
 
-export const Route = createFileRoute('/ejecuciones/$id')({
-  component: () => (
-    <>
-      <PageHeader titulo="Ejecución" ayuda="ejecucion" />
-      <p className="text-muted-foreground">en construcción</p>
-    </>
-  ),
-})
+export const Route = createFileRoute('/ejecuciones/$id')({ component: Pantalla })
+
+function Pantalla() {
+  return <DetalleEjecucion id={Route.useParams().id} />
+}
