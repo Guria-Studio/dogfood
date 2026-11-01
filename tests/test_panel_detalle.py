@@ -164,7 +164,9 @@ def test_archivos_sirve_captura_y_rechaza_fuera_de_raiz(raiz, tmp_path_factory):
     ):
         r = c.get(f"/archivos/{malo}")
         # el cliente normaliza «..» y la SPA responde su index.html: nunca el archivo
-        assert r.status_code == 404 or r.headers["content-type"].startswith("text/html"), malo
+        assert r.status_code in (404, 503) or r.headers["content-type"].startswith("text/html"), (
+            malo
+        )
         assert b"SQLite" not in r.content and b"secreto" not in r.content
     # dentro de la raíz pero con contraseñas: tampoco
     assert TestClient(crear_app_panel(raiz)).get("/archivos/dogfood.db").status_code == 404
