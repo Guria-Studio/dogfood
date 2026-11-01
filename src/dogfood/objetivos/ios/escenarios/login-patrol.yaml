@@ -1,0 +1,30 @@
+# Login por tests deterministas (integration_test). Las credenciales vienen de
+# ~/.config/dogfood/flutter.env (DOGFOOD_APP_EMAIL / DOGFOOD_APP_CONTRASENA), nunca del YAML.
+# Keys que la app debe exponer (ValueKey o Semantics(identifier:)): campo_email,
+# campo_contrasena, boton_entrar. Hoy mobile-mao no define ninguna Key en
+# lib/features/plano ni en el login: hay que añadirlas. «Início» es un texto
+# supuesto de la pantalla principal; ajústalo al de la app objetivo.
+id: login-patrol
+titulo: Iniciar sesión (Patrol)
+superficies: [login]
+driver: ios
+motor: patrol
+objetivo: Iniciar sesión con email y contraseña y llegar a la pantalla principal.
+criterio_exito: Tras iniciar sesión se ve la pantalla principal y no queda el formulario de login.
+max_pasos: 10
+contrato:
+  estado_inicial: app recién abierta sin sesión
+  acciones:
+    - escribir el email
+    - escribir la contraseña
+    - pulsar el botón de entrar
+    - esperar la pantalla principal
+  resultado_esperado: se ve la pantalla principal con la sesión iniciada
+  evidencia_requerida:
+    - captura del paso final
+deterministico:
+  pasos:
+    - {accion: escribir, key: campo_email, valor: "{env:DOGFOOD_APP_EMAIL}"}
+    - {accion: escribir, key: campo_contrasena, valor: "{env:DOGFOOD_APP_CONTRASENA}"}
+    - {accion: tocar, key: boton_entrar}
+    - {accion: esperar_texto, texto: Início, timeout_s: 20}

@@ -202,10 +202,6 @@ def test_registros():
     for nombre, clase in (("ios", IosObjetivo), ("flutter_web", FlutterWebObjetivo)):
         obj = cargar_objetivo(nombre)
         assert isinstance(obj, clase) and obj.nombre == nombre
-        if nombre == "ios":  # flutter_web ya no es stub (F8.7.T1)
-            assert obj.escenarios() == []
-            with pytest.raises(NotImplementedError, match="F8"):
-                obj.preparar("main", None)
     assert det_flutter.detectar in DETECTORES
 
 

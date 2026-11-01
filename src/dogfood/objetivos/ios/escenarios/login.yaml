@@ -1,0 +1,21 @@
+id: login
+titulo: Iniciar sesión en la app
+superficies: [login]
+driver: ios
+objetivo: >
+  Abre la app, escribe tu usuario y tu contraseña en la pantalla de inicio de sesión
+  y pulsa el botón para entrar.
+criterio_exito: >
+  Después de iniciar sesión se ve la pantalla principal de la app con la sesión iniciada
+  (tu usuario o un menú de cuenta visible) y no queda ningún mensaje de error ni el
+  formulario de login en pantalla.
+max_pasos: 25
+contrato:
+  estado_inicial: app recién abierta sin sesión
+  acciones:
+    - escribir el usuario
+    - escribir la contraseña
+    - pulsar el botón de iniciar sesión
+  resultado_esperado: se ve la pantalla principal con la sesión iniciada
+  evidencia_requerida:
+    - captura del paso final y árbol de UI
