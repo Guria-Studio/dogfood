@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/sonner'
+import { TarjetaSugerencia } from '@/features/sugerencia/TarjetaSugerencia'
 import { CrearIssue } from './CrearIssue'
 import { lineaConsola, lineaRed } from './lineas'
 import { Bloque, VisorPasos } from './VisorPasos'
@@ -128,6 +129,8 @@ function Contenido({ d }: { d: Detalle }) {
           </CardContent>
         </Card>
       </div>
+
+      <TarjetaSugerencia ejecucionId={e.id} />
 
       <Seccion titulo="Paso a paso">
         <VisorPasos pasos={d.pasos} />
