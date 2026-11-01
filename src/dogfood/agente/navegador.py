@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import tempfile
 import time
 from collections.abc import Awaitable, Callable
@@ -15,10 +16,16 @@ from datetime import datetime
 from pathlib import Path
 from urllib.parse import urlparse
 
-from pydantic import BaseModel
-
 from dogfood import contrato
 from dogfood.agente import prompts
+from dogfood.agente.juez import (
+    MOTIVO_NO_DISPONIBLE,
+    DesdeLlamable,
+    JuezNoDisponible,
+    Veredicto,
+    juzgar,
+)
+from dogfood.config import Config
 from dogfood.dominio import (
     DatasetSintetico,
     Ejecucion,
@@ -53,14 +60,30 @@ N_CAPTURAS_JUEZ = 5
 HOST_BROWSER_USE = "cf.browser-use.com"  # el logo de su animación de espera en about:blank
 
 
+RE_ERROR = re.compile(r"\b(error|erro|falló|falha|failed)\b", re.IGNORECASE)
+REPETICIONES = 3
+
+
+def friccion_automatica(accion: str, texto: str, previas: list[str], vistos: set[str]) -> list[str]:
+    """Fricciones que no dependen de que el LLM las anote: la misma acción `REPETICIONES` veces
+    seguidas y un error visible en pantalla (una vez por texto de error). `previas` incluye la
+    acción actual; `vistos` recuerda lo ya anotado."""
+    textos = []
+    racha = next((i for i, a in enumerate(reversed(previas)) if a != accion), len(previas))
+    if accion and racha == REPETICIONES:  # una vez por racha, no en cada repetición extra
+        textos.append(f"Repite la misma acción {REPETICIONES} veces seguidas: {accion[:200]}")
+    m = RE_ERROR.search(texto)
+    if m:
+        linea = next((x.strip() for x in texto.splitlines() if m.group(0) in x), m.group(0))[:200]
+        if linea not in vistos:
+            vistos.add(linea)
+            textos.append(f"Aparece un error en pantalla: {linea}")
+    return textos
+
+
 def de_browser_use(url: str) -> bool:
     """Recursos de browser-use, no de la app: se bloquean igual, pero no se registran."""
     return urlparse(url).netloc == HOST_BROWSER_USE
-
-
-class Veredicto(BaseModel):
-    exito: bool
-    motivo: str
 
 
 Juez = Callable[[str, type[Veredicto]], Awaitable[Veredicto]]
@@ -81,6 +104,7 @@ async def ejecutar(
     herramientas_extra: list[Callable] | None = None,
     bus: BusVivo = BUS_NULO,
     corrida_id: str = "",
+    cfg: Config | None = None,
 ) -> Ejecucion:
     """`juez(prompt, Veredicto)` es `llm.completar_json` con el rol `juez` ya aplicado.
 
@@ -216,7 +240,8 @@ async def ejecutar(
 
         async def pagina():
             url = await sesion.get_current_page_url()
-            return ([p for p in ctx.pages if p.url == url] or ctx.pages)[-1]
+            paginas = [p for p in ctx.pages if not p.is_closed()]
+            return ([p for p in paginas if p.url == url] or paginas)[-1]
 
         async def fotografiar(nombre: str):
             p = await pagina()
@@ -255,6 +280,9 @@ async def ejecutar(
         for f in herramientas_extra or []:
             tools.action(f.__doc__ or f.__name__)(f)
 
+        previas: list[str] = []
+        anotadas: set[str] = set()
+
         async def al_terminar_paso(agente: Agent) -> None:
             h = agente.history.history[-1] if agente.history.history else None
             acciones = (
@@ -263,18 +291,20 @@ async def ejecutar(
                 else []
             )
             n = len(e.pasos) + 1
-            p, ruta_png = await fotografiar(f"paso-{n:03d}.png")
             try:
+                p, ruta_png = await fotografiar(f"paso-{n:03d}.png")
                 texto = await p.inner_text("body", timeout=5000)
-            except ErrorPlaywright:
-                texto = ""
+            except Exception as exc:  # noqa: BLE001 - un paso sin captura no debe abortar la corrida
+                log.warning("on_step_end sin página en el paso %d: %r", n, exc)
+                p, ruta_png, texto = None, None, ""
+            url = p.url if p else (e.pasos[-1].url if e.pasos else instancia.base_url)
             salida = h.model_output if h else None
             razonamiento = (getattr(salida, "thinking", None) or "") if salida else ""
             meta = getattr(salida, "next_goal", None) or ""
             paso = Paso(
                 n=n,
-                url=p.url,
-                pantalla=pantalla(p.url),
+                url=url,
+                pantalla=pantalla(url),
                 accion=sin_clave(json.dumps(acciones, ensure_ascii=False, default=str)),
                 captura=ruta_png,
                 texto_visible=sin_clave(texto),
@@ -285,6 +315,16 @@ async def ejecutar(
                 observado=sin_clave(getattr(salida, "evaluation_previous_goal", None) or ""),
             )
             e.pasos.append(paso)
+            previas.append(paso.accion)
+            for t in friccion_automatica(paso.accion if acciones else "", texto, previas, anotadas):
+                e.fricciones.append(
+                    Friccion(
+                        texto=sin_clave(t),
+                        severidad=Gravedad.media,
+                        pantalla=paso.pantalla,
+                        captura=ruta_png,
+                    )
+                )
             bus.publicar(
                 EventoVivo(
                     **base,
@@ -354,10 +394,17 @@ async def ejecutar(
             sin_clave(ultimo),
         )
         try:
-            v = await juez(prompt, Veredicto)
+            cfg = cfg or _cfg_o_none()
+            v = await juzgar(
+                prompt,
+                cfg,
+                primero=DesdeLlamable(juez, cfg.roles["juez"][0] if cfg else "juez"),
+                contador=contador,
+                ejecucion_id=e.id,
+            )
             e.exito, e.motivo_juez = v.exito, sin_clave(v.motivo)
-        except Exception as exc:  # noqa: BLE001 - sin veredicto, `exito` queda en False
-            e.motivo_juez = sin_clave(f"el juez falló: {exc!r}")
+        except JuezNoDisponible:  # sin veredicto: no concluyente, no fallo
+            e.estado, e.motivo_juez = "error", MOTIVO_NO_DISPONIBLE
 
     e.duracion_s = round(time.monotonic() - inicio, 2)
     e.resultado = contrato.resultado(e)
@@ -365,6 +412,13 @@ async def ejecutar(
     for nombre, items in (("pasos", e.pasos), ("red", e.red), ("consola", e.consola)):
         (carpeta / f"{nombre}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items))
     return e
+
+
+def _cfg_o_none() -> Config | None:
+    try:
+        return Config.cargar()
+    except Exception:  # noqa: BLE001 - sin config no hay modelos de respaldo, solo el juez dado
+        return None
 
 
 async def _registrar_uso(agente: Agent, contador: ContadorUso | None, e: Ejecucion) -> None:

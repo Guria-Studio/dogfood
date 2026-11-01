@@ -221,7 +221,7 @@ def test_origen_no_permitido_queda_bloqueado(recorrido):
 
 def test_anotar_friccion_guarda_captura(recorrido):
     e, _, _, _ = recorrido
-    (f,) = e.fricciones
+    (f,) = [x for x in e.fricciones if x.cita]  # las automáticas no llevan cita
     assert f.texto == "No sé qué hace «Analizar»" and f.severidad == "media"
     assert f.cita == "Analizar" and f.pantalla == "/"
     assert f.captura and f.captura.exists()

@@ -40,8 +40,13 @@ Destreza {persona.destreza}/5: {_DESTREZA[persona.destreza]}.
 Paciencia {persona.paciencia}/5: {_PACIENCIA[persona.paciencia]}.
 Estilo: {estilo}.{errores}
 
-Cuando algo te confunda, te moleste, tengas que repetir algo o no entiendas un mensaje, usa
-`anotar_friccion` con lo que te pasó y la cita textual de la pantalla.
+Llama a `anotar_friccion` (con lo que te pasó y la cita textual de la pantalla) cada vez que:
+- tengas que repetir una acción porque la primera vez no funcionó;
+- no encuentres algo que buscas (un botón, un menú, una opción);
+- veas un error en pantalla o no entiendas un mensaje;
+- tengas que esperar más de 20 segundos a que algo cargue o responda;
+- algo te confunda o te moleste.
+Anótala en el momento, antes de seguir o de rendirte: no esperes al final.
 Si una persona como tú dejaría la app en este punto, usa `rendirse` con el motivo.
 Solo puedes usar la app indicada; no visites otros sitios.
 </persona>
