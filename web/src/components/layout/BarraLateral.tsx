@@ -1,35 +1,75 @@
-import { Link } from '@tanstack/react-router'
-import { CircleHelp, Eye, History, ListChecks, Smartphone } from 'lucide-react'
+import { Link, useLocation } from '@tanstack/react-router'
 
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+  useSidebar,
+} from '@/components/ui/sidebar'
+import { Logo } from './Logo'
+import { GRUPOS } from './pantallas'
 import { SelectorTema } from './SelectorTema'
 
-const ENLACES = [
-  { to: '/', texto: 'Corridas', icono: History },
-  { to: '/recorridos', texto: 'Recorridos', icono: ListChecks },
-  { to: '/dispositivos', texto: 'Dispositivos', icono: Smartphone },
-  { to: '/vista', texto: 'Vista en vivo', icono: Eye },
-  { to: '/ayuda', texto: 'Ayuda', icono: CircleHelp },
-] as const
+const activo = (ruta: string, to: string) =>
+  to === '/' ? ruta === '/' || ruta.startsWith('/corridas') || ruta.startsWith('/ejecuciones') : ruta.startsWith(to)
 
-export function BarraLateral({ alNavegar }: { alNavegar?: () => void }) {
+/** Barra lateral (block `sidebar-07` de shadcn): colapsa a íconos; en móvil es un `sheet`. */
+export function BarraLateral() {
+  const ruta = useLocation({ select: (l) => l.pathname })
+  const { setOpenMobile } = useSidebar()
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="px-3 pt-1 text-lg font-semibold">dogfood</div>
-      <nav aria-label="Principal" className="flex flex-1 flex-col gap-1">
-        {ENLACES.map(({ to, texto, icono: Icono }) => (
-          <Link
-            key={to}
-            to={to}
-            onClick={alNavegar}
-            activeOptions={{ exact: to === '/' }}
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground data-[status=active]:bg-accent data-[status=active]:text-accent-foreground"
-          >
-            <Icono aria-hidden="true" className="size-4 shrink-0" />
-            {texto}
-          </Link>
-        ))}
-      </nav>
-      <SelectorTema />
-    </div>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex h-12 items-center gap-2 px-1 group-data-[collapsible=icon]:px-0">
+              <div className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground">
+                <Logo className="size-5" />
+              </div>
+              <div className="grid leading-tight group-data-[collapsible=icon]:hidden">
+                <span className="font-semibold tracking-tight">dogfood</span>
+                <span className="text-xs text-muted-foreground">usuarios agénticos</span>
+              </div>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+      <SidebarContent>
+        <nav aria-label="Principal">
+          {GRUPOS.map((g) => (
+            <SidebarGroup key={g.titulo}>
+              <SidebarGroupLabel>{g.titulo}</SidebarGroupLabel>
+              <SidebarMenu>
+                {g.enlaces.map(({ to, texto, icono: Icono }) => (
+                  <SidebarMenuItem key={to}>
+                    <SidebarMenuButton asChild tooltip={texto} isActive={activo(ruta, to)}>
+                      <Link to={to} onClick={() => setOpenMobile(false)}>
+                        <Icono aria-hidden="true" />
+                        <span>{texto}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          ))}
+        </nav>
+      </SidebarContent>
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SelectorTema />
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
   )
 }

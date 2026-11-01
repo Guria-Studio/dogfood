@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, FileX } from 'lucide-react'
 import { Children, isValidElement, type ReactNode, useState } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+import { Vacio } from '@/components/layout/Vacio'
 import { Button } from '@/components/ui/button'
 import { encabezados, idDe, listarDocs, obtenerDoc, slugDeLink } from './api'
 
@@ -58,7 +59,8 @@ export function Documento({ slug }: { slug: string }) {
   const { data, isLoading, isError } = useQuery({ queryKey: ['ayuda', 'doc', slug], queryFn: () => obtenerDoc(slug) })
   const lista = useQuery({ queryKey: ['ayuda', 'lista'], queryFn: () => listarDocs() })
   if (isLoading) return <p className="text-muted-foreground">Cargando…</p>
-  if (isError || !data) return <p>No se encontró el documento «{slug}». <Link to="/ayuda" className="underline">Volver a la ayuda</Link></p>
+  if (isError || !data)
+    return <Vacio error icono={FileX} titulo={`No se encontró el documento «${slug}»`} accion={<Button asChild variant="outline"><Link to="/ayuda">Volver a la ayuda</Link></Button>} />
 
   const hermanos = (lista.data ?? []).filter((d) => d.seccion === data.doc.seccion)
   const i = hermanos.findIndex((d) => d.slug === slug)

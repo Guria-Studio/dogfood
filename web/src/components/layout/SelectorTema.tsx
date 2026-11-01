@@ -1,21 +1,20 @@
 import { Moon, Sun } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
+import { SidebarMenuButton } from '@/components/ui/sidebar'
 import { useTema } from './tema'
 
 export function SelectorTema() {
   const { tema, alternar } = useTema()
   const aOscuro = tema === 'claro'
+  const texto = aOscuro ? 'Tema oscuro' : 'Tema claro'
   return (
-    <Button
-      variant="ghost"
-      size="sm"
+    <SidebarMenuButton
       onClick={alternar}
+      tooltip={texto}
       aria-label={aOscuro ? 'Cambiar a tema oscuro' : 'Cambiar a tema claro'}
-      className="justify-start"
     >
       {aOscuro ? <Moon aria-hidden="true" /> : <Sun aria-hidden="true" />}
-      {aOscuro ? 'Tema oscuro' : 'Tema claro'}
-    </Button>
+      <span>{texto}</span>
+    </SidebarMenuButton>
   )
 }

@@ -1,8 +1,9 @@
+import { MonitorPlay } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
+import { Vacio } from '@/components/layout/Vacio'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { type Ejecucion, useVista } from './useVista'
-
 function Latencia({ ts }: { ts: number | null }) {
   const [ahora, setAhora] = useState(() => Date.now())
   useEffect(() => {
@@ -50,13 +51,18 @@ export function VistaVivo() {
     <>
       <p className="text-muted-foreground mb-3 text-sm">{conectado ? 'Conectado' : 'Reconectando…'}</p>
       {!conectado && ejecuciones.length === 0 && (
-        <div role="alert" className="rounded-lg border p-4">
-          <p>No hay una corrida con vista activa.</p>
-          <p className="text-muted-foreground mt-2 text-sm">Lánzala con:</p>
-          <pre className="bg-muted mt-1 rounded p-2 text-sm">
-            <code>uv run dogfood run --target predicts --vista</code>
-          </pre>
-        </div>
+        <Vacio
+          icono={MonitorPlay}
+          titulo="No hay una corrida con vista activa."
+          texto={
+            <>
+              <p>Lánzala con:</p>
+              <pre className="bg-muted mt-1 rounded p-2 text-left">
+                <code>uv run dogfood run --target predicts --vista</code>
+              </pre>
+            </>
+          }
+        />
       )}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(360px,1fr))] gap-4">
         {ejecuciones.map((e) => (

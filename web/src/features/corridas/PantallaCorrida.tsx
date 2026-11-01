@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
+import { SearchX } from 'lucide-react'
 
 import { cliente } from '@/api/cliente'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Vacio } from '@/components/layout/Vacio'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -40,7 +43,7 @@ export function PantallaCorrida({ id }: { id: string }) {
     return (
       <>
         {cabecera}
-        <p role="alert">No se encontró la corrida.</p>
+        <Vacio error icono={SearchX} titulo="No se encontró la corrida" texto={`No hay datos de la corrida ${id}.`} accion={<Button asChild variant="outline"><Link to="/">Volver a corridas</Link></Button>} />
       </>
     )
   if (corrida.isPending)
