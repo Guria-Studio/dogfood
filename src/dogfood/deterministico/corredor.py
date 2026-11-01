@@ -54,6 +54,28 @@ def _pubspec(copia: Path) -> dict:
     return (yaml.safe_load(p.read_text()) or {}) if p.exists() else {}
 
 
+def _deps_path(app: Path) -> list[Path]:
+    """Directorios de las dependencias `path:` de la app, recursivo y sin ciclos."""
+    vistos: dict[Path, None] = {}
+    pendientes = [app]
+    while pendientes:
+        d = pendientes.pop()
+        p = d / "pubspec.yaml"
+        pub = (yaml.safe_load(p.read_text()) or {}) if p.exists() else {}
+        for seccion in ("dependencies", "dev_dependencies", "dependency_overrides"):
+            for spec in (pub.get(seccion) or {}).values():
+                ruta = spec.get("path") if isinstance(spec, dict) else None
+                if not ruta:
+                    continue
+                dep = (d / str(ruta)).resolve()
+                if not dep.is_dir():
+                    raise FileNotFoundError(f"la dependencia path: {ruta} ({dep}) no existe")
+                if dep != app and dep not in vistos:
+                    vistos[dep] = None
+                    pendientes.append(dep)
+    return list(vistos)
+
+
 def _parsear_flutter(texto: str) -> tuple[list[ResultadoTest], list[dict]]:
     eventos: list[dict] = []
     for ln in texto.splitlines():
@@ -121,30 +143,48 @@ class CorredorFlutter:
         )
 
     async def copia_de_trabajo(self, proyecto: Path) -> Path:
+        """Copia la app y los paquetes `path:` externos (monorepo) conservando la disposición."""
         origen = proyecto.expanduser().resolve()
         base = self.cfg.flutter.copia_trabajo.expanduser().resolve()
-        destino = base / origen.name
-        if base in (origen, *origen.parents) or origen in destino.parents:
-            raise ValueError(f"el proyecto {origen} y la copia de trabajo {destino} se solapan")
+        raiz = base / origen.name
+        externos = [d for d in _deps_path(origen) if not d.is_relative_to(origen)]
+        if externos:
+            comun = Path(os.path.commonpath([origen, *externos]))
+            raiz_origen = comun
+            destino = raiz / origen.relative_to(comun)
+        else:
+            raiz_origen, destino = origen, raiz
+        for o in [origen, *externos]:
+            if base in (o, *o.parents) or o in raiz.parents or o == raiz:
+                raise ValueError(f"el proyecto {o} y la copia de trabajo {raiz} se solapan")
         base.mkdir(parents=True, exist_ok=True)
-        codigo, _, err = await self._correr(
-            [
-                "rsync",
-                "-a",
-                "--delete",
-                "--exclude",
-                "build/",
-                "--exclude",
-                ".dart_tool/",
-                "--exclude",
-                ".git/",
-                f"{origen}/",
-                f"{destino}/",
-            ],
-            base,
-        )
-        if codigo:
-            raise RuntimeError(f"rsync falló ({codigo}): {err.decode(errors='replace').strip()}")
+        copiados: list[Path] = []
+        for o in [origen, *sorted(externos)]:
+            if any(o.is_relative_to(c) for c in copiados):
+                continue  # ya viaja dentro de otra carpeta copiada
+            copiados.append(o)
+            d = destino if o == origen else raiz / o.relative_to(raiz_origen)
+            d.parent.mkdir(parents=True, exist_ok=True)
+            codigo, _, err = await self._correr(
+                [
+                    "rsync",
+                    "-a",
+                    "--delete",
+                    "--exclude",
+                    "build/",
+                    "--exclude",
+                    ".dart_tool/",
+                    "--exclude",
+                    ".git/",
+                    f"{o}/",
+                    f"{d}/",
+                ],
+                base,
+            )
+            if codigo:
+                raise RuntimeError(
+                    f"rsync falló ({codigo}): {err.decode(errors='replace').strip()}"
+                )
         return destino
 
     def comando(
