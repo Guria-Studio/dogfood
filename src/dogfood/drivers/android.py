@@ -23,6 +23,7 @@ _TAILSCALE = ipaddress.ip_network("100.64.0.0/10")
 _BOUNDS = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 _ESPECIALES = set("&;|<>()$`\\\"'*?~#!{}[]")
 _SEGMENTO_S = 170
+_PERDIDA = re.compile(r"device offline|device '.*' not found|no devices/emulators found|closed")
 _UI_REMOTO = "/sdcard/dogfood-ui.xml"
 
 
@@ -102,7 +103,21 @@ class Adb:
         return out
 
     async def ejecutar(self, *args: str, binario: bool = False) -> bytes:
-        return await self._runner(list(args), binario=binario)
+        try:
+            return await self._runner(list(args), binario=binario)
+        except AdbError as e:
+            if not self.conexion or args[:1] == ("connect",) or not _PERDIDA.search(str(e)):
+                raise
+        # Tailscale: una sola reconexión y un reintento.
+        try:
+            await self._runner(["connect", self.conexion], binario=False)
+            await self._runner(["get-state"], binario=False)
+            return await self._runner(list(args), binario=binario)
+        except AdbError as e:
+            raise AdbError(
+                f"se perdió la conexión por Tailscale con {self.conexion} ({e}). "
+                f"Reconecta con: dogfood android conectar {self.conexion}"
+            ) from e
 
     async def conectar(self) -> None:
         if not self.conexion:
