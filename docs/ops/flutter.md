@@ -1,3 +1,11 @@
+---
+titulo: Apps Flutter
+seccion: guias
+orden: 6
+pantallas:
+  - dispositivos
+---
+
 # Apps Flutter con dogfood: SDK, copia de trabajo, Semantics y motor determinista
 
 Guía para probar apps Flutter (FR-34 a FR-39, NFR-12, NFR-13, decisiones D26 a D30) con dogfood: dónde vive el SDK, cómo apuntar a la app, cómo leer la cobertura de Semantics, qué agregar en la app para que dogfood la entienda, cómo escribir un escenario determinista (Patrol o `integration_test`), los secretos y el filtro web.

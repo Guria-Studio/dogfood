@@ -1,3 +1,13 @@
+---
+titulo: Panel y vista en vivo
+seccion: guias
+orden: 4
+pantallas:
+  - vista
+  - corridas
+  - ejecucion
+---
+
 # Panel y vista en vivo
 
 Dos páginas locales para seguir a los usuarios agénticos (FR-30 a FR-33, NFR-10):

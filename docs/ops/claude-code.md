@@ -1,3 +1,10 @@
+---
+titulo: Motor claude_code
+seccion: guias
+orden: 3
+pantallas: []
+---
+
 # Motor `claude_code`: plan Max en lugar de API
 
 Guía para usar Claude Code con el plan Max como motor de los roles de dogfood, en lugar del backend por API (9router). Ambos cumplen el mismo contrato `BackendLlm` (`src/dogfood/backends/`), así que el resultado y el costo se pueden comparar (FR-26, FR-27, issue #35).

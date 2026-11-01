@@ -1,3 +1,10 @@
+---
+titulo: Prerrequisitos del operador
+seccion: guias
+orden: 2
+pantallas: []
+---
+
 # Prerrequisitos del operador
 
 Lo que Héctor tiene que tener listo en el server antes de una corrida real de dogfood contra predicts. Cada punto dice qué fase lo necesita y cómo verificarlo.
