@@ -22,6 +22,7 @@ from dogfood.datos.defectos import aplicar
 from dogfood.datos.generador import generar
 from dogfood.deterministico import ResultadoDeterministico
 from dogfood.deterministico.corredor import CorredorFlutter, a_ejecucion
+from dogfood.deterministico.generador import defines
 from dogfood.dominio import (
     ContextoDeteccion,
     Corrida,
@@ -32,6 +33,7 @@ from dogfood.dominio import (
     Persona,
 )
 from dogfood.drivers.android import Adb, DriverAndroid
+from dogfood.drivers.ios import DriverIos
 from dogfood.drivers.web import DriverWeb
 from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
 from dogfood.llm import (
@@ -41,6 +43,8 @@ from dogfood.llm import (
     completar_json,
     indice_modelo,
 )
+from dogfood.nodos.cliente import ClienteNodo, a_ejecucion_ios
+from dogfood.nodos.protocolo import ResultadoTrabajo, Trabajo
 from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
 from dogfood.objetivos.predicts import cuentas
@@ -114,6 +118,14 @@ def _driver(nombre: str, cfg: Config, objetivo: Objetivo, instancia: Instancia, 
             grabar_video=cfg.pantalla.android != "screenrecord",
             umbral_cobertura=cfg.flutter.umbral_cobertura,
         )
+    if nombre == "ios":
+        p = instancia.parametros
+        return DriverIos(
+            p["appium_url"],
+            p["udid"],
+            p["bundle_id"],
+            umbral_cobertura=cfg.flutter.umbral_cobertura,
+        )
     movil = "movil" in persona.estilo
     return DriverWeb(
         instancia.base_url,
@@ -123,6 +135,40 @@ def _driver(nombre: str, cfg: Config, objetivo: Objetivo, instancia: Instancia, 
         flutter=bool(instancia.parametros.get("flutter")),
         umbral_cobertura=cfg.flutter.umbral_cobertura,
     )
+
+
+async def _determinista_ios(
+    herramienta, cfg, instancia, persona, escenario, carpeta, ejecucion_id
+) -> Ejecucion:
+    """Patrol / integration_test en el Mac: el trabajo viaja por SSH (sin secretos en el escenario)."""
+    p = instancia.parametros
+    nodo = cfg.nodos[p["nodo"]]
+    proyectos = nodo.proyectos
+    nombre = cfg.flutter.proyecto.name if cfg.flutter.proyecto else None
+    proyecto = (
+        proyectos.get(nombre) if nombre in proyectos else next(iter(proyectos.values()), None)
+    )
+    if proyecto is None:
+        r = ResultadoTrabajo(
+            id=ejecucion_id, estado="error", mensaje="falta `nodos.<nodo>.proyectos` en la config"
+        )
+    else:
+        try:
+            trabajo = Trabajo(
+                id=ejecucion_id,
+                tipo="patrol",  # ponytail: el nodo corre Patrol; integration_test iOS sin tipo propio
+                udid=p["udid"],
+                bundle_id=p["bundle_id"],
+                proyecto=proyecto,
+                escenario=escenario,
+                dart_defines=defines(escenario.deterministico, cfg),
+                timeout_s=cfg.flutter.timeout_s,
+            )
+            r = await ClienteNodo(p["nodo"], nodo).enviar(trabajo, carpeta)
+        except Exception as exc:  # noqa: BLE001 - un nodo caído no tumba la corrida
+            log.warning("el nodo falló: %s", exc)
+            r = ResultadoTrabajo(id=ejecucion_id, estado="error", mensaje=str(exc))
+    return a_ejecucion_ios(r, persona, escenario, ejecucion_id, carpeta)
 
 
 async def _determinista(
@@ -135,10 +181,15 @@ async def _determinista(
         "persona": persona.nombre,
         "escenario": escenario.id,
     }
-    if driver == "ios":
-        raise NotImplementedError("iOS determinista va por el nodo (F8.6.T4)")
     bus.publicar(EventoVivo(**base, tipo="inicio"))
     inicio = time.monotonic()
+    if driver == "ios":
+        e = await _determinista_ios(
+            herramienta, cfg, instancia, persona, escenario, carpeta, ejecucion_id
+        )
+        e.duracion_s = round(time.monotonic() - inicio, 2)
+        bus.publicar(EventoVivo(**base, tipo="fin", resultado=e.resultado))
+        return e
     proyecto = cfg.flutter.proyecto
     if proyecto is None:
         det = carpeta / "deterministico"
@@ -290,7 +341,7 @@ async def correr(op: Opciones) -> Corrida:
             carpeta = almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}")
             driver = op.driver or escenario.driver
             motor = op.motor or escenario.motor
-            por_bucle = driver == "android" or op.motor == "bucle"
+            por_bucle = driver in ("android", "ios") or op.motor == "bucle"
             if not por_bucle and cfg.motores["persona"] == "claude_code":
                 log.info(
                     "motores.persona=claude_code: browser-use necesita un cliente de chat por "

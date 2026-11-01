@@ -20,7 +20,7 @@ def run(
     sin_publicar: Annotated[bool, typer.Option("--sin-publicar", help="No crea issues.")] = False,
     tope_usd: Annotated[float | None, typer.Option("--tope-usd", help="Tope de costo.")] = None,
     driver: Annotated[
-        str | None, typer.Option(help="Driver: web o android (pisa el del escenario).")
+        str | None, typer.Option(help="Driver: web, android o ios (pisa el del escenario).")
     ] = None,
     motor: Annotated[
         str | None, typer.Option(help="Motor: browser_use, bucle, patrol o integration_test.")
@@ -35,8 +35,8 @@ def run(
         bool, typer.Option("--mantener-entorno", help="No destruye el entorno al terminar.")
     ] = False,
 ) -> None:
-    if driver not in (None, "web", "android"):
-        raise typer.BadParameter("web o android", param_hint="--driver")
+    if driver not in (None, "web", "android", "ios"):
+        raise typer.BadParameter("web, android o ios", param_hint="--driver")
     if motor not in (None, "browser_use", "bucle", "patrol", "integration_test"):
         raise typer.BadParameter(
             "browser_use, bucle, patrol o integration_test", param_hint="--motor"
