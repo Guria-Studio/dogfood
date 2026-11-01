@@ -1,0 +1,32 @@
+name: web
+
+on:
+  pull_request:
+    paths: ['web/**', 'src/dogfood/panel/**', 'docs/ayuda/**', '.github/workflows/web.yml']
+  push:
+    branches: [main]
+    paths: ['web/**', 'src/dogfood/panel/**', 'docs/ayuda/**', '.github/workflows/web.yml']
+
+jobs:
+  web:
+    runs-on: ${{ vars.RUNNER || 'ubuntu-latest' }}
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: uv sync --frozen
+        working-directory: .
+      - run: npm ci
+      # tsc y eslint necesitan src/api/schema.ts (generado desde el OpenAPI del panel).
+      - run: npm run gen:api
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npm run build
