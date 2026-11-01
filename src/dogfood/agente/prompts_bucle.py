@@ -34,9 +34,18 @@ def paso(
     texto_visible: str,
     historial: list[str],
     con_captura: bool,
+    ciega: bool = False,
+    tamano: tuple[int, int] | None = None,
 ) -> str:
     hist = "\n".join(historial) or "(ninguna todavía)"
     captura = "\nTe adjunto una captura de la pantalla." if con_captura else ""
+    if ciega:
+        medida = f" La captura original mide {tamano[0]}x{tamano[1]} px: escala" if tamano else ""
+        captura += (
+            "\nPantalla ciega: la app no expone Semantics en esta pantalla, así que los "
+            "elementos listados pueden faltar. Guíate por la captura y usa acciones por "
+            "coordenadas `x`/`y`." + (medida + " las coordenadas a ese tamaño." if medida else "")
+        )
     return f"""{prompts.sistema(persona)}
 <tarea>
 {prompts.tarea(escenario, persona, None)}

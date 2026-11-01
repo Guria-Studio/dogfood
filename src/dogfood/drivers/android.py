@@ -15,6 +15,7 @@ from PIL import Image
 
 from dogfood.dominio import Evidencia
 from dogfood.drivers.base import Accion, ElementoUI, Observacion, ResultadoAccion
+from dogfood.flutter.semantica import cobertura_xml, es_flutter
 
 Runner = Callable[..., Awaitable[bytes]]  # (args: list[str], *, binario: bool) -> bytes
 
@@ -133,7 +134,7 @@ def _parsear_bounds(texto: str) -> tuple[int, int, int, int] | None:
     return tuple(int(g) for g in m.groups()) if m else None  # type: ignore[return-value]
 
 
-def parsear_arbol(xml: str) -> list[ElementoUI]:
+def parsear_arbol(xml: str, flutter: bool = False) -> list[ElementoUI]:
     elementos = []
     for i, nodo in enumerate(ET.fromstring(xml).iter("node")):
         a = nodo.attrib
@@ -142,6 +143,12 @@ def parsear_arbol(xml: str) -> list[ElementoUI]:
         clicable = a.get("clickable") == "true"
         if bounds is None or not (texto or desc or rid or clicable):
             continue
+        if flutter and not texto and "\n" in desc.strip():
+            # Flutter junta etiqueta y valor con saltos de línea
+            texto, _, desc = desc.strip().partition("\n")
+            desc = desc.strip()
+        elif flutter and not texto:
+            texto, desc = desc, ""
         clase = a.get("class", "")
         elementos.append(
             ElementoUI(
@@ -161,8 +168,14 @@ class DriverAndroid:
     nombre = "android"
 
     def __init__(
-        self, adb: Adb, paquete: str, actividad: str | None = None, grabar_video: bool = True
+        self,
+        adb: Adb,
+        paquete: str,
+        actividad: str | None = None,
+        grabar_video: bool = True,
+        umbral_cobertura: float = 0.6,
     ):
+        self.umbral_cobertura = umbral_cobertura
         self.adb = adb
         self.grabar_video = grabar_video  # False: la FuenteScreenrecord ya graba el video
         self.paquete = paquete
@@ -235,17 +248,23 @@ class DriverAndroid:
         xml = await self._volcar_arbol()
         arbol = None
         elementos: list[ElementoUI] = []
+        cobertura = None
+        pantalla = await self._actividad()
         if xml:
             arbol = self._carpeta / "arboles" / f"paso-{n_paso:03d}.xml"
             arbol.write_text(xml, encoding="utf-8")
+            flutter = es_flutter(xml, pantalla)
+            if flutter:
+                cobertura = cobertura_xml(xml, umbral=self.umbral_cobertura, actividad=pantalla)
             try:
-                elementos = parsear_arbol(xml)
+                elementos = parsear_arbol(xml, flutter)
             except ET.ParseError:
                 elementos = []
         self._elementos = {e.id: e for e in elementos}
         return Observacion(
-            pantalla=await self._actividad(),
+            pantalla=pantalla,
             elementos=elementos,
+            cobertura=cobertura,
             texto_visible="\n".join(e.texto for e in elementos if e.texto),
             captura=captura,
             arbol=arbol,

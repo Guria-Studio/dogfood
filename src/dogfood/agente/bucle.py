@@ -124,9 +124,14 @@ async def ejecutar(
             imagenes: list[Path] = []
             tope = cfg.agente.max_capturas_por_paso
             utiles = sum(map(_util, obs.elementos))
-            if tope and obs.captura and (utiles < MIN_ELEMENTOS_UTILES or pedir_captura):
+            ciega = bool(obs.cobertura and obs.cobertura.ciega)
+            if tope and obs.captura and (utiles < MIN_ELEMENTOS_UTILES or pedir_captura or ciega):
                 reducida = para_llm / f"paso-{n:03d}-llm.png"
                 imagenes = [_reducir(obs.captura, cfg.agente.resolucion_max, reducida)][:tope]
+            tamano = None
+            if ciega and obs.captura:
+                with Image.open(obs.captura) as im:
+                    tamano = im.size
             prompt = prompts_bucle.paso(
                 persona,
                 escenario,
@@ -136,6 +141,8 @@ async def ejecutar(
                 texto_visible=obs.texto_visible,
                 historial=historial[-N_HISTORIAL:],
                 con_captura=bool(imagenes),
+                ciega=ciega,
+                tamano=tamano,
             )
             d, uso, sesion = await backend.completar_json(
                 prompt, DecisionPaso, imagenes=imagenes, sesion=sesion
@@ -170,6 +177,8 @@ async def ejecutar(
                     f"{efecto}; pantalla {siguiente.pantalla}: {siguiente.texto_visible[:300]}"
                 )
 
+            if ciega and not imagenes:
+                observado += "; pantalla ciega sin captura por configuración"
             paso = Paso(
                 n=n,
                 url=obs.pantalla,
