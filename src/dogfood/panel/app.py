@@ -5,9 +5,12 @@ from fastapi.templating import Jinja2Templates
 
 from dogfood.config import Config
 from dogfood.panel import consultas, detalle, dispositivos
+from dogfood.panel.api import registrar_api
+from dogfood.panel.spa import montar_spa
 from dogfood.web import crear_app_base
 
 _PLANTILLAS = Path(__file__).parent / "plantillas"
+_ESTATICO = Path(__file__).parent / "estatico"
 FILTROS = ("recorrido", "resultado", "version", "persona", "driver", "motor")
 
 
@@ -55,4 +58,7 @@ def crear_app_panel(raiz: Path, cfg: Config | None = None) -> FastAPI:
     registrar_rutas(app, plantillas, Path(raiz))
     detalle.registrar_rutas(app, plantillas, Path(raiz))
     dispositivos.registrar_rutas(app, plantillas, Path(raiz), cfg)
+    registrar_api(app, Path(raiz), cfg)
+    if (_ESTATICO / "index.html").is_file():  # convivencia (D6): sin build siguen las rutas Jinja
+        montar_spa(app, _ESTATICO)
     return app
