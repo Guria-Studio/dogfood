@@ -371,6 +371,7 @@ async def correr(op: Opciones) -> Corrida:
                     bus=bus,
                     corrida_id=corrida.id,
                     objetivo=objetivo,
+                    contador=contador,
                     fuente_frames=(
                         frames.crear_fuente(cfg, drv, instancia.parametros) if bus.activo else None
                     ),

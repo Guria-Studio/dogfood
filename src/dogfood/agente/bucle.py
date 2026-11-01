@@ -16,13 +16,15 @@ from pydantic import BaseModel
 
 from dogfood import contrato
 from dogfood.agente import prompts, prompts_bucle
-from dogfood.agente.navegador import N_CAPTURAS_JUEZ, TIMEOUT_S, Veredicto
+from dogfood.agente.juez import MOTIVO_NO_DISPONIBLE, JuezNoDisponible, juzgar
+from dogfood.agente.navegador import N_CAPTURAS_JUEZ, TIMEOUT_S, friccion_automatica
 from dogfood.backends.base import BackendLlm, UsoBackend
 from dogfood.config import Config
 from dogfood.dominio import Ejecucion, Escenario, Friccion, Gravedad, Paso, Persona
 from dogfood.drivers.base import Accion, Driver, ElementoUI, arbol_a_texto
 from dogfood.eventos import BUS_NULO, BusVivo, EventoVivo
 from dogfood.frames import FuenteDeDriver, FuenteFrames
+from dogfood.llm import ContadorUso
 from dogfood.objetivos.base import Objetivo
 
 N_HISTORIAL = 8
@@ -79,6 +81,7 @@ async def ejecutar(
     objetivo: Objetivo | None = None,
     timeout_s: float = TIMEOUT_S,
     fuente_frames: FuenteFrames | None = None,
+    contador: ContadorUso | None = None,
 ) -> Ejecucion:
     carpeta = Path(carpeta)
     para_llm = carpeta / "capturas"
@@ -118,6 +121,8 @@ async def ejecutar(
     async def recorrer() -> tuple[str, str]:
         """Devuelve (estado, motivo); lo registrado queda en `e` aunque algo lance."""
         historial: list[str] = []
+        previas: list[str] = []
+        anotadas: set[str] = set()
         sesion: str | None = None
         pedir_captura = False
         obs = await driver.observar(1)
@@ -160,7 +165,7 @@ async def ejecutar(
                     )
                 )
 
-            accion, punto, siguiente = "", None, None
+            accion, punto, siguiente, efecto = "", None, None, ""
             if d.rendirse:
                 observado = f"se rinde: {d.rendirse}"
             elif d.terminado:
@@ -177,6 +182,23 @@ async def ejecutar(
                 observado = (
                     f"{efecto}; pantalla {siguiente.pantalla}: {siguiente.texto_visible[:300]}"
                 )
+
+            previas.append(accion)
+            if not d.rendirse and not d.terminado:
+                textos = friccion_automatica(
+                    accion, siguiente.texto_visible if siguiente else "", previas, anotadas
+                )
+                if accion and not efecto.startswith("ok") and efecto != "sin acción":
+                    textos.append(f"La acción falló: {efecto[:200]}")
+                for t in textos:
+                    e.fricciones.append(
+                        Friccion(
+                            texto=sin_clave(t),
+                            severidad=Gravedad.media,
+                            pantalla=pantalla(obs.pantalla),
+                            captura=obs.captura,
+                        )
+                    )
 
             if ciega and not imagenes:
                 observado += "; pantalla ciega sin captura por configuración"
@@ -270,11 +292,12 @@ async def ejecutar(
             e.pasos[-1].razonamiento if e.pasos else "",
         )
         try:
-            v, uso, _ = await juez.completar_json(prompt, Veredicto)
-            sumar(uso)
+            v = await juzgar(
+                prompt, cfg, primero=juez, contador=contador, ejecucion_id=e.id, al_uso=sumar
+            )
             e.exito, e.motivo_juez = v.exito, sin_clave(v.motivo)
-        except Exception as exc:  # noqa: BLE001 - sin veredicto, `exito` queda en False
-            e.motivo_juez = sin_clave(f"el juez falló: {exc!r}")
+        except JuezNoDisponible:  # sin veredicto: no concluyente, no fallo
+            e.estado, e.motivo_juez = "error", MOTIVO_NO_DISPONIBLE
 
     e.duracion_s = round(time.monotonic() - inicio, 2)
     e.resultado = contrato.resultado(e)
