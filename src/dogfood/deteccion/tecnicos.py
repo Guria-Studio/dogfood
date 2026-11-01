@@ -89,6 +89,27 @@ def normalizar_ruta(url: str) -> str:
     return _ID.sub("{id}", urlparse(url).path)
 
 
+def _reglas(ctx: ContextoDeteccion) -> list[dict]:
+    """Rutas esperadas que declara el objetivo (`rutas_esperadas()`); sin objetivo, ninguna."""
+    f = getattr(getattr(ctx, "objetivo", None), "rutas_esperadas", None)
+    return list(f()) if f else []
+
+
+def _carril(ctx: ContextoDeteccion, e: Ejecucion) -> str:
+    f = getattr(getattr(ctx, "objetivo", None), "escenarios", None)
+    return next((s.carril for s in (f() if f else []) if s.id == e.escenario_id), "normal")
+
+
+def _regla(reglas, tipo, ctx, e, ruta, estado, login_ok) -> dict | None:
+    carril = _carril(ctx, e) if any("carril" in r for r in reglas) else "normal"
+    for r in reglas:
+        if r.get("tipo", "esperada") != tipo or ruta != r["ruta"] or estado not in r["estados"]:
+            continue
+        if r.get("carril", carril) == carril and not (r.get("antes_de_login") and login_ok):
+            return r
+    return None
+
+
 def _esperado(e: Ejecucion, metodo: str, ruta: str, estado: int) -> bool:
     """`Ejecucion.notas` marca lo esperado: «esperado: 429», opcionalmente con `GET /ruta`."""
     for n in e.notas:
@@ -101,6 +122,7 @@ def _esperado(e: Ejecucion, metodo: str, ruta: str, estado: int) -> bool:
 def _red(ctx: ContextoDeteccion, e: Ejecucion) -> list[Hallazgo]:
     salida = []
     login_ok = False
+    reglas = _reglas(ctx)
     # Un 4xx de validación (422) que la UI mostró como error de formulario y un 404 de lo borrado
     # se excluyen; sin visibilidad de la UI, 422 y 404 se toleran siempre. Un 401 solo antes del login.
     for ev in e.red:
@@ -108,6 +130,12 @@ def _red(ctx: ContextoDeteccion, e: Ejecucion) -> list[Hallazgo]:
         if ev.estado < 400:
             if ev.metodo.upper() == "POST" and ruta.endswith(("/login", "/auth/login")):
                 login_ok = True
+            continue
+        if _regla(reglas, "esperada", ctx, e, ruta, ev.estado, login_ok):
+            continue
+        carrera = _regla(reglas, "carrera", ctx, e, ruta, ev.estado, login_ok)
+        if carrera:
+            salida.append(_carrera(ctx, e, ev, ruta, carrera))
             continue
         if ev.estado < 500 and (ev.estado in (404, 422) or (ev.estado == 401 and not login_ok)):
             continue
@@ -129,6 +157,27 @@ def _red(ctx: ContextoDeteccion, e: Ejecucion) -> list[Hallazgo]:
     return salida
 
 
+def _carrera(ctx, e: Ejecucion, ev, ruta: str, regla: dict) -> Hallazgo:
+    """Un 4xx que el objetivo marca como carrera: gravedad media y, si ocurre justo tras la subida,
+    con la hipótesis. ponytail: `red.jsonl` no tiene hora, solo el orden; «primeros segundos» =
+    la petición viene después del POST de subida en el orden registrado."""
+    firma = f"{ev.metodo.upper()} {ruta} {ev.estado}"
+    metodo, subida = regla["tras"]
+    i = e.red.index(ev)
+    tras = any(
+        x.metodo.upper() == metodo and normalizar_ruta(x.url) == subida and x.estado < 400
+        for x in e.red[:i]
+    )
+    desc = f"La petición {ev.metodo.upper()} {ev.url} devolvió {ev.estado}."
+    if tras:
+        desc += f" Hipótesis: {regla['hipotesis']}."
+    return _hallazgo(
+        ctx, e, "red", firma, gravedad=Gravedad.media, pantalla=ruta,
+        titulo=f"{ev.metodo.upper()} {ruta} respondió {ev.estado}", descripcion=desc,
+        evidencia=[Evidencia(tipo="red", extracto=f"{ev.metodo} {ev.url} -> {ev.estado}")],
+    )[0]  # fmt: skip
+
+
 # --- consola -------------------------------------------------------------------------------
 
 
@@ -142,10 +191,28 @@ def _firma_consola(texto: str) -> str:
     return " ".join(t.split())
 
 
+_CARGA = re.compile(r"Failed to load resource.*status of (\d+)")
+
+
+def _eco_de_red(ctx, e: Ejecucion, ev, reglas) -> bool:
+    """«Failed to load resource … status of N» repite una respuesta de red: ya la trató `_red`
+    (hallazgo, tolerada o esperada), o es esperada por el objetivo aunque no quede en `e.red`."""
+    m = _CARGA.search(ev.texto)
+    if not m or not ev.url:
+        return False
+    ruta, estado = normalizar_ruta(ev.url), int(m[1])
+    if _regla(reglas, "esperada", ctx, e, ruta, estado, False):
+        return True
+    return any(normalizar_ruta(r.url) == ruta and r.estado == estado for r in e.red)
+
+
 def _consola(ctx: ContextoDeteccion, e: Ejecucion) -> list[Hallazgo]:
     salida = []
+    reglas = _reglas(ctx)
     for ev in e.consola:
         if ev.nivel.lower() not in ("error", "pageerror", "exception"):
+            continue
+        if _eco_de_red(ctx, e, ev, reglas):
             continue
         firma = _firma_consola(ev.texto)
         # ponytail: sin timestamps en EventoConsola, «pantalla muerta» = la ejecución no tuvo

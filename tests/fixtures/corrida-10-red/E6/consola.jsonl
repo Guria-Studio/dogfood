@@ -1,0 +1,4 @@
+{"nivel":"error","texto":"Failed to load resource: the server responded with a status of 401 (Unauthorized)","url":"http://localhost:18080/api/auth/yo"}
+{"nivel":"error","texto":"Failed to load resource: the server responded with a status of 401 (Unauthorized)","url":"http://localhost:18080/api/auth/yo"}
+{"nivel":"error","texto":"Failed to load resource: the server responded with a status of 401 (Unauthorized)","url":"http://localhost:18080/api/auth/yo"}
+{"nivel":"error","texto":"Failed to load resource: the server responded with a status of 404 (Not Found)","url":"http://localhost:18080/api/datasets/01a197d2-b138-7a73-9037-e7eafa94307b/calidad"}

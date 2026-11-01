@@ -1,0 +1,9 @@
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":1.959}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":1.699}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":114.628}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":111.545}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":89.121}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":88.394}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":3.264}
+{"metodo":"GET","url":"http://localhost:18080/api/auth/yo","estado":401,"ms":7.427}
+{"metodo":"POST","url":"http://localhost:18080/api/auth/login","estado":401,"ms":81.954}
