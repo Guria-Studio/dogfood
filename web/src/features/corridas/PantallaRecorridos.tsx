@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
+import { ListChecks, TriangleAlert } from 'lucide-react'
 
 import { cliente } from '@/api/cliente'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Vacio } from '@/components/layout/Vacio'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BadgeResultado, RESULTADOS } from './comun'
-
 const BARRA: Record<string, string> = {
   aprobado: 'bg-green-600',
   rendido: 'bg-amber-500',
@@ -28,10 +29,11 @@ export function PantallaRecorridos() {
   })
 
   let cuerpo
-  if (recorridos.isError) cuerpo = <p role="alert">No se pudieron cargar los recorridos.</p>
+  if (recorridos.isError)
+    cuerpo = <Vacio error icono={TriangleAlert} titulo="No se pudieron cargar los recorridos" texto="Revisa que el panel esté corriendo y vuelve a intentar." />
   else if (recorridos.isPending) cuerpo = <Skeleton data-testid="cargando" className="h-40 w-full" />
   else if (recorridos.data.length === 0)
-    cuerpo = <p className="text-muted-foreground">Este objetivo no tiene escenarios.</p>
+    cuerpo = <Vacio icono={ListChecks} titulo="Este objetivo no tiene escenarios" texto="Los recorridos salen de los escenarios del objetivo configurado." />
   else
     cuerpo = (
       <div className="space-y-4">

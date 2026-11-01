@@ -5,15 +5,19 @@ from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.routing import Route
 
 from dogfood.eventos import BusVivo, EventoVivo, Suscripcion
+from dogfood.panel.spa import montar_spa
 from dogfood.web import crear_app_base, validar_host
 
 _AQUI = Path(__file__).parent
+_ESTATICO_SPA = _AQUI.parent / "panel" / "estatico"
 
 
-def crear_app_vista(bus: BusVivo) -> FastAPI:
+def crear_app_vista(bus: BusVivo, spa: Path = _ESTATICO_SPA) -> FastAPI:
     app, plantillas = crear_app_base("En vivo", _AQUI / "plantillas")
     app.mount("/vista-estatico", StaticFiles(directory=_AQUI / "estatico"), name="vista")
     # ejecucion_id -> {tipo: último evento}; el servidor guarda esto para los clientes tardíos
@@ -55,6 +59,12 @@ def crear_app_vista(bus: BusVivo) -> FastAPI:
             pass
         finally:
             sub.close()
+
+    if (spa / "index.html").is_file():  # con build, la SPA reemplaza la página propia
+        montar_spa(app, spa)
+        app.router.routes.insert(
+            0, Route("/", lambda r: RedirectResponse("/vista"), methods=["GET", "HEAD"])
+        )
 
     return app
 

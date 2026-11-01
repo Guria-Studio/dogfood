@@ -3,6 +3,20 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Geist (paquete `geist`) como fuente base. */
+@font-face {
+  font-family: 'Geist';
+  src: url('../node_modules/geist/dist/fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('../node_modules/geist/dist/fonts/geist-mono/GeistMono-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-display: swap;
+}
+
 :root {
   --background: 0 0% 98%;
   --foreground: 222 20% 11%;
@@ -10,6 +24,7 @@
   --card-foreground: 222 20% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 20% 11%;
+  /* Color de marca de dogfood (verde azulado del logo). */
   --primary: 173 68% 24%;
   --primary-foreground: 166 40% 98%;
   --secondary: 220 14% 94%;
@@ -33,6 +48,11 @@
   --danger-soft: 4 85% 95%;
   --info: 205 70% 34%;
   --info-soft: 205 75% 94%;
+
+  --sidebar: 0 0% 100%;
+  --sidebar-accent: 168 32% 92%;
+  --chart-exito: 152 60% 32%;
+  --chart-costo: 32 92% 44%;
 }
 
 .dark {
@@ -64,11 +84,16 @@
   --danger-soft: 4 40% 15%;
   --info: 205 80% 70%;
   --info-soft: 205 45% 15%;
+
+  --sidebar: 222 20% 10%;
+  --sidebar-accent: 173 30% 18%;
+  --chart-exito: 145 55% 55%;
+  --chart-costo: 40 92% 62%;
 }
 
 @theme inline {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue',
-    Arial, sans-serif;
+  --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
@@ -99,6 +124,15 @@
   --color-info: hsl(var(--info));
   --color-info-soft: hsl(var(--info-soft));
 
+  --color-sidebar: hsl(var(--sidebar));
+  --color-sidebar-foreground: hsl(var(--foreground));
+  --color-sidebar-primary: hsl(var(--primary));
+  --color-sidebar-primary-foreground: hsl(var(--primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--accent-foreground));
+  --color-sidebar-border: hsl(var(--border));
+  --color-sidebar-ring: hsl(var(--ring));
+
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
@@ -116,5 +150,6 @@
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
     font-family: var(--font-sans);
+    font-feature-settings: 'tnum';
   }
 }

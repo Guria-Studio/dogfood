@@ -35,4 +35,8 @@ const SheetContent = React.forwardRef<
 ))
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
-export { Sheet, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescription }
+const SheetHeader = ({ className, ...props }: React.ComponentProps<'div'>) => (
+  <div className={cn('flex flex-col gap-1.5', className)} {...props} />
+)
+
+export { Sheet, SheetHeader, SheetTrigger, SheetClose, SheetContent, SheetTitle, SheetDescription }

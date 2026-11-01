@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
-import { Copy } from 'lucide-react'
+import { Copy, TriangleAlert } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 import { cliente } from '@/api/cliente'
 import type { components } from '@/api/schema'
 import { PageHeader } from '@/components/layout/PageHeader'
+import { Vacio } from '@/components/layout/Vacio'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -220,7 +221,9 @@ export function DetalleEjecucion({ id }: { id: string }) {
         acciones={d && <CrearIssue ejecucionId={id} titulo={titulo} />}
       />
       {q.isPending && <Skeleton className="h-64 w-full" />}
-      {q.isError && <p className="text-destructive">No se pudo cargar la ejecución {id}.</p>}
+      {q.isError && (
+        <Vacio error icono={TriangleAlert} titulo={`No se pudo cargar la ejecución ${id}`} texto="Puede que la ejecución no exista o que el panel no esté corriendo." accion={<Button asChild variant="outline"><Link to="/">Volver a corridas</Link></Button>} />
+      )}
       {d && <Contenido d={d} />}
     </>
   )

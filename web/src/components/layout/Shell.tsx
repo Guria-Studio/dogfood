@@ -1,40 +1,52 @@
-import { Menu } from 'lucide-react'
+import { Keyboard, Search } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { BarraLateral } from './BarraLateral'
+import { Migas } from './Migas'
+import { Paleta } from './Paleta'
 
-/** Marco de todas las pantallas: barra lateral fija en escritorio, `sheet` en móvil. */
+/** Marco de todas las pantallas: barra lateral colapsable, encabezado con migas, ⌘K y `?`. */
 export function Shell({ children }: { children: ReactNode }) {
-  const [abierto, setAbierto] = useState(false)
+  const [paleta, setPaleta] = useState(false)
+  const [atajos, setAtajos] = useState(false)
   return (
     <TooltipProvider>
-      <div className="min-h-screen md:flex">
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 border-r bg-card p-4 md:block">
-          <BarraLateral />
-        </aside>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <div className="flex items-center gap-2 border-b bg-card p-2 md:hidden">
-            <Sheet open={abierto} onOpenChange={setAbierto}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Abrir menú">
-                  <Menu aria-hidden="true" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent>
-                <SheetTitle className="sr-only">Menú</SheetTitle>
-                <SheetDescription className="sr-only">Navegación del panel</SheetDescription>
-                <BarraLateral alNavegar={() => setAbierto(false)} />
-              </SheetContent>
-            </Sheet>
-            <span className="font-semibold">dogfood</span>
-          </div>
-          <main className="flex-1 p-4 md:p-8">{children}</main>
-        </div>
-      </div>
+      <SidebarProvider>
+        <BarraLateral />
+        <SidebarInset className="min-w-0">
+          <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/85 px-4 backdrop-blur">
+            <SidebarTrigger className="-ml-1" />
+            <Separator orientation="vertical" className="mr-2 h-4" />
+            <Migas />
+            <div className="ml-auto flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPaleta(true)}
+                className="w-9 justify-start px-2 text-muted-foreground sm:w-56"
+                aria-label="Abrir la paleta de comandos"
+              >
+                <Search aria-hidden="true" />
+                <span className="hidden flex-1 text-left sm:inline">Buscar…</span>
+                <kbd className="hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline">⌘K</kbd>
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setAtajos(true)} aria-label="Atajos de teclado">
+                <Keyboard aria-hidden="true" className="sm:hidden" />
+                <span aria-hidden="true" className="hidden font-semibold sm:inline">
+                  ?
+                </span>
+              </Button>
+            </div>
+          </header>
+          <div className="mx-auto w-full max-w-7xl flex-1 p-4 md:p-8">{children}</div>
+        </SidebarInset>
+      </SidebarProvider>
+      <Paleta abierta={paleta} setAbierta={setPaleta} atajos={atajos} setAtajos={setAtajos} />
       <Toaster />
     </TooltipProvider>
   )

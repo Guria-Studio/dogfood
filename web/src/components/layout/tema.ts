@@ -1,7 +1,8 @@
-import { useCallback, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 
 export type Tema = 'claro' | 'oscuro'
 const CLAVE = 'dogfood.tema'
+const EVENTO = 'dogfood:tema'
 
 function leerTema(): Tema {
   const guardado = localStorage.getItem(CLAVE)
@@ -19,13 +20,24 @@ export function aplicarTemaGuardado() {
   aplicar(leerTema())
 }
 
+/** Cambia al otro tema y avisa a todos los `useTema` (selector, paleta de comandos). */
+export function alternarTema() {
+  const nuevo: Tema = leerTema() === 'oscuro' ? 'claro' : 'oscuro'
+  localStorage.setItem(CLAVE, nuevo)
+  aplicar(nuevo)
+  window.dispatchEvent(new Event(EVENTO))
+}
+
+function suscribir(aviso: () => void) {
+  window.addEventListener(EVENTO, aviso)
+  window.addEventListener('storage', aviso)
+  return () => {
+    window.removeEventListener(EVENTO, aviso)
+    window.removeEventListener('storage', aviso)
+  }
+}
+
 export function useTema() {
-  const [tema, setTema] = useState<Tema>(leerTema)
-  const alternar = useCallback(() => {
-    const nuevo: Tema = tema === 'oscuro' ? 'claro' : 'oscuro'
-    localStorage.setItem(CLAVE, nuevo)
-    aplicar(nuevo)
-    setTema(nuevo)
-  }, [tema])
-  return { tema, alternar }
+  const tema = useSyncExternalStore(suscribir, leerTema)
+  return { tema, alternar: alternarTema }
 }

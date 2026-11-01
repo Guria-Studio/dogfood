@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it } from 'vitest'
 
+import { SidebarProvider } from '@/components/ui/sidebar'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { BarraLateral } from './BarraLateral'
 import { PageHeader, type SlugPantalla } from './PageHeader'
@@ -11,7 +12,11 @@ import { SelectorTema } from './SelectorTema'
 
 /** Monta `contenido` dentro de un router mínimo (los `Link` lo necesitan). */
 async function montar(contenido: ReactNode) {
-  const raiz = createRootRoute({ component: () => <TooltipProvider>{contenido}</TooltipProvider> })
+  const raiz = createRootRoute({ component: () => (
+      <TooltipProvider>
+        <SidebarProvider>{contenido}</SidebarProvider>
+      </TooltipProvider>
+    ) })
   const rutas = ['/', '/recorridos', '/dispositivos', '/vista', '/ayuda'].map((path) =>
     createRoute({ getParentRoute: () => raiz, path }),
   )
