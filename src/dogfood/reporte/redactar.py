@@ -16,11 +16,13 @@ _SK = re.compile(r"\bsk-[\w-]{8,}")
 # hex o base64 de 32+ caracteres; exige un dígito para no atrapar palabras largas.
 _LARGO = re.compile(r"(?<![\w+-])(?=[A-Za-z0-9+_-]*\d)[A-Za-z0-9+_-]{32,}={0,2}")
 _EMAIL = re.compile(r"[\w.+-]+@([\w-]+(?:\.[\w-]+)+)")
+# Dominios sintéticos de las personas (los viejos `.test` siguen en corridas guardadas).
+DOMINIOS_SINTETICOS = frozenset({"dogfood.example.com", "dogfood.test"})
 _HOME = re.compile(r"/home/[^\s\"'<>)\]]+")
 
 
 def _email(m: re.Match) -> str:
-    return m.group(0) if m.group(1).lower() == "dogfood.test" else REDACTADO
+    return m.group(0) if m.group(1).lower() in DOMINIOS_SINTETICOS else REDACTADO
 
 
 def redactar(texto: str, secretos_conocidos: list[str] | None = None) -> str:
@@ -43,6 +45,6 @@ def verificar_limpio(texto: str) -> list[str]:
     ]
     hallazgos += [m.group(0) for m in _PARAM_URL.finditer(texto)]
     hallazgos += [
-        m.group(0) for m in _EMAIL.finditer(texto) if m.group(1).lower() != "dogfood.test"
+        m.group(0) for m in _EMAIL.finditer(texto) if m.group(1).lower() not in DOMINIOS_SINTETICOS
     ]
     return hallazgos

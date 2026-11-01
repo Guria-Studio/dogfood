@@ -40,3 +40,9 @@ def test_texto_sin_secretos_identico():
     t = "El usuario pulsó «Guardar» en /ventas y vio 3 filas. Contacto: ana.3@dogfood.test"
     assert redactar(t, ["zzz"]) == t
     assert verificar_limpio(t) == []
+
+
+def test_emails_sinteticos_de_personas_no_se_redactan() -> None:
+    t = redactar("ana.3@dogfood.example.com y x@gmail.com")
+    assert "ana.3@dogfood.example.com" in t and "gmail" not in t
+    assert verificar_limpio("ana.3@dogfood.example.com") == []

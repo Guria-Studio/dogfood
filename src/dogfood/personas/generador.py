@@ -8,7 +8,9 @@ import unicodedata
 from dogfood.dominio import Idioma, Intencion, Persona
 from dogfood.personas.nombres import APELLIDOS, EMPRESAS, NOMBRES, RUBROS
 
-DOMINIO = "dogfood.test"
+# predicts (EmailStr) rechaza el TLD reservado .test; example.com está reservado (RFC 2606)
+# y pasa la validación sin ser un buzón real.
+DOMINIO = "dogfood.example.com"
 RASGOS = [
     "apurado",
     "lee_todo",
