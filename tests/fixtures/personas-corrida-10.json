@@ -1,0 +1,157 @@
+[
+  {
+    "id": "P001",
+    "nombre": "Fernanda Navarro",
+    "email": "fernanda.navarro.1@dogfood.example.com",
+    "contrasena": "$t2Ctl?*EILUNMHb",
+    "empresa": "Tienda Carrillo",
+    "rubro": "e-commerce",
+    "idioma": "es",
+    "destreza": 1,
+    "paciencia": 4,
+    "intencion": "confundirse",
+    "estilo": [],
+    "semilla": 1129597410
+  },
+  {
+    "id": "P002",
+    "nombre": "Gabriela Reyes",
+    "email": "gabriela.reyes.2@dogfood.example.com",
+    "contrasena": "bUl0$STL2UdBUh?7",
+    "empresa": "Cosméticos Rivera",
+    "rubro": "cosmética",
+    "idioma": "es",
+    "destreza": 4,
+    "paciencia": 1,
+    "intencion": "explorar",
+    "estilo": [],
+    "semilla": 324519818
+  },
+  {
+    "id": "P003",
+    "nombre": "Vitória Esteves",
+    "email": "vitoria.esteves.3@dogfood.example.com",
+    "contrasena": "s54GXGF7st9%tMgm",
+    "empresa": "Pet Shop Duarte",
+    "rubro": "pet shop",
+    "idioma": "pt-BR",
+    "destreza": 2,
+    "paciencia": 2,
+    "intencion": "romper",
+    "estilo": [],
+    "semilla": 1045313251
+  },
+  {
+    "id": "P004",
+    "nombre": "Vitória Borges",
+    "email": "vitoria.borges.4@dogfood.example.com",
+    "contrasena": "uWg&3oA$6nY0X%Iu",
+    "empresa": "Esteves Cosméticos",
+    "rubro": "cosmética",
+    "idioma": "pt-BR",
+    "destreza": 3,
+    "paciencia": 5,
+    "intencion": "solo_exportar",
+    "estilo": [],
+    "semilla": 649089012
+  },
+  {
+    "id": "P005",
+    "nombre": "Valeria Lara",
+    "email": "valeria.lara.5@dogfood.example.com",
+    "contrasena": "Ss6oAkjhnZE%I6!l",
+    "empresa": "Veterinaria y Pet Shop Molina",
+    "rubro": "pet shop",
+    "idioma": "es",
+    "destreza": 4,
+    "paciencia": 4,
+    "intencion": "explorar",
+    "estilo": [
+      "desconfiado",
+      "faltas_ortografia"
+    ],
+    "semilla": 1593719328
+  },
+  {
+    "id": "P006",
+    "nombre": "Marcela Acosta",
+    "email": "marcela.acosta.6@dogfood.example.com",
+    "contrasena": "*NxnQX3SJ!Zwza04",
+    "empresa": "Cosméticos Núñez",
+    "rubro": "cosmética",
+    "idioma": "es",
+    "destreza": 3,
+    "paciencia": 1,
+    "intencion": "analisis_completo",
+    "estilo": [],
+    "semilla": 1012600220
+  },
+  {
+    "id": "P007",
+    "nombre": "Ricardo Oliveira",
+    "email": "ricardo.oliveira.7@dogfood.example.com",
+    "contrasena": "ATJ?1iwtNv%o0e3t",
+    "empresa": "Borges Store",
+    "rubro": "e-commerce",
+    "idioma": "pt-BR",
+    "destreza": 4,
+    "paciencia": 1,
+    "intencion": "confundirse",
+    "estilo": [
+      "apurado",
+      "cambia_de_opinion",
+      "curioso"
+    ],
+    "semilla": 190231924
+  },
+  {
+    "id": "P008",
+    "nombre": "Daniela Montoya",
+    "email": "daniela.montoya.8@dogfood.example.com",
+    "contrasena": "1WZF5Zykg55H%efZ",
+    "empresa": "Agencia Delgado",
+    "rubro": "agencia",
+    "idioma": "es",
+    "destreza": 5,
+    "paciencia": 1,
+    "intencion": "solo_exportar",
+    "estilo": [],
+    "semilla": 1395345795
+  },
+  {
+    "id": "P009",
+    "nombre": "Daniel Tavares",
+    "email": "daniel.tavares.9@dogfood.example.com",
+    "contrasena": "dFVO0cR$4qQ3$u%P",
+    "empresa": "Pet Shop Melo",
+    "rubro": "pet shop",
+    "idioma": "pt-BR",
+    "destreza": 2,
+    "paciencia": 1,
+    "intencion": "analisis_completo",
+    "estilo": [
+      "desconfiado",
+      "faltas_ortografia",
+      "lee_todo"
+    ],
+    "semilla": 1358524303
+  },
+  {
+    "id": "P010",
+    "nombre": "Carlos Correia",
+    "email": "carlos.correia.10@dogfood.example.com",
+    "contrasena": "#8W9bmGyQm&rORsd",
+    "empresa": "Café Campos",
+    "rubro": "café",
+    "idioma": "pt-BR",
+    "destreza": 3,
+    "paciencia": 1,
+    "intencion": "romper",
+    "estilo": [
+      "curioso",
+      "desconfiado",
+      "movil"
+    ],
+    "semilla": 71057301
+  }
+]
