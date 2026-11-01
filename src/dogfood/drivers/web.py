@@ -13,13 +13,14 @@ from playwright.async_api import async_playwright
 
 from dogfood.dominio import EventoConsola, EventoRed, Evidencia
 from dogfood.drivers.base import Accion, ElementoUI, Observacion, ResultadoAccion
+from dogfood.flutter.semantica import cobertura_elementos
 
 ATRIBUTO = "data-dogfood-id"
 BLOQUEOS_NO_FALLO = ("net::ERR_BLOCKED_BY_CLIENT", "net::ERR_ABORTED")
 
 # Asigna `data-dogfood-id` (estable entre observaciones) y devuelve los elementos visibles.
 JS_ELEMENTOS = """() => {
-  const sel = 'button, a[href], input, select, textarea, [role]';
+  const sel = 'button, a[href], input, select, textarea, [role], flt-semantics[role], flt-semantics[aria-label]';
   window.__dogfoodN = window.__dogfoodN || 0;
   const salida = [];
   for (const el of document.querySelectorAll(sel)) {
@@ -27,18 +28,29 @@ JS_ELEMENTOS = """() => {
     if (r.width <= 0 || r.height <= 0) continue;
     if (!el.hasAttribute('data-dogfood-id')) el.setAttribute('data-dogfood-id', 'e' + (++window.__dogfoodN));
     const tag = el.tagName.toLowerCase();
+    const flt = tag === 'flt-semantics';
+    const rol = el.getAttribute('role');
     salida.push({
       id: el.getAttribute('data-dogfood-id'),
-      texto: (el.innerText || el.value || '').trim().slice(0, 200),
+      texto: (flt ? (el.getAttribute('aria-label') || el.innerText || '') : (el.innerText || el.value || '')).trim().slice(0, 200),
       descripcion: el.getAttribute('aria-label') || el.getAttribute('placeholder') || el.getAttribute('title') || '',
-      clase: el.getAttribute('role') || tag,
+      clase: rol || tag,
       bounds: [r.left, r.top, r.right, r.bottom].map(Math.round),
-      clicable: ['button', 'a', 'select'].includes(tag) || ['button', 'link', 'tab', 'menuitem'].includes(el.getAttribute('role')) || (tag === 'input' && ['submit', 'button', 'checkbox', 'radio'].includes(el.type)),
-      editable: ['textarea'].includes(tag) || (tag === 'input' && !['submit', 'button', 'checkbox', 'radio'].includes(el.type)) || el.isContentEditable,
+      clicable: (flt && ['button', 'link', 'tab', 'checkbox', 'menuitem'].includes(rol)) || ['button', 'a', 'select'].includes(tag) || ['button', 'link', 'tab', 'menuitem'].includes(el.getAttribute('role')) || (tag === 'input' && ['submit', 'button', 'checkbox', 'radio'].includes(el.type)),
+      editable: (flt && rol === 'textbox') || ['textarea'].includes(tag) || (tag === 'input' && !['submit', 'button', 'checkbox', 'radio'].includes(el.type)) || el.isContentEditable,
     });
   }
   return salida;
 }"""
+
+# Flutter web monta los Semantics solo si alguien activa el placeholder (FR-39, D30).
+JS_ACTIVAR_SEMANTICS = """() => {
+  const p = document.querySelector('flt-semantics-placeholder');
+  if (!p) return false;
+  p.click();
+  return true;
+}"""
+JS_HAY_SEMANTICS = "() => document.querySelectorAll('flt-semantics').length"
 
 
 class DriverWeb:
@@ -50,7 +62,10 @@ class DriverWeb:
         permitida: Callable[[str], bool],
         viewport: dict[str, int],
         movil: bool = False,
+        flutter: bool = False,
+        umbral_cobertura: float = 0.6,
     ):
+        self.flutter, self.umbral_cobertura = flutter, umbral_cobertura
         self.url_inicial, self.permitida, self.viewport, self.movil = (
             url_inicial,
             permitida,
@@ -96,6 +111,18 @@ class DriverWeb:
             {"format": "jpeg", "quality": 60, "maxWidth": 1024, "everyNthFrame": 2},
         )
         await self.page.goto(self.url_inicial)
+        if self.flutter:
+            await self._activar_semantics(esperar=True)
+
+    async def _activar_semantics(self, esperar: bool = False) -> None:
+        try:
+            if esperar:
+                await self.page.wait_for_selector(
+                    "flutter-view, flt-glass-pane", state="attached", timeout=20_000
+                )
+            await self.page.evaluate(JS_ACTIVAR_SEMANTICS)
+        except ErrorPlaywright:  # no es Flutter o tardó: la cobertura saldrá ciega
+            pass
 
     # --- captura por eventos ---
     async def _ruta(self, route) -> None:
@@ -136,8 +163,17 @@ class DriverWeb:
         await self.page.screenshot(path=captura)
         aria = await self.page.locator("body").aria_snapshot()  # page.accessibility ya no existe
         arbol.write_text(json.dumps({"aria": aria}, ensure_ascii=False))
+        if self.flutter and not await self.page.evaluate(JS_HAY_SEMANTICS):
+            await self._activar_semantics()
+            await self.page.wait_for_timeout(300)
         elementos = [ElementoUI(**e) for e in await self.page.evaluate(JS_ELEMENTOS)]
+        cobertura = (
+            cobertura_elementos(elementos, flutter=True, umbral=self.umbral_cobertura)
+            if self.flutter
+            else None
+        )
         return Observacion(
+            cobertura=cobertura,
             pantalla=self.page.url,
             elementos=elementos,
             texto_visible=await self.page.inner_text("body"),
