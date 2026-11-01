@@ -230,6 +230,36 @@ Done when: estos tests pasan en `web/src/features/ayuda/ayuda.test.tsx`, con la 
   - `web/src/routes/ayuda.$slug.tsx`
   - `web/src/features/ayuda/`
 
+## F9.4 — Package: pulido visual
+
+### F9.4.T1 — Pulido visual: portada con KPIs, tablas de datos, marca y ⌘K
+
+Con todas las pantallas ya hechas, sube el nivel visual del panel a un producto profesional. No cambia datos ni rutas de la API.
+
+1. **Layout desde los blocks de shadcn:** rehaz la barra lateral sobre el block `sidebar-07` (colapsable a íconos, con grupos «Corridas», «Dispositivos», «Ayuda»), breadcrumbs en el encabezado, y la tipografía **Geist** (`geist` en npm) como fuente base.
+2. **Marca:** un logo simple en SVG (`web/src/assets/logo.svg`, un perro estilizado con una lupa, monocromo), favicon, color de marca como `--primary` en el tema claro y oscuro, y el título «dogfood» en la pestaña.
+3. **Portada con KPIs** en `/`, arriba de la tabla de corridas: tarjetas con tasa de éxito, hallazgos por gravedad, costo de la última corrida y ejecuciones totales, y un gráfico de las últimas 10 corridas (éxito y costo) con los *charts* de shadcn (Recharts). Usa los datos de `/api/ejecuciones` y `/api/corridas/{id}` que ya existen; si hace falta un agregado, calcúlalo en el cliente.
+4. **Tablas de datos:** la de ejecuciones pasa a TanStack Table con orden por columna, columnas ocultables, paginación y búsqueda por persona, siguiendo el ejemplo *data table* de shadcn.
+5. **Paleta de comandos (⌘K / Ctrl+K)** con el componente `command` de shadcn: ir a cualquier pantalla, buscar en la ayuda (usa `/api/ayuda/buscar`) y alternar el tema. Atajos visibles en un `?` que lista las teclas.
+6. **Estados vacíos y de error** consistentes: un componente `Vacio({icono, titulo, texto, accion})` usado en todas las pantallas, y una página 404 del SPA.
+
+Puedes editar los archivos de pantallas y layout que hicieron las tareas anteriores y agregar dependencias a `web/package.json` (`geist`, `recharts`, `@tanstack/react-table`, `cmdk` y los componentes shadcn que hagan falta).
+
+Done when: `bash scripts/build-web.sh` pasa, `npx tsc --noEmit` y `npm run lint` están limpios, los tests existentes de `web/` siguen verdes, y estos tests nuevos pasan en `web/src/features/pulido/pulido.test.tsx`:
+- ⌘K abre la paleta, escribir «ayuda» y Enter navega a `/ayuda`;
+- la tabla de ejecuciones ordena por una columna al hacer clic en su encabezado y pagina de a 20;
+- la portada muestra las 4 tarjetas de KPI con los valores calculados de datos de prueba;
+- una ruta inexistente muestra la página 404.
+
+Deja en el PR capturas de la portada en tema claro y oscuro (con Playwright, contra datos de prueba).
+
+- **Model**: claude/claude-opus-5-5
+- **Estimate**: 4h
+- **Reason**: Trabajo de diseño que define cómo se ve el producto; vale el modelo premium.
+- **Dependencies**: F9.2.T2, F9.2.T3, F9.2.T4, F9.3.T2
+- **Files**:
+  - `web/`
+
 ## F9.9 — Package: cierre
 
 ### F9.9.T1 — E2E del panel nuevo, retiro de Jinja y redeploy
@@ -244,7 +274,7 @@ Done when: `cd web && npx playwright test` pasa en el server, `uv run pytest` y 
 - **Model**: claude/claude-sonnet-5-5
 - **Estimate**: 4h
 - **Reason**: Integración y limpieza; requiere correr de verdad en el server.
-- **Dependencies**: F9.2.T2, F9.2.T3, F9.2.T4, F9.3.T1, F9.3.T2
+- **Dependencies**: F9.2.T2, F9.2.T3, F9.2.T4, F9.3.T1, F9.3.T2, F9.4.T1
 - **Files**:
   - `web/e2e/`
   - `web/playwright.config.ts`
