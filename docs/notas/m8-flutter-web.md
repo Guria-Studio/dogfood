@@ -46,4 +46,4 @@ El test arma un `ContextoDeteccion` con las dos observaciones y llama a `detecta
 | Red con error (>= 400) | ninguna; consola solo con avisos de WebGL y un recurso bloqueado por el cliente |
 | Hallazgos del detector | 0 |
 
-La app ya no queda en blanco con la lista blanca solo local. Sigue pendiente lo de la sección anterior (detector sin lectura de `Observacion.cobertura` en web, ids 0/1).
+La app ya no queda en blanco con la lista blanca solo local. Lo del detector quedó resuelto en F8.3.T3 (`Paso.cobertura`: el detector lee la cobertura de cualquier driver, web incluido). En la app sigue pendiente lo de ids estables (0/1) y las recomendaciones de arriba.

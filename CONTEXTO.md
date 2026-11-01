@@ -11,7 +11,7 @@
 ## Estado
 - F0–F5 (30 tareas) hechas y mergeadas.
 - v0.3 del PRD y v0.2 de la arquitectura suman M6 y M7 (issues #32–#35): motores intercambiables (`api` / `claude_code` con el plan Max), interfaz `Driver` con driver web y Android (ADB), bucle de agente propio, contrato de resultado (aprobado / fallo / no concluyente), vista en vivo y panel de corridas. Specs: `specs/f6-motores-android.md` y `specs/f7-vista-panel.md`. F6–F7 hechas (44/44).
-- v0.4 del PRD y v0.3 de la arquitectura suman M8 «Flutter en celular real» (FR-34 a FR-39, NFR-12, NFR-13; issue #32): ADB sobre Tailscale, cobertura de Semantics de Flutter con respaldo por visión, motor determinista Patrol / `integration_test`, fuente de frames común (pantalla real en vista y panel), nodo iOS en el Mac M1 de Héctor por SSH y filtro web con la app compilada a web. Spec: `specs/f8-flutter-celular-real.md`.
+- v0.4 del PRD y v0.3 de la arquitectura suman M8 «Flutter en celular real» (FR-34 a FR-39, NFR-12, NFR-13; issue #32): ADB sobre Tailscale, cobertura de Semantics de Flutter con respaldo por visión, motor determinista Patrol / `integration_test`, fuente de frames común (pantalla real en vista y panel), nodo iOS en el Mac M1 de Héctor por SSH y filtro web con la app compilada a web. Spec: `specs/f8-flutter-celular-real.md`. F8 hecha (21/21, incluidas tres tareas de seguimiento de la integración M8); el filtro web compila `mobile-mao` y la observa (`docs/notas/m8-flutter-web.md`).
 
 ## Restricciones de F6–F7
 - No hay KVM (sin emulador) ni, por ahora, Android conectado: los tests usan un `adb` falso; la prueba de punta a punta con dispositivo real queda como verificación manual (`docs/ops/android.md`).
