@@ -1,0 +1,10 @@
+• Building app with entrypoint integration_test/dogfood/pago_test.dart...
+✅ Comprar creditos (integration_test/dogfood/pago_test.dart)
+
+Test summary:
+📝 Total: 1
+✅ Successful: 1
+❌ Failed: 0
+⏩ Skipped: 0
+📊 Report: https://leancode.co
+⏱️  Duration: 41s

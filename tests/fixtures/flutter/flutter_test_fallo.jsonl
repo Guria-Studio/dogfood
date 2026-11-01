@@ -1,0 +1,7 @@
+{"protocolVersion":"0.1.1","runnerVersion":"1.25.0","pid":1,"type":"start","time":0}
+{"test":{"id":1,"name":"loading integration_test/dogfood/login_test.dart","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":null,"column":null,"url":null},"type":"testStart","time":10}
+{"testID":1,"result":"success","skipped":false,"hidden":true,"type":"testDone","time":900}
+{"test":{"id":2,"name":"Login con email y contraseña","suiteID":0,"groupIDs":[],"metadata":{"skip":false,"skipReason":null},"line":8,"column":3,"url":null},"type":"testStart","time":910}
+{"testID":2,"error":"Expected: exactly one matching candidate\n  Actual: _TextWidgetFinder:<Found 0 widgets with text \"Panel\": []>","stackTrace":"package:flutter_test/src/binding.dart 1","isFailure":true,"type":"error","time":3000}
+{"testID":2,"result":"failure","skipped":false,"hidden":false,"type":"testDone","time":3010}
+{"success":false,"type":"done","time":3100}

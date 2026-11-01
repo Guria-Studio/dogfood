@@ -1,0 +1,5 @@
+Launching integration_test/dogfood/login_test.dart on Pixel 7 in debug mode...
+lib/main.dart:12:5: Error: Method not found: 'iniciar'.
+    iniciar();
+    ^^^^^^^
+Gradle task assembleDebug failed with exit code 1

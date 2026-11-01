@@ -1,0 +1,10 @@
+• Building app with entrypoint integration_test/dogfood/pago_test.dart...
+❌ Comprar creditos (integration_test/dogfood/pago_test.dart)
+   Expected: exactly one matching candidate
+   Actual: Found 0 widgets with text "Pago pendiente"
+
+Test summary:
+📝 Total: 1
+✅ Successful: 0
+❌ Failed: 1
+⏩ Skipped: 0
