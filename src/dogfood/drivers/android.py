@@ -145,8 +145,11 @@ def parsear_arbol(xml: str) -> list[ElementoUI]:
 class DriverAndroid:
     nombre = "android"
 
-    def __init__(self, adb: Adb, paquete: str, actividad: str | None = None):
+    def __init__(
+        self, adb: Adb, paquete: str, actividad: str | None = None, grabar_video: bool = True
+    ):
         self.adb = adb
+        self.grabar_video = grabar_video  # False: la FuenteScreenrecord ya graba el video
         self.paquete = paquete
         self.actividad = actividad
         self.espera_cierre = 1.0  # s entre SIGINT a screenrecord y bajar el mp4
@@ -162,7 +165,8 @@ class DriverAndroid:
             (carpeta / sub).mkdir(parents=True, exist_ok=True)
         await self.adb.conectar()
         await self.adb.ejecutar("logcat", "-c")
-        self._grabacion = asyncio.create_task(self._grabar())
+        if self.grabar_video:
+            self._grabacion = asyncio.create_task(self._grabar())
 
     async def _grabar(self) -> None:
         n = 0

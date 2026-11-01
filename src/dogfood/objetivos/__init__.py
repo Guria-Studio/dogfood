@@ -5,6 +5,8 @@ from dogfood.objetivos.base import Objetivo
 OBJETIVOS = {
     "predicts": "dogfood.objetivos.predicts:PredictsObjetivo",
     "android": "dogfood.objetivos.android:AndroidObjetivo",
+    "ios": "dogfood.objetivos.ios:IosObjetivo",
+    "flutter_web": "dogfood.objetivos.flutter_web:FlutterWebObjetivo",
 }
 
 
