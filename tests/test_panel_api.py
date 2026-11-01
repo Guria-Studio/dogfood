@@ -115,14 +115,12 @@ def test_openapi_incluye_api(cliente):
     assert "post" in paths["/api/ejecuciones/{ejecucion_id}/issue"]
 
 
-def test_spa_con_y_sin_build(raiz, tmp_path, monkeypatch):
-    assert "<html" in TestClient(crear_app_panel(raiz)).get("/").text  # Jinja de hoy
+def test_spa_con_build(raiz, tmp_path):
     est = tmp_path / "est"
     (est / "assets").mkdir(parents=True)
     (est / "index.html").write_text("<html>SPA</html>")
     (est / "assets" / "a.js").write_text("x")
-    monkeypatch.setattr("dogfood.panel.app._ESTATICO", est)
-    c = TestClient(crear_app_panel(raiz))
+    c = TestClient(crear_app_panel(raiz, spa=est))
     assert c.get("/ejecuciones/x").text == "<html>SPA</html>"
     assert c.get("/").text == "<html>SPA</html>"
     assert c.get("/assets/a.js").text == "x"

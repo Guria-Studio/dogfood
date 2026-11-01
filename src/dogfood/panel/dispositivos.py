@@ -3,9 +3,8 @@
 import asyncio
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from fastapi.templating import Jinja2Templates
 
 from dogfood.config import Config
 from dogfood.drivers import adb_red
@@ -17,7 +16,6 @@ _MJPEG_IOS = "http://127.0.0.1:9100"  # WebDriverAgent por el túnel SSH del nod
 
 def registrar_rutas(
     app: FastAPI,
-    plantillas: Jinja2Templates,
     raiz: Path,
     cfg: Config | None = None,
     fuentes: dict[str, FuenteFrames] | None = None,
@@ -55,10 +53,6 @@ def registrar_rutas(
                 }
             )
         return lista
-
-    @app.get("/dispositivos")
-    def dispositivos(request: Request):
-        return plantillas.TemplateResponse(request, "dispositivos.html", {"tarjetas": tarjetas()})
 
     @app.get("/dispositivos/{id:path}/mjpeg")
     def mjpeg(id: str):

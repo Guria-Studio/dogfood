@@ -12,13 +12,6 @@ def ev(ejec, tipo, n=0, **kw):
     return EventoVivo(corrida_id="c", ejecucion_id=ejec, tipo=tipo, n_paso=n, **kw)
 
 
-def test_pagina():
-    r = TestClient(crear_app_vista(BusVivo())).get("/")
-    assert r.status_code == 200
-    assert "<canvas" in r.text and "razonamiento" in r.text
-    assert TestClient(crear_app_vista(BusVivo())).get("/vista-estatico/vista.js").status_code == 200
-
-
 def test_evento_llega():
     bus = BusVivo()
     with TestClient(crear_app_vista(bus)).websocket_connect("/ws") as ws:

@@ -18,6 +18,7 @@ from dogfood.dominio import (
 )
 from dogfood.panel.app import crear_app_panel
 
+H = {"X-Dogfood": "1"}
 TOKEN = "tok9" + "a1b2c3d4" * 5  # parece un token de sesión
 PERSONA = Persona(
     id="p1", nombre="Ana", email="ana@correo-real.com", contrasena="hunter2-pw",
@@ -114,38 +115,34 @@ def cliente(raiz):
 
 
 def test_detalle_web(cliente):
-    html = cliente.get("/ejecuciones/web1").text
-    for n in (1, 2):
-        for esperado in (
-            f"clic {n}",
-            f"porque {n}",
-            f"contrato {n}",
-            f"ver panel {n}",
-            f"error 500 {n}",
-        ):
-            assert esperado in html
-        assert f"/archivos/c1/ejecuciones/web1/capturas/{n}.png" in html
-    assert "<video" in html and "/archivos/c1/ejecuciones/web1/video/v.webm" in html
-    assert "trace.zip" in html and "playwright show-trace" in html
-    assert "ArrowLeft" in html and "anterior" in html and "siguiente" in html
-    assert "FATAL" not in html
+    d = cliente.get("/api/ejecuciones/web1").json()
+    assert len(d["pasos"]) == 2
+    for n, paso in enumerate(d["pasos"], 1):
+        assert paso["accion"] == f"clic {n}" and paso["razonamiento"] == f"porque {n}"
+        assert paso["paso_contrato"] == f"contrato {n}" and paso["esperado"] == f"ver panel {n}"
+        assert paso["observado"] == f"error 500 {n}"
+        assert paso["captura"] == f"/archivos/c1/ejecuciones/web1/capturas/{n}.png"
+    assert d["video"] == "/archivos/c1/ejecuciones/web1/video/v.webm"
+    assert d["trace"].endswith("trace.zip")
+    assert "FATAL" not in json.dumps(d)
 
 
 def test_detalle_android_muestra_logcat(cliente):
-    html = cliente.get("/ejecuciones/and1").text
-    assert "FATAL EXCEPTION boom" in html and "v.mp4" in html and "trace.zip" not in html
+    d = cliente.get("/api/ejecuciones/and1").json()
+    assert "FATAL EXCEPTION boom" in d["logcat"] and d["video"].endswith("v.mp4")
+    assert d["trace"] is None
 
 
 def test_fricciones_agrupadas_por_pantalla(cliente):
-    html = cliente.get("/ejecuciones/web1").text
-    assert html.count("<h3>/login</h3>") == 1 and html.count("<h3>/panel</h3>") == 1
-    login, panel = html.index("<h3>/login</h3>"), html.index("<h3>/panel</h3>")
-    assert login < html.index("no sé dónde entrar") < html.index("texto confuso") < panel
-    assert "¿dónde está el botón?" in html and html.index("tabla vacía") > panel
+    f = cliente.get("/api/ejecuciones/web1").json()["fricciones"]
+    assert set(f) == {"/login", "/panel"}
+    assert [x["texto"] for x in f["/login"]] == ["no sé dónde entrar", "texto confuso"]
+    assert f["/login"][0]["cita"] == "¿dónde está el botón?"
+    assert [x["texto"] for x in f["/panel"]] == ["tabla vacía"]
 
 
 def test_ejecucion_inexistente(cliente):
-    assert cliente.get("/ejecuciones/nada").status_code == 404
+    assert cliente.get("/api/ejecuciones/nada").status_code == 404
 
 
 def test_archivos_sirve_captura_y_rechaza_fuera_de_raiz(raiz, tmp_path_factory):
@@ -165,14 +162,17 @@ def test_archivos_sirve_captura_y_rechaza_fuera_de_raiz(raiz, tmp_path_factory):
         "ejecuciones",  # un directorio
         "nada.png",
     ):
-        assert c.get(f"/archivos/{malo}").status_code == 404, malo
+        r = c.get(f"/archivos/{malo}")
+        # el cliente normaliza «..» y la SPA responde su index.html: nunca el archivo
+        assert r.status_code == 404 or r.headers["content-type"].startswith("text/html"), malo
+        assert b"SQLite" not in r.content and b"secreto" not in r.content
     # dentro de la raíz pero con contraseñas: tampoco
     assert TestClient(crear_app_panel(raiz)).get("/archivos/dogfood.db").status_code == 404
     assert TestClient(crear_app_panel(raiz)).get("/archivos/c1/personas.json").status_code == 404
 
 
 def test_crear_issue_redacta_y_deduplica(cliente, gh):
-    r = cliente.post("/ejecuciones/web1/issue")
+    r = cliente.post("/api/ejecuciones/web1/issue", headers=H)
     assert r.status_code == 200 and r.json()["url"] == "https://gh/x/1"
     [(titulo, cuerpo)] = gh.creados
     assert titulo.startswith("[dogfood][media] /login:")
@@ -184,13 +184,13 @@ def test_crear_issue_redacta_y_deduplica(cliente, gh):
     for secreto in (PERSONA.email, PERSONA.contrasena, PERSONA.empresa, TOKEN):
         assert secreto not in cuerpo and secreto not in titulo
     # misma huella: comenta en vez de crear
-    r = cliente.post("/ejecuciones/web1/issue")
+    r = cliente.post("/api/ejecuciones/web1/issue", headers=H)
     assert r.json()["accion"] == "comentar" and r.json()["url"] == "https://gh/x/1"
     assert len(gh.creados) == 1
     assert any(c[:2] == ("issue", "comment") for c in gh.llamadas)
 
 
 def test_crear_issue_android_lleva_logcat(cliente, gh):
-    cliente.post("/ejecuciones/and1/issue?tipo=logica&gravedad=alta")
+    cliente.post("/api/ejecuciones/and1/issue?tipo=logica&gravedad=alta", headers=H)
     [(titulo, cuerpo)] = gh.creados
     assert "[alta]" in titulo and "FATAL EXCEPTION boom" in cuerpo

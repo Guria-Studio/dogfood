@@ -3,22 +3,18 @@
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from fastapi.templating import Jinja2Templates
 
-from dogfood.config import Config
 from dogfood.dominio import (
     Corrida,
     Ejecucion,
     EventoConsola,
     EventoRed,
-    Gravedad,
     Paso,
     Persona,
-    TipoHallazgo,
 )
-from dogfood.panel import consultas, issue
+from dogfood.panel import consultas
 
 # Nunca se sirven aunque estén dentro de la raíz: la base y las personas llevan contraseñas.
 _PROHIBIDOS = ("dogfood.db", "personas.json")
@@ -101,35 +97,7 @@ def datos_ejecucion(raiz: Path, ejecucion_id: str) -> dict:
     }
 
 
-def registrar_rutas(app: FastAPI, plantillas: Jinja2Templates, raiz: Path) -> None:
-    @app.get("/ejecuciones/{ejecucion_id}")
-    def ejecucion(request: Request, ejecucion_id: str):
-        return plantillas.TemplateResponse(
-            request,
-            "ejecucion.html",
-            {
-                **datos_ejecucion(raiz, ejecucion_id),
-                "etiquetas": consultas.ETIQUETAS,
-                "tipos": [t.value for t in TipoHallazgo],
-                "gravedades": [g.value for g in Gravedad],
-            },
-        )
-
-    @app.post("/ejecuciones/{ejecucion_id}/issue")
-    def crear_issue(
-        request: Request,
-        ejecucion_id: str,
-        tipo: TipoHallazgo = TipoHallazgo.tecnico,
-        gravedad: Gravedad = Gravedad.media,
-    ):
-        e, corrida, persona, carpeta = _cargar(raiz, ejecucion_id)
-        cfg = getattr(request.app.state, "cfg", None) or Config.cargar()
-        try:
-            r = issue.publicar_issue(e, persona, corrida, cfg, carpeta, tipo, gravedad)
-        except Exception as exc:  # gh sin sesión, sin repo, sin red
-            raise HTTPException(502, f"no se pudo publicar: {exc}") from exc
-        return {"url": r.issue_url, "accion": r.accion, "aviso": r.aviso}
-
+def registrar_rutas(app: FastAPI, raiz: Path) -> None:
     @app.get("/archivos/{ruta:path}")
     def archivo(ruta: str):
         base = raiz.resolve()
