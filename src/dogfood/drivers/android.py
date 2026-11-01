@@ -15,6 +15,7 @@ from PIL import Image
 
 from dogfood.dominio import Evidencia
 from dogfood.drivers.base import Accion, ElementoUI, Observacion, ResultadoAccion
+from dogfood.flutter.semantica import cobertura_xml, es_flutter
 
 Runner = Callable[..., Awaitable[bytes]]  # (args: list[str], *, binario: bool) -> bytes
 
@@ -23,6 +24,7 @@ _TAILSCALE = ipaddress.ip_network("100.64.0.0/10")
 _BOUNDS = re.compile(r"\[(\d+),(\d+)\]\[(\d+),(\d+)\]")
 _ESPECIALES = set("&;|<>()$`\\\"'*?~#!{}[]")
 _SEGMENTO_S = 170
+_PERDIDA = re.compile(r"device offline|device '.*' not found|no devices/emulators found|closed")
 _UI_REMOTO = "/sdcard/dogfood-ui.xml"
 
 
@@ -102,7 +104,21 @@ class Adb:
         return out
 
     async def ejecutar(self, *args: str, binario: bool = False) -> bytes:
-        return await self._runner(list(args), binario=binario)
+        try:
+            return await self._runner(list(args), binario=binario)
+        except AdbError as e:
+            if not self.conexion or args[:1] == ("connect",) or not _PERDIDA.search(str(e)):
+                raise
+        # Tailscale: una sola reconexión y un reintento.
+        try:
+            await self._runner(["connect", self.conexion], binario=False)
+            await self._runner(["get-state"], binario=False)
+            return await self._runner(list(args), binario=binario)
+        except AdbError as e:
+            raise AdbError(
+                f"se perdió la conexión por Tailscale con {self.conexion} ({e}). "
+                f"Reconecta con: dogfood android conectar {self.conexion}"
+            ) from e
 
     async def conectar(self) -> None:
         if not self.conexion:
@@ -118,7 +134,7 @@ def _parsear_bounds(texto: str) -> tuple[int, int, int, int] | None:
     return tuple(int(g) for g in m.groups()) if m else None  # type: ignore[return-value]
 
 
-def parsear_arbol(xml: str) -> list[ElementoUI]:
+def parsear_arbol(xml: str, flutter: bool = False) -> list[ElementoUI]:
     elementos = []
     for i, nodo in enumerate(ET.fromstring(xml).iter("node")):
         a = nodo.attrib
@@ -127,6 +143,12 @@ def parsear_arbol(xml: str) -> list[ElementoUI]:
         clicable = a.get("clickable") == "true"
         if bounds is None or not (texto or desc or rid or clicable):
             continue
+        if flutter and not texto and "\n" in desc.strip():
+            # Flutter junta etiqueta y valor con saltos de línea
+            texto, _, desc = desc.strip().partition("\n")
+            desc = desc.strip()
+        elif flutter and not texto:
+            texto, desc = desc, ""
         clase = a.get("class", "")
         elementos.append(
             ElementoUI(
@@ -146,8 +168,14 @@ class DriverAndroid:
     nombre = "android"
 
     def __init__(
-        self, adb: Adb, paquete: str, actividad: str | None = None, grabar_video: bool = True
+        self,
+        adb: Adb,
+        paquete: str,
+        actividad: str | None = None,
+        grabar_video: bool = True,
+        umbral_cobertura: float = 0.6,
     ):
+        self.umbral_cobertura = umbral_cobertura
         self.adb = adb
         self.grabar_video = grabar_video  # False: la FuenteScreenrecord ya graba el video
         self.paquete = paquete
@@ -220,17 +248,23 @@ class DriverAndroid:
         xml = await self._volcar_arbol()
         arbol = None
         elementos: list[ElementoUI] = []
+        cobertura = None
+        pantalla = await self._actividad()
         if xml:
             arbol = self._carpeta / "arboles" / f"paso-{n_paso:03d}.xml"
             arbol.write_text(xml, encoding="utf-8")
+            flutter = es_flutter(xml, pantalla)
+            if flutter:
+                cobertura = cobertura_xml(xml, umbral=self.umbral_cobertura, actividad=pantalla)
             try:
-                elementos = parsear_arbol(xml)
+                elementos = parsear_arbol(xml, flutter)
             except ET.ParseError:
                 elementos = []
         self._elementos = {e.id: e for e in elementos}
         return Observacion(
-            pantalla=await self._actividad(),
+            pantalla=pantalla,
             elementos=elementos,
+            cobertura=cobertura,
             texto_visible="\n".join(e.texto for e in elementos if e.texto),
             captura=captura,
             arbol=arbol,
