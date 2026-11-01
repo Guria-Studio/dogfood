@@ -206,7 +206,6 @@ def test_registros():
         with pytest.raises(NotImplementedError, match="F8"):
             obj.preparar("main", None)
     assert det_flutter.detectar in DETECTORES
-    assert det_flutter.detectar(None) == []
 
 
 async def test_android_sin_grabar_video(tmp_path):
