@@ -1,0 +1,20 @@
+id: explorar
+titulo: Recorrer las pantallas visibles sin iniciar sesión
+superficies: [navegacion]
+driver: web
+objetivo: >
+  Sin iniciar sesión, recorre las pantallas a las que puedas llegar desde la pantalla
+  inicial (menús, enlaces y botones visibles) y anota cada fricción: textos confusos,
+  botones sin etiqueta, errores o pantallas sin salida.
+criterio_exito: >
+  Visitaste las pantallas accesibles sin sesión y reportaste las fricciones encontradas,
+  o dejaste claro que no hay ninguna.
+max_pasos: 30
+contrato:
+  estado_inicial: app recién abierta sin sesión
+  acciones:
+    - tocar los elementos visibles y volver
+    - anotar las fricciones
+  resultado_esperado: se recorrieron las pantallas visibles sin sesión
+  evidencia_requerida:
+    - captura de cada pantalla visitada
