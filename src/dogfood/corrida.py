@@ -12,7 +12,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from dogfood import contrato, deteccion
+from dogfood import contrato, deteccion, frames
 from dogfood import escenarios as esc
 from dogfood.agente import bucle, navegador
 from dogfood.agente.navegador import ESCRITORIO, MOVIL
@@ -105,13 +105,21 @@ def _driver(nombre: str, cfg: Config, objetivo: Objetivo, instancia: Instancia, 
     if nombre == "android":
         p, d = instancia.parametros, cfg.driver
         adb = Adb(p.get("serial") or d.serial, p.get("host_puerto") or d.host_puerto)
-        return DriverAndroid(adb, p.get("paquete") or d.paquete, d.actividad)
+        return DriverAndroid(
+            adb,
+            p.get("paquete") or d.paquete,
+            d.actividad,
+            grabar_video=cfg.pantalla.android != "screenrecord",
+            umbral_cobertura=cfg.flutter.umbral_cobertura,
+        )
     movil = "movil" in persona.estilo
     return DriverWeb(
         instancia.base_url,
         lambda url: objetivo.url_permitida(url, instancia),
         MOVIL if movil else ESCRITORIO,
         movil,
+        flutter=bool(instancia.parametros.get("flutter")),
+        umbral_cobertura=cfg.flutter.umbral_cobertura,
     )
 
 
@@ -174,6 +182,7 @@ async def correr(op: Opciones) -> Corrida:
             bus, tarea_vista = await _arrancar_vista(cfg, op.vista_puerto)
         instancia = objetivo.preparar(op.ref, corrida)
         corrida.commit = instancia.commit
+        instancia.parametros.setdefault("umbral_cobertura", cfg.flutter.umbral_cobertura)
         corrida.version_app = instancia.parametros.get("version_app") or instancia.commit
 
         todos = objetivo.escenarios()
@@ -238,10 +247,11 @@ async def correr(op: Opciones) -> Corrida:
                 por_bucle = True
             if por_bucle:
                 indice = indice_modelo("persona", n, semilla, cfg)
+                drv = _driver(driver, cfg, objetivo, instancia, persona)
                 e = await bucle.ejecutar(
                     persona,
                     escenario,
-                    _driver(driver, cfg, objetivo, instancia, persona),
+                    drv,
                     backend_para("persona", cfg, indice),
                     backend_para("juez", cfg),
                     carpeta,
@@ -249,6 +259,9 @@ async def correr(op: Opciones) -> Corrida:
                     bus=bus,
                     corrida_id=corrida.id,
                     objetivo=objetivo,
+                    fuente_frames=(
+                        frames.crear_fuente(cfg, drv, instancia.parametros) if bus.activo else None
+                    ),
                 )
                 m = e.metricas
                 uso = contador.registrar(
