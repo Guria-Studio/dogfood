@@ -1,8 +1,6 @@
 # Android real con dogfood: ADB por USB o Tailscale
 
-Guía para probar una app Android real con el driver `android` (FR-29, issue #32). Cubre preparar el teléfono, conectarlo, la configuración de `dogfood.yaml`, correr el escenario de login, la verificación manual que aún falta y cómo medir el spike de la opción B.
-
-> **Estado de esta rama.** El driver, `Adb` y `validar_destino` están implementados y probados con un `adb` falso (`src/dogfood/drivers/android.py`). Todavía no están conectados al flujo de `dogfood run`: `corrida.py` no lee `driver:` y el objetivo `android` lo registra F6.6.T1. Lo que sigue describe el uso previsto; las partes que dependen de esas tareas se marcan.
+Guía para probar una app Android real con el driver `android` (FR-29, FR-34, FR-37, issue #32). Cubre preparar el teléfono, emparejarlo y conectarlo, la configuración de `dogfood.yaml`, correr el login agéntico o determinista, ver la pantalla en vivo y la verificación manual que aún falta.
 
 Regla que atraviesa toda la guía: **ADB nunca se expone fuera de USB, localhost o Tailscale** (NFR-10). Un teléfono con depuración por red es un teléfono que cualquiera de la red puede controlar.
 
@@ -18,38 +16,53 @@ tailscale ip -4          # en el servidor: su IP de Tailscale
 tailscale status         # el teléfono debe aparecer como conectado
 ```
 
-## 2. Conectar por USB
+5. **Excluir Tailscale de la optimización de batería.** Android puede suspender la red de una app en segundo plano, y entonces la conexión ADB por Tailscale se cae a mitad de una corrida. En Ajustes → Aplicaciones → Tailscale → Batería, elige *Sin restricciones* (o *Sin optimizar*; el nombre cambia según la versión y el fabricante). Si el teléfono tiene un ahorro de energía agresivo, exclúyelo también para Depuración inalámbrica.
 
-```bash
-adb devices              # debe listar el serial con estado "device"
-```
+## 2. Emparejar y conectar
 
-En `dogfood.yaml`, pon el serial en `driver.serial`. `validar_destino` acepta un serial solo si coincide con `^[A-Za-z0-9._-]+$`.
+Dogfood trae un comando propio, `dogfood android`, con cuatro subcomandos (`src/dogfood/comandos/android.py`):
 
-## 3. ADB inalámbrico sobre Tailscale
+| Comando | Qué hace |
+|---|---|
+| `dogfood android emparejar IP:PUERTO` | Corre `adb pair` interactivo. El código de 6 dígitos lo escribes tú en el prompt de adb; dogfood nunca lo recibe ni lo guarda. |
+| `dogfood android conectar [IP:PUERTO]` | Corre `adb connect` y comprueba `get-state = device`. Sin argumento usa `driver.host_puerto` de `dogfood.yaml`. Imprime modelo y versión de Android. |
+| `dogfood android estado` | Lista los dispositivos de `adb devices -l` (✅ permitido, ⛔ rechazado con su motivo) y revisa que el servidor adb escuche solo en loopback. |
+| `dogfood android desconectar [IP:PUERTO]` | Desconecta un destino, o todos si no das ninguno. |
 
-El emparejamiento se hace una sola vez a mano. Dogfood después se conecta solo.
+El flujo, una sola vez por teléfono:
 
 1. En el teléfono: Depuración inalámbrica → *Vincular dispositivo con código de emparejamiento*. Anota la IP:puerto de vinculación y el código de 6 dígitos.
-2. En el servidor, empareja con esa IP:puerto de vinculación:
+2. En el servidor:
 
 ```bash
-adb pair 100.x.y.z:<puerto-de-vinculacion>
-# Introduce el código de 6 dígitos cuando lo pida
+uv run dogfood android emparejar 100.x.y.z:<puerto-de-vinculacion>
+# escribe el código de 6 dígitos cuando lo pida adb
 ```
 
-3. En la pantalla principal de Depuración inalámbrica aparece otro puerto, distinto del de vinculación. Conecta con ese:
+3. En la pantalla principal de Depuración inalámbrica aparece otro puerto, distinto del de vinculación. Conecta con ese y pon el mismo valor en `dogfood.yaml`:
 
 ```bash
-adb connect 100.x.y.z:<puerto-de-depuracion>
-adb devices              # debe listar 100.x.y.z:<puerto> con estado "device"
+uv run dogfood android conectar 100.x.y.z:<puerto-de-depuracion>
+uv run dogfood android estado    # debe mostrar ✅ 100.x.y.z:<puerto>  device
 ```
 
-4. En `dogfood.yaml`, pon `driver.host_puerto: 100.x.y.z:<puerto-de-depuracion>`. Al iniciar, `Adb.conectar()` ejecuta `adb connect` y comprueba que `get-state` sea `device`; si no, falla con un error claro.
+4. En `dogfood.yaml`, `driver.host_puerto: 100.x.y.z:<puerto-de-depuracion>`. Desde ahí, `dogfood android conectar` sin argumentos basta.
 
-Si el teléfono cambia de puerto (reinicio, cambio de red), repite el paso 3. El emparejamiento del paso 2 solo hace falta si olvidas el dispositivo.
+Para USB basta con `adb devices` (debe listar el serial con estado `device`) y poner ese serial en `driver.serial`. `validar_destino` acepta un serial solo si coincide con `^[A-Za-z0-9._-]+$`.
 
-## 4. Por qué ADB solo por USB, localhost o Tailscale
+Si `dogfood android estado` marca ⛔ en el servidor adb, corre `adb kill-server` y no uses `adb -a`.
+
+### Qué hace la reconexión
+
+Si el teléfono cambia de red o se duerme, el puerto por Tailscale puede dejar de responder. `Adb.ejecutar` (`src/dogfood/drivers/android.py`) detecta el error (`device offline`, `device ... not found`, `no devices/emulators found` o `closed`) y hace **una sola** reconexión: `adb connect` a `driver.host_puerto`, `get-state`, y un reintento del comando. Si vuelve a fallar, la corrida recibe un error con la orden exacta para reconectar a mano:
+
+```
+se perdió la conexión por Tailscale con 100.x.y.z:5555 (...). Reconecta con: dogfood android conectar 100.x.y.z:5555
+```
+
+La reconexión no vuelve a emparejar. Si el teléfono olvidó el emparejamiento (reinicio, cambio de clave), repite el paso 2 del flujo de arriba.
+
+## 3. Por qué ADB solo por USB, localhost o Tailscale
 
 ADB no tiene más autenticación que la clave RSA aceptada en el teléfono. Quien alcance el puerto puede instalar apps, leer datos y tocar la pantalla. Por eso dogfood valida el destino **antes** de llamar a `adb`, en `validar_destino` (`src/dogfood/drivers/android.py`):
 
@@ -64,61 +77,93 @@ ADB no tiene más autenticación que la clave RSA aceptada en el teléfono. Quie
 | `0.0.0.0` o cualquier IP pública o de LAN | | Sí |
 | Sin serial ni `host:puerto` | | Sí |
 
-Un error lanza `ValueError` con el motivo, y el driver no ejecuta ningún comando. Si `serial` contiene `:`, se trata como `host:puerto`.
+Un error lanza `ValueError` con el motivo, y el driver no ejecuta ningún comando. Si `serial` contiene `:`, se trata como `host:puerto`. `dogfood android emparejar` y `conectar` usan la misma validación.
 
 Límite de lo que valida: el rango `100.64.0.0/10` es el de CGNAT, y el validador acepta cualquier IP de ese rango. Lo que acota quién llega a tu teléfono es el ACL de tu tailnet; revísalo para que solo tu servidor pueda hablar con el puerto ADB del teléfono.
 
-## 5. Configuración `driver:` en `dogfood.yaml`
+## 4. Configuración `driver:` y `pantalla:` en `dogfood.yaml`
 
 ```yaml
 driver:
-  tipo: android              # web (por defecto) | android
-  serial: null               # USB; o bien:
+  tipo: android                 # web (por defecto) | android | ios
+  serial: null                  # USB; o bien:
   host_puerto: 100.x.y.z:5555   # localhost o Tailscale; nunca otra red
-  paquete: com.ejemplo.app   # paquete de la app bajo prueba
-  actividad: null            # opcional: si se da, abrir_app usa am start -n paquete/actividad
-  apk: null                  # opcional: instala con adb install -r antes de la corrida
+  paquete: br.com.rupies.profissional   # paquete de la app bajo prueba
+  actividad: null               # opcional: si se da, abrir_app usa am start -n paquete/actividad
+  apk: null                     # opcional: instala con adb install -r antes de la corrida
+
+pantalla:
+  android: screencap            # screencap (por defecto) | screenrecord
+  fps: 2                        # frames por segundo que pide la vista y el panel
 ```
 
-Campos reales de `Driver` en `src/dogfood/config.py`: `tipo`, `serial`, `host_puerto`, `paquete`, `actividad`, `apk`. Usa `serial` o `host_puerto`, no ambos.
+Campos reales de `Driver` y `Pantalla` en `src/dogfood/config.py`. Usa `serial` o `host_puerto`, no ambos.
 
-## 6. Correr el escenario de login
+`pantalla.android` elige cómo se captura la pantalla:
+
+- **`screencap`** (por defecto): una captura PNG por frame (`adb exec-out screencap -p`), convertida a JPEG. Simple, no necesita nada extra y basta para la vista en vivo.
+- **`screenrecord`**: un `adb shell screenrecord` H.264 en segmentos de 170 s, decodificado con **`ffmpeg`**. Necesita `ffmpeg` en el PATH del servidor. Si no está, dogfood lo avisa en el log (`screenrecord → screencap: ffmpeg no está en el PATH`) y sigue con `screencap`. Con `screenrecord` la corrida también guarda el video en `video/dogfood-N.mp4`.
+
+## 5. Correr el login
 
 ```bash
-dogfood run --target android --escenarios login
+uv run dogfood run --target android --escenarios login
+uv run dogfood run --target android --escenarios login --vista     # con la pantalla en vivo
 ```
 
 Opciones de `dogfood run` que sirven aquí (`src/dogfood/comandos/run.py`):
 
-- `--target`: objetivo. Por defecto `predicts`. El objetivo `android` lo registra F6.6.T1.
-- `--escenarios`: ids separados por coma, por ejemplo `login`.
-- `--seed`: semilla de personas y asignación de escenarios; para reproducir una corrida.
-- `--repeat`: repeticiones del mismo escenario.
+- `--target`: objetivo. Por defecto `predicts`; para Android, `android`.
+- `--escenarios`: ids separados por coma (`login`, `login-determinista`, `pago-determinista`).
+- `--driver`: `web` o `android`; pisa el driver del escenario. El driver de la instancia sale de `driver:` en `dogfood.yaml`.
+- `--motor`: `browser_use`, `bucle`, `patrol` o `integration_test`. Los dos últimos no usan LLM (ver `docs/ops/flutter.md`).
+- `--vista`: vista en vivo de las ejecuciones (ver la sección 7).
+- `--seed`, `--repeat`, `--personas`: semilla, repeticiones y cantidad de personas.
 - `--sin-publicar`: no crea issues. Úsalo mientras pruebas.
 - `--mantener-entorno`: no destruye el entorno al terminar.
 
-> **Nota sobre `--driver android`.** La especificación de F6.8.T1 lo pone en el comando, pero `dogfood run` **no tiene** esa opción en esta rama. El driver se elige en `driver:` de `dogfood.yaml`, no en la línea de comandos. Cuando F6.6.T1 cierre, revisa el comando con `dogfood run --help` antes de usarlo.
+Escenarios Android en `src/dogfood/objetivos/android/escenarios/`:
 
-## 7. Dónde queda la evidencia
+- `login`: agéntico, con el LLM y el bucle propio.
+- `login-determinista`: motor `integration_test`, sin LLM; necesita las keys de la app y las credenciales (ver `docs/ops/flutter.md`).
+- `pago-determinista`: el mismo esquema para el flujo de pago.
+
+## 6. Dónde queda la evidencia
 
 Cada ejecución guarda, en su carpeta bajo `runs/` (la que crea `Almacen`):
 
 - `capturas/paso-NNN.png`: captura por paso (`screencap -p`).
 - `arboles/paso-NNN.xml`: árbol de UI por paso (`uiautomator dump`).
 - `logcat.txt`: logcat del paquete (filtrado con `--pid` cuando el proceso existe), con un extracto de errores (`E/` y `FATAL`).
-- `video/dogfood-N.mp4`: `screenrecord` en segmentos de 170 s.
+- `video/dogfood-N.mp4`: solo con `pantalla.android: screenrecord`, en segmentos de 170 s.
 
-La acción de cada paso y el resultado quedan en la base SQLite del almacén. `dogfood runs` lista las corridas y su éxito por escenario.
+La acción de cada paso y el resultado quedan en la base SQLite del almacén (`runs/dogfood.db`). `uv run dogfood runs` lista las corridas y su éxito por escenario.
 
-## 8. Verificación manual pendiente (issue #32)
+Si la pantalla es Flutter y no expone Semantics, el hallazgo `accesibilidad` aparece en el panel (ver `docs/ops/flutter.md`).
 
-Lo que sigue requiere un Android real conectado por Tailscale. No hay KVM ni dispositivo en el entorno de desarrollo, así que los tests usan un `adb` falso. Marca cada punto cuando lo compruebes:
+## 7. Ver la pantalla: vista y panel «Dispositivos»
 
-- [ ] **Login de punta a punta por Tailscale.** Con `host_puerto` apuntando a la IP Tailscale del teléfono, `dogfood run --target android --escenarios login` recorre el login hasta el final con el dispositivo real.
+**En la vista en vivo** (`uv run dogfood run ... --vista`): cada ejecución muestra la pantalla del teléfono junto con el razonamiento de cada paso. La vista escucha en `vista:` de `dogfood.yaml` (por defecto `127.0.0.1:7460`; cambia el puerto con `--vista-puerto`). Solo acepta `127.0.0.1` o una IP de Tailscale. La vista nunca hace fallar la corrida: si no arranca, la corrida sigue sin ella.
+
+**En el panel** (`uv run dogfood panel`, por defecto `127.0.0.1:7470`): la página **«Dispositivos»** (enlace en la barra lateral, ruta `/dispositivos`) muestra una tarjeta por dispositivo. Los Android salen de `adb devices` (el mismo listado que `dogfood android estado`); un dispositivo que no pasa `validar_destino` aparece con el motivo del rechazo. Los nodos iOS de `nodos:` también aparecen. Cada tarjeta es un `<img>` con el stream de `/dispositivos/<id>/mjpeg`, que se cierra cuando cierras la página. El panel necesita `runs/dogfood.db`, así que corre `dogfood run` al menos una vez antes.
+
+Más detalle de la vista y del panel en `docs/ops/panel-y-vista.md`.
+
+## 8. Lista de verificación manual pendiente (issue #32)
+
+Lo que sigue requiere un Android real conectado por Tailscale y la app `mobile-mao` (`br.com.rupies.profissional`) instalada. No hay KVM ni dispositivo en el entorno de desarrollo; los tests usan un `adb` falso (`tests/test_android_tailscale.py`). Marca cada punto cuando lo compruebes:
+
+- [ ] **Emparejar un celular por Tailscale.** `dogfood android emparejar 100.x.y.z:<puerto-de-vinculacion>` termina sin error y `dogfood android conectar 100.x.y.z:<puerto-de-depuracion>` imprime modelo y versión de Android.
+- [ ] **`dogfood android estado` en verde.** El dispositivo sale con ✅ y el servidor adb dice que escucha solo en loopback.
+- [ ] **Login agéntico de punta a punta.** Con `mobile-mao` instalada, `dogfood run --target android --escenarios login` recorre el login hasta el final con el dispositivo real.
 - [ ] **Evidencia por paso.** Cada paso deja captura (`capturas/`), árbol (`arboles/`) y acción en el almacén de `runs/`.
-- [ ] **Fallo → issue.** Un fallo produce un issue con los pasos, las capturas, el logcat y la gravedad, del mismo tipo que el del driver web.
+- [ ] **Latencia de la vista < 2 s, medida.** Con `--vista`, el tiempo entre una acción en el teléfono y su aparición en la vista es menor de 2 s. Anota la medida (método y número) en este documento.
+- [ ] **Fallo → issue con logcat.** Un fallo produce un issue con los pasos, las capturas, el `logcat.txt` y la gravedad, del mismo tipo que el del driver web.
 - [ ] **Sin evidencia → no concluyente.** Si no hay captura, árbol ni logcat, la ejecución queda como no concluyente. No cuenta como aprobada ni como fallida.
 - [ ] **Rechazo de destinos.** Con `host_puerto: 0.0.0.0:5555` o una IP de LAN, dogfood se niega a conectar antes de ejecutar `adb`.
+- [ ] **Login determinista aprobado.** `dogfood run --target android --escenarios login-determinista --motor integration_test` termina `aprobado` (ver `docs/ops/flutter.md`).
+- [ ] **Hallazgo de pantalla ciega en una pantalla real.** Una pantalla Flutter sin Semantics produce el hallazgo `accesibilidad` con su captura y su árbol en el panel.
+- [ ] **Spike de la opción B (D18).** Medido según la sección 9.
 
 ## 9. Medir el spike de la opción B (Appium + UIAutomator2 o `mobile-mcp`)
 
