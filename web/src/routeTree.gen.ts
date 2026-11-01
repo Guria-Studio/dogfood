@@ -19,6 +19,7 @@ import { Route as AyudaSlugRouteImport } from './routes/ayuda.$slug'
 import { Route as CorridasIdRouteImport } from './routes/corridas.$id'
 import { Route as EjecucionesIdRouteImport } from './routes/ejecuciones.$id'
 import { Route as LanzamientosIdRouteImport } from './routes/lanzamientos.$id'
+import { Route as CorridasIdReporteRouteImport } from './routes/corridas.$id.reporte'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,11 @@ const LanzamientosIdRoute = LanzamientosIdRouteImport.update({
   path: '/lanzamientos/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CorridasIdReporteRoute = CorridasIdReporteRouteImport.update({
+  id: '/reporte',
+  path: '/reporte',
+  getParentRoute: () => CorridasIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -78,10 +84,11 @@ export interface FileRoutesByFullPath {
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRoute
+  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
+  '/corridas/$id/reporte': typeof CorridasIdReporteRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -90,10 +97,11 @@ export interface FileRoutesByTo {
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRoute
+  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda': typeof AyudaIndexRoute
+  '/corridas/$id/reporte': typeof CorridasIdReporteRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -103,10 +111,11 @@ export interface FileRoutesById {
   '/recorridos': typeof RecorridosRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRoute
+  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
+  '/corridas/$id/reporte': typeof CorridasIdReporteRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda/'
+    | '/corridas/$id/reporte'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda'
+    | '/corridas/$id/reporte'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda/'
+    | '/corridas/$id/reporte'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -154,7 +166,7 @@ export interface RootRouteChildren {
   RecorridosRoute: typeof RecorridosRoute
   VistaRoute: typeof VistaRoute
   AyudaSlugRoute: typeof AyudaSlugRoute
-  CorridasIdRoute: typeof CorridasIdRoute
+  CorridasIdRoute: typeof CorridasIdRouteWithChildren
   EjecucionesIdRoute: typeof EjecucionesIdRoute
   LanzamientosIdRoute: typeof LanzamientosIdRoute
   AyudaIndexRoute: typeof AyudaIndexRoute
@@ -232,8 +244,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LanzamientosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/corridas/$id/reporte': {
+      id: '/corridas/$id/reporte'
+      path: '/reporte'
+      fullPath: '/corridas/$id/reporte'
+      preLoaderRoute: typeof CorridasIdReporteRouteImport
+      parentRoute: typeof CorridasIdRoute
+    }
   }
 }
+
+interface CorridasIdRouteChildren {
+  CorridasIdReporteRoute: typeof CorridasIdReporteRoute
+}
+
+const CorridasIdRouteChildren: CorridasIdRouteChildren = {
+  CorridasIdReporteRoute: CorridasIdReporteRoute,
+}
+
+const CorridasIdRouteWithChildren = CorridasIdRoute._addFileChildren(
+  CorridasIdRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -242,7 +273,7 @@ const rootRouteChildren: RootRouteChildren = {
   RecorridosRoute: RecorridosRoute,
   VistaRoute: VistaRoute,
   AyudaSlugRoute: AyudaSlugRoute,
-  CorridasIdRoute: CorridasIdRoute,
+  CorridasIdRoute: CorridasIdRouteWithChildren,
   EjecucionesIdRoute: EjecucionesIdRoute,
   LanzamientosIdRoute: LanzamientosIdRoute,
   AyudaIndexRoute: AyudaIndexRoute,

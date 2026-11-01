@@ -42,7 +42,11 @@ export function PantallaCorrida({ id }: { id: string }) {
     queryFn: async () => (await cliente.GET('/api/etiquetas')).data ?? {},
   })
 
-  const cabecera = <PageHeader titulo={`Corrida ${id}`} ayuda="corrida" />
+  const cabecera = <PageHeader
+      titulo={`Corrida ${id}`}
+      ayuda="corrida"
+      acciones={<Button asChild variant="outline"><Link to="/corridas/$id/reporte" params={{ id }}>Reporte</Link></Button>}
+    />
   if (corrida.isError)
     return (
       <>
