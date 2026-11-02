@@ -26,7 +26,6 @@ import { Route as CorridasIdIndexRouteImport } from './routes/corridas.$id.index
 import { Route as CorridasIdReporteRouteImport } from './routes/corridas.$id.reporte'
 import { Route as ProyectosProyectoIndexRouteImport } from './routes/proyectos.$proyecto.index'
 import { Route as ProyectosProyectoActividadRouteImport } from './routes/proyectos.$proyecto.actividad'
-import { Route as ProyectosProyectoCasosRouteImport } from './routes/proyectos.$proyecto.casos'
 import { Route as ProyectosProyectoDispositivosRouteImport } from './routes/proyectos.$proyecto.dispositivos'
 import { Route as ProyectosProyectoFuentesRouteImport } from './routes/proyectos.$proyecto.fuentes'
 import { Route as ProyectosProyectoGithubRouteImport } from './routes/proyectos.$proyecto.github'
@@ -34,6 +33,8 @@ import { Route as ProyectosProyectoInsightsRouteImport } from './routes/proyecto
 import { Route as ProyectosProyectoRecorridosRouteImport } from './routes/proyectos.$proyecto.recorridos'
 import { Route as ProyectosProyectoVistaRouteImport } from './routes/proyectos.$proyecto.vista'
 import { Route as ProyectosProyectoAjustesSeccionRouteImport } from './routes/proyectos.$proyecto.ajustes.$seccion'
+import { Route as ProyectosProyectoCasosIndexRouteImport } from './routes/proyectos.$proyecto.casos.index'
+import { Route as ProyectosProyectoCasosTcRouteImport } from './routes/proyectos.$proyecto.casos.$tc'
 import { Route as ProyectosProyectoCorridasIndexRouteImport } from './routes/proyectos.$proyecto.corridas.index'
 import { Route as ProyectosProyectoCorridasIdRouteImport } from './routes/proyectos.$proyecto.corridas.$id'
 import { Route as ProyectosProyectoEjecucionesIdRouteImport } from './routes/proyectos.$proyecto.ejecuciones.$id'
@@ -124,11 +125,6 @@ const ProyectosProyectoActividadRoute =
     path: '/proyectos/$proyecto/actividad',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ProyectosProyectoCasosRoute = ProyectosProyectoCasosRouteImport.update({
-  id: '/proyectos/$proyecto/casos',
-  path: '/proyectos/$proyecto/casos',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ProyectosProyectoDispositivosRoute =
   ProyectosProyectoDispositivosRouteImport.update({
     id: '/proyectos/$proyecto/dispositivos',
@@ -169,6 +165,18 @@ const ProyectosProyectoAjustesSeccionRoute =
     path: '/proyectos/$proyecto/ajustes/$seccion',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProyectosProyectoCasosIndexRoute =
+  ProyectosProyectoCasosIndexRouteImport.update({
+    id: '/proyectos/$proyecto/casos/',
+    path: '/proyectos/$proyecto/casos/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoCasosTcRoute =
+  ProyectosProyectoCasosTcRouteImport.update({
+    id: '/proyectos/$proyecto/casos/$tc',
+    path: '/proyectos/$proyecto/casos/$tc',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProyectosProyectoCorridasIndexRoute =
   ProyectosProyectoCorridasIndexRouteImport.update({
     id: '/proyectos/$proyecto/corridas/',
@@ -204,7 +212,6 @@ export interface FileRoutesByFullPath {
   '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
   '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
-  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
   '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
@@ -214,8 +221,10 @@ export interface FileRoutesByFullPath {
   '/corridas/$id/': typeof CorridasIdIndexRoute
   '/proyectos/$proyecto/': typeof ProyectosProyectoIndexRoute
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/casos/': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRoutesByTo {
@@ -234,7 +243,6 @@ export interface FileRoutesByTo {
   '/proyectos': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
   '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
-  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
   '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
@@ -244,8 +252,10 @@ export interface FileRoutesByTo {
   '/corridas/$id': typeof CorridasIdIndexRoute
   '/proyectos/$proyecto': typeof ProyectosProyectoIndexRoute
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRoutesById {
@@ -265,7 +275,6 @@ export interface FileRoutesById {
   '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
   '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
-  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
   '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
@@ -275,8 +284,10 @@ export interface FileRoutesById {
   '/corridas/$id/': typeof CorridasIdIndexRoute
   '/proyectos/$proyecto/': typeof ProyectosProyectoIndexRoute
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/casos/': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRouteTypes {
@@ -297,7 +308,6 @@ export interface FileRouteTypes {
     | '/proyectos/'
     | '/corridas/$id/reporte'
     | '/proyectos/$proyecto/actividad'
-    | '/proyectos/$proyecto/casos'
     | '/proyectos/$proyecto/dispositivos'
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
@@ -307,8 +317,10 @@ export interface FileRouteTypes {
     | '/corridas/$id/'
     | '/proyectos/$proyecto/'
     | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/casos/'
     | '/proyectos/$proyecto/corridas/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -327,7 +339,6 @@ export interface FileRouteTypes {
     | '/proyectos'
     | '/corridas/$id/reporte'
     | '/proyectos/$proyecto/actividad'
-    | '/proyectos/$proyecto/casos'
     | '/proyectos/$proyecto/dispositivos'
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
@@ -337,8 +348,10 @@ export interface FileRouteTypes {
     | '/corridas/$id'
     | '/proyectos/$proyecto'
     | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/casos'
     | '/proyectos/$proyecto/corridas'
   id:
     | '__root__'
@@ -357,7 +370,6 @@ export interface FileRouteTypes {
     | '/proyectos/'
     | '/corridas/$id/reporte'
     | '/proyectos/$proyecto/actividad'
-    | '/proyectos/$proyecto/casos'
     | '/proyectos/$proyecto/dispositivos'
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
@@ -367,8 +379,10 @@ export interface FileRouteTypes {
     | '/corridas/$id/'
     | '/proyectos/$proyecto/'
     | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/casos/'
     | '/proyectos/$proyecto/corridas/'
   fileRoutesById: FileRoutesById
 }
@@ -388,7 +402,6 @@ export interface RootRouteChildren {
   ProyectosIndexRoute: typeof ProyectosIndexRoute
   CorridasIdReporteRoute: typeof CorridasIdReporteRoute
   ProyectosProyectoActividadRoute: typeof ProyectosProyectoActividadRoute
-  ProyectosProyectoCasosRoute: typeof ProyectosProyectoCasosRoute
   ProyectosProyectoDispositivosRoute: typeof ProyectosProyectoDispositivosRoute
   ProyectosProyectoFuentesRoute: typeof ProyectosProyectoFuentesRoute
   ProyectosProyectoGithubRoute: typeof ProyectosProyectoGithubRoute
@@ -398,8 +411,10 @@ export interface RootRouteChildren {
   CorridasIdIndexRoute: typeof CorridasIdIndexRoute
   ProyectosProyectoIndexRoute: typeof ProyectosProyectoIndexRoute
   ProyectosProyectoAjustesSeccionRoute: typeof ProyectosProyectoAjustesSeccionRoute
+  ProyectosProyectoCasosTcRoute: typeof ProyectosProyectoCasosTcRoute
   ProyectosProyectoCorridasIdRoute: typeof ProyectosProyectoCorridasIdRoute
   ProyectosProyectoEjecucionesIdRoute: typeof ProyectosProyectoEjecucionesIdRoute
+  ProyectosProyectoCasosIndexRoute: typeof ProyectosProyectoCasosIndexRoute
   ProyectosProyectoCorridasIndexRoute: typeof ProyectosProyectoCorridasIndexRoute
 }
 
@@ -524,13 +539,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosProyectoActividadRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/proyectos/$proyecto/casos': {
-      id: '/proyectos/$proyecto/casos'
-      path: '/proyectos/$proyecto/casos'
-      fullPath: '/proyectos/$proyecto/casos'
-      preLoaderRoute: typeof ProyectosProyectoCasosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/proyectos/$proyecto/dispositivos': {
       id: '/proyectos/$proyecto/dispositivos'
       path: '/proyectos/$proyecto/dispositivos'
@@ -580,6 +588,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosProyectoAjustesSeccionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyectos/$proyecto/casos/': {
+      id: '/proyectos/$proyecto/casos/'
+      path: '/proyectos/$proyecto/casos'
+      fullPath: '/proyectos/$proyecto/casos/'
+      preLoaderRoute: typeof ProyectosProyectoCasosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/casos/$tc': {
+      id: '/proyectos/$proyecto/casos/$tc'
+      path: '/proyectos/$proyecto/casos/$tc'
+      fullPath: '/proyectos/$proyecto/casos/$tc'
+      preLoaderRoute: typeof ProyectosProyectoCasosTcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/proyectos/$proyecto/corridas/': {
       id: '/proyectos/$proyecto/corridas/'
       path: '/proyectos/$proyecto/corridas'
@@ -620,7 +642,6 @@ const rootRouteChildren: RootRouteChildren = {
   ProyectosIndexRoute: ProyectosIndexRoute,
   CorridasIdReporteRoute: CorridasIdReporteRoute,
   ProyectosProyectoActividadRoute: ProyectosProyectoActividadRoute,
-  ProyectosProyectoCasosRoute: ProyectosProyectoCasosRoute,
   ProyectosProyectoDispositivosRoute: ProyectosProyectoDispositivosRoute,
   ProyectosProyectoFuentesRoute: ProyectosProyectoFuentesRoute,
   ProyectosProyectoGithubRoute: ProyectosProyectoGithubRoute,
@@ -630,8 +651,10 @@ const rootRouteChildren: RootRouteChildren = {
   CorridasIdIndexRoute: CorridasIdIndexRoute,
   ProyectosProyectoIndexRoute: ProyectosProyectoIndexRoute,
   ProyectosProyectoAjustesSeccionRoute: ProyectosProyectoAjustesSeccionRoute,
+  ProyectosProyectoCasosTcRoute: ProyectosProyectoCasosTcRoute,
   ProyectosProyectoCorridasIdRoute: ProyectosProyectoCorridasIdRoute,
   ProyectosProyectoEjecucionesIdRoute: ProyectosProyectoEjecucionesIdRoute,
+  ProyectosProyectoCasosIndexRoute: ProyectosProyectoCasosIndexRoute,
   ProyectosProyectoCorridasIndexRoute: ProyectosProyectoCorridasIndexRoute,
 }
 export const routeTree = rootRouteImport
