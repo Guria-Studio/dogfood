@@ -43,6 +43,8 @@ class Notificaciones(BaseModel):
     slack: bool = False
     issues_github: bool = True
     repo: str = ""  # dueño/repo donde se abren los issues
+    etiqueta: str = ""  # etiqueta de los issues publicados
+    comentar_pr: bool = False  # `dogfood ci` comenta el resultado en el PR
 
 
 class Proyecto(BaseModel):
