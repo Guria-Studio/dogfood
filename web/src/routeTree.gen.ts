@@ -21,6 +21,7 @@ import { Route as AyudaSlugRouteImport } from './routes/ayuda.$slug'
 import { Route as EjecucionesIdRouteImport } from './routes/ejecuciones.$id'
 import { Route as LanzamientosIdRouteImport } from './routes/lanzamientos.$id'
 import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
+import { Route as ProyectosNuevoRouteImport } from './routes/proyectos.nuevo'
 import { Route as CorridasIdIndexRouteImport } from './routes/corridas.$id.index'
 import { Route as CorridasIdReporteRouteImport } from './routes/corridas.$id.reporte'
 import { Route as ProyectosProyectoIndexRouteImport } from './routes/proyectos.$proyecto.index'
@@ -96,6 +97,11 @@ const LanzamientosIdRoute = LanzamientosIdRouteImport.update({
 const ProyectosIndexRoute = ProyectosIndexRouteImport.update({
   id: '/proyectos/',
   path: '/proyectos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosNuevoRoute = ProyectosNuevoRouteImport.update({
+  id: '/proyectos/nuevo',
+  path: '/proyectos/nuevo',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CorridasIdIndexRoute = CorridasIdIndexRouteImport.update({
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
+  '/proyectos/nuevo': typeof ProyectosNuevoRoute
   '/ayuda/': typeof AyudaIndexRoute
   '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
@@ -231,6 +238,7 @@ export interface FileRoutesByTo {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
+  '/proyectos/nuevo': typeof ProyectosNuevoRoute
   '/ayuda': typeof AyudaIndexRoute
   '/proyectos': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
@@ -262,6 +270,7 @@ export interface FileRoutesById {
   '/ayuda/$slug': typeof AyudaSlugRoute
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
+  '/proyectos/nuevo': typeof ProyectosNuevoRoute
   '/ayuda/': typeof AyudaIndexRoute
   '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
+    | '/proyectos/nuevo'
     | '/ayuda/'
     | '/proyectos/'
     | '/corridas/$id/reporte'
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
+    | '/proyectos/nuevo'
     | '/ayuda'
     | '/proyectos'
     | '/corridas/$id/reporte'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/ayuda/$slug'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
+    | '/proyectos/nuevo'
     | '/ayuda/'
     | '/proyectos/'
     | '/corridas/$id/reporte'
@@ -385,6 +397,7 @@ export interface RootRouteChildren {
   AyudaSlugRoute: typeof AyudaSlugRoute
   EjecucionesIdRoute: typeof EjecucionesIdRoute
   LanzamientosIdRoute: typeof LanzamientosIdRoute
+  ProyectosNuevoRoute: typeof ProyectosNuevoRoute
   AyudaIndexRoute: typeof AyudaIndexRoute
   ProyectosIndexRoute: typeof ProyectosIndexRoute
   CorridasIdReporteRoute: typeof CorridasIdReporteRoute
@@ -489,6 +502,13 @@ declare module '@tanstack/react-router' {
       path: '/proyectos'
       fullPath: '/proyectos/'
       preLoaderRoute: typeof ProyectosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/nuevo': {
+      id: '/proyectos/nuevo'
+      path: '/proyectos/nuevo'
+      fullPath: '/proyectos/nuevo'
+      preLoaderRoute: typeof ProyectosNuevoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/corridas/$id/': {
@@ -617,6 +637,7 @@ const rootRouteChildren: RootRouteChildren = {
   AyudaSlugRoute: AyudaSlugRoute,
   EjecucionesIdRoute: EjecucionesIdRoute,
   LanzamientosIdRoute: LanzamientosIdRoute,
+  ProyectosNuevoRoute: ProyectosNuevoRoute,
   AyudaIndexRoute: AyudaIndexRoute,
   ProyectosIndexRoute: ProyectosIndexRoute,
   CorridasIdReporteRoute: CorridasIdReporteRoute,
