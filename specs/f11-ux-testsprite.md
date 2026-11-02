@@ -172,9 +172,9 @@ Página `/proyectos/$proyecto/casos`. Los casos son los de `plan.py` de F10.2.T1
    - grupos colapsables por caso de uso, con `BarraApilada`;
    - filas con ID, badge, «· hace X», nombre, falla en rojo, persona como avatar y prioridad;
    - clic → **sheet** a la derecha con `?caso=TC017`. A la izquierda, las secciones Básico (prioridad y persona), Plan (objetivo y pasos) y Ajustes. A la derecha, las pestañas:
-     - **Vista previa**: video, o la lista de pasos con captura y el paso fallido resaltado;
-     - **Código**: el test Playwright o Patrol exportado, si existe; si no, el estado vacío «Todavía no se exportó»;
-     - **Historial**: tabla de ejecuciones con estado, error y fecha.
+     - Pestaña **Vista previa**: video, o la lista de pasos con captura y el paso fallido resaltado;
+     - Pestaña **Código**: el test Playwright o Patrol exportado, si existe; si no, el estado vacío «Todavía no se exportó»;
+     - Pestaña **Historial**: tabla de ejecuciones con estado, error y fecha.
 
      Debajo de la vista previa, cuando falló, van las pestañas **Error / Causa / Arreglo**: usa la sugerencia de F10.2.T2 y marca el arreglo como «sugerido por IA». También el botón **Copiar prompt de arreglo**: un prompt para Claude Code o Cursor con el problema, la evidencia redactada, los archivos probables y el comando `dogfood replay <id>`.
    - Expandir lleva el sheet a pantalla completa (`/proyectos/$proyecto/casos/$tc`).
@@ -271,17 +271,17 @@ Done when: estos tests pasan en `tests/test_panel_insights.py` (dos corridas de 
 
 1. **Inicio** (`/`):
    - tarjeta de bienvenida con una ilustración simple y los botones «Ver proyectos» y «Ver ayuda»;
-   - **Primeros pasos**: una lista de verificación con barra («1 de 4 hechas»): crear proyecto, primera corrida, conectar Slack y conectar GitHub. Cada paso se calcula de los datos reales;
+   - Bloque **Primeros pasos**: una lista de verificación con barra («1 de 4 hechas»): crear proyecto, primera corrida, conectar Slack y conectar GitHub. Cada paso se calcula de los datos reales;
    - Proyectos recientes, en tabla;
    - Suites y Programaciones, con su estado vacío ilustrado.
 2. **Proyectos** (`/proyectos`): tabla con Nombre, Últimos resultados (chips verde y roja con números), Última actividad, Creado, Tipo y Origen (Panel, CLI o Slack), con las pestañas Todos, Web, Android e iOS, buscador, filtro, orden y paginación.
 3. **Proyecto nuevo** (`/proyectos/nuevo`), en 3 pasos con indicador:
-   - **Básico**: tipo (Web, Android, iOS), URL u objetivo y nombre;
-   - **Acceso**: cómo inicia sesión la persona. Puede ser:
+   - Paso **Básico**: tipo (Web, Android, iOS), URL u objetivo y nombre;
+   - Paso **Acceso**: cómo inicia sesión la persona. Puede ser:
      - registro propio, como predicts;
      - un usuario de prueba, cuya contraseña se guarda como secreto;
      - sin login;
-   - **Contexto extra**: PRD (subir un `.md` o pegar texto), instrucciones extra y repo del código.
+   - Paso **Contexto extra**: PRD (subir un `.md` o pegar texto), instrucciones extra y repo del código.
 
    A la derecha, la tarjeta «Otras formas de empezar», con el comando de la CLI y «Pedíselo a Papurri en Slack». Al terminar, el proyecto se crea con el `POST` de F11.1.T2 y se va a sus Casos de prueba, con el estado vacío «Genera el plan» y el botón que llama a `dogfood plan`.
 
