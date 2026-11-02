@@ -95,7 +95,7 @@ def test_migracion_v1_a_v2(tmp_path):
 
     with closing(sqlite3.connect(db)) as con:
         con.row_factory = sqlite3.Row
-        assert con.execute("PRAGMA user_version").fetchone()[0] == VERSION_ESQUEMA == 2
+        assert con.execute("PRAGMA user_version").fetchone()[0] == VERSION_ESQUEMA == 3
         viejo = con.execute("SELECT * FROM ejecuciones WHERE id = 'e0'").fetchone()
         assert viejo["motivo_juez"] == "bien" and viejo["driver"] == "web"
         assert viejo["motor"] == "browser_use" and viejo["resultado"] is None

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 2
+VERSION_ESQUEMA = 3
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -59,8 +59,23 @@ ALTER TABLE uso_llm ADD COLUMN backend TEXT DEFAULT 'api';
 ALTER TABLE uso_llm ADD COLUMN costo_equivalente_usd REAL DEFAULT 0;
 """
 
+# F11.1.T2: proyectos (un objetivo más su configuración editable, en JSON) y la corrida que los nombra.
+# `predicts` se siembra una sola vez, al crear la tabla: si se borra, no vuelve.
+_PREDICTS = (
+    '{"slug":"predicts","nombre":"Predicts","tipo":"web","objetivo":"predicts","url":"",'
+    '"acceso":{"usuario":"","secreto_ref":""},"instrucciones":"","entornos":[],'
+    '"comportamiento":{"login_una_vez":false,"viewport":"escritorio","concurrencia":null},'
+    '"notificaciones":{"slack":false,"issues_github":true,"repo":""},"repo_codigo":""}'
+)
+MIGRACION_V3 = f"""
+CREATE TABLE proyectos (slug TEXT PRIMARY KEY, creado TEXT NOT NULL, datos TEXT NOT NULL);
+INSERT INTO proyectos (slug, creado, datos)
+    VALUES ('predicts', strftime('%Y-%m-%dT%H:%M:%SZ', 'now'), '{_PREDICTS}');
+ALTER TABLE corridas ADD COLUMN proyecto TEXT;
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
-MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2}
+MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3}
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
 
@@ -112,7 +127,7 @@ class Almacen:
         with closing(self._con()) as con, con:
             con.execute(
                 'INSERT INTO corridas (id, objetivo, ref, "commit", semilla, inicio, fin, estado,'
-                " version_app) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                " version_app, proyecto) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     corrida.id,
                     corrida.objetivo,
@@ -123,6 +138,7 @@ class Almacen:
                     corrida.fin.isoformat() if corrida.fin else None,
                     corrida.estado,
                     corrida.version_app,
+                    corrida.parametros.get("proyecto"),
                 ),
             )
         return base

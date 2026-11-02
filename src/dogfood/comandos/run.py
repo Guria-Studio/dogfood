@@ -10,12 +10,16 @@ app = typer.Typer(help="Corre usuarios agénticos contra el objetivo.")
 
 @app.callback(invoke_without_command=True)
 def run(
-    target: Annotated[str, typer.Option(help="Objetivo.")] = "predicts",
+    target: Annotated[str, typer.Option(help="Objetivo o slug de un proyecto.")] = "predicts",
     personas: Annotated[int | None, typer.Option(help="Cantidad de personas.")] = None,
     escenarios: Annotated[str | None, typer.Option(help="Ids separados por coma.")] = None,
     seed: Annotated[int | None, typer.Option(help="Semilla.")] = None,
     ref: Annotated[str, typer.Option(help="Rama, tag o commit.")] = "main",
-    concurrencia: Annotated[int, typer.Option(help="Ejecuciones en paralelo.")] = 5,
+    concurrencia: Annotated[
+        int | None,
+        typer.Option(help="Ejecuciones en paralelo (por defecto, la del proyecto o la config)."),
+    ] = None,
+    entorno: Annotated[str | None, typer.Option(help="Entorno del proyecto.")] = None,
     repeat: Annotated[int, typer.Option(help="Repeticiones.")] = 1,
     sin_publicar: Annotated[bool, typer.Option("--sin-publicar", help="No crea issues.")] = False,
     tope_usd: Annotated[float | None, typer.Option("--tope-usd", help="Tope de costo.")] = None,
@@ -45,6 +49,8 @@ def run(
         correr(
             Opciones(
                 objetivo=target,
+                concurrencia=concurrencia,
+                entorno=entorno,
                 ref=ref,
                 personas=personas or 1,
                 escenarios=[e.strip() for e in escenarios.split(",")] if escenarios else None,

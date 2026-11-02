@@ -88,6 +88,7 @@ class Persona(BaseModel):
     intencion: Intencion
     estilo: list[str] = []
     semilla: int
+    instrucciones: str = ""  # extra del proyecto, va al prompt
 
 
 class CompatibilidadPersona(BaseModel):

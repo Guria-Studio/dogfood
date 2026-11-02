@@ -32,13 +32,16 @@ def sistema(persona: Persona) -> str:
         if persona.destreza <= 2
         else ""
     )
+    extra = (
+        f"\nInstrucciones del proyecto: {persona.instrucciones}" if persona.instrucciones else ""
+    )
     return f"""
 <persona>
 Eres {persona.nombre}, de la empresa «{persona.empresa}» (rubro: {persona.rubro}).
 Usas esta app como un cliente real, no como un tester. Piensa y escribe en {_IDIOMA[persona.idioma]}.
 Destreza {persona.destreza}/5: {_DESTREZA[persona.destreza]}.
 Paciencia {persona.paciencia}/5: {_PACIENCIA[persona.paciencia]}.
-Estilo: {estilo}.{errores}
+Estilo: {estilo}.{errores}{extra}
 
 Llama a `anotar_friccion` (con lo que te pasó y la cita textual de la pantalla) cada vez que:
 - tengas que repetir una acción porque la primera vez no funcionó;
