@@ -1,0 +1,25 @@
+{
+ "comparison_kind": "browser_scenario",
+ "overall_status": "unchanged",
+ "alignment": {
+  "status": "not_aligned",
+  "aligned_steps": 2,
+  "before_only": [
+   "p001-1"
+  ],
+  "after_only": [],
+  "failures": []
+ },
+ "steps": [
+  {
+   "step_id": "scenario_start",
+   "status": "unchanged",
+   "artifact_diffs": []
+  },
+  {
+   "step_id": "p001-1",
+   "status": "unchanged",
+   "artifact_diffs": []
+  }
+ ]
+}

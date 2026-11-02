@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 4
+VERSION_ESQUEMA = 5
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -83,8 +83,18 @@ CREATE TABLE actividad (
 CREATE INDEX ix_actividad_proyecto ON actividad (proyecto, id);
 """
 
+# F12.1.T2: diffs de comportamiento entre dos refs (el detalle completo vive en `datos`, en JSON).
+MIGRACION_V5 = """
+CREATE TABLE diffs (
+    id TEXT PRIMARY KEY, proyecto TEXT NOT NULL, base TEXT NOT NULL, nueva TEXT NOT NULL,
+    creado TEXT NOT NULL, total INTEGER NOT NULL, con_cambios INTEGER NOT NULL,
+    datos TEXT NOT NULL
+);
+CREATE INDEX ix_diffs_proyecto ON diffs (proyecto, creado);
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
-MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3, 4: MIGRACION_V4}
+MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3, 4: MIGRACION_V4, 5: MIGRACION_V5}
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
 
@@ -170,7 +180,18 @@ class Almacen:
         d = self.dir_ejecucion(corrida_id, e.id)
         (d / "capturas").mkdir(parents=True, exist_ok=True)
         (d / "descargas").mkdir(exist_ok=True)
-        (d / "historial.json").write_text(e.model_dump_json(indent=2))
+        actual = d / "historial.json"
+        if actual.is_file():
+            # navegador.py guardó ahí el historial de browser-use: se aparta antes de pisarlo
+            try:
+                previo = json.loads(actual.read_text())
+            except ValueError:
+                previo = None
+            if isinstance(previo, dict) and "history" in previo:
+                apartado = d / "historial-browser-use.json"
+                actual.replace(apartado)
+                e.ruta_historial = apartado
+        actual.write_text(e.model_dump_json(indent=2))
         m = e.metricas
         for nombre, items in (("pasos", e.pasos), ("red", e.red), ("consola", e.consola)):
             (d / f"{nombre}.jsonl").write_text("".join(i.model_dump_json() + "\n" for i in items))
@@ -267,6 +288,42 @@ class Almacen:
                 " version_app = COALESCE(?, version_app) WHERE id = ?",
                 (estado, costo, datetime.now().astimezone().isoformat(), version_app, corrida_id),
             )
+
+    def guardar_diff(self, d: dict) -> None:
+        """Guarda (o reemplaza) un diff: `id`, `proyecto`, `base`, `nueva`, `creado`, `casos`…"""
+        con_cambios = sum(c["resultado"] == "cambios" for c in d["casos"])
+        with closing(self._con()) as con, con:
+            con.execute(
+                "INSERT OR REPLACE INTO diffs (id, proyecto, base, nueva, creado, total,"
+                " con_cambios, datos) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    d["id"],
+                    d["proyecto"],
+                    d["base"],
+                    d["nueva"],
+                    d["creado"],
+                    len(d["casos"]),
+                    con_cambios,
+                    json.dumps(d, ensure_ascii=False),
+                ),
+            )
+
+    def diff(self, diff_id: str) -> dict:
+        with closing(self._con()) as con:
+            r = con.execute("SELECT datos FROM diffs WHERE id = ?", (diff_id,)).fetchone()
+        if r is None:
+            raise KeyError(diff_id)
+        return json.loads(r["datos"])
+
+    def listar_diffs(self, proyecto: str) -> list[dict]:
+        """Resumen (sin el detalle por caso) del más nuevo al más viejo."""
+        with closing(self._con()) as con:
+            filas = con.execute(
+                "SELECT id, proyecto, base, nueva, creado, total, con_cambios FROM diffs"
+                " WHERE proyecto = ? ORDER BY creado DESC",
+                (proyecto,),
+            ).fetchall()
+        return [dict(f) for f in filas]
 
     # --- lectura ---
     def listar_corridas(self) -> list[ResumenCorrida]:
