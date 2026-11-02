@@ -51,7 +51,9 @@ def verificar(ctx: ContextoDeteccion) -> list[Hallazgo]:
         if concreto is None:  # falta un id seguro para esa ruta: no se dispara
             continue
         status, datos, extracto = _probar(cli_b, metodo, concreto, plantilla.endswith("/eventos"))
-        if status in SIN_DATOS or status >= 500 or not datos:
+        # Solo una respuesta exitosa revela datos: cualquier 4xx (422 de validación incluido)
+        # o 5xx es un rechazo o un error, no una fuga.
+        if status in SIN_DATOS or status >= 400 or not datos:
             continue
         hallazgos.append(_hallazgo_fuga(ctx, metodo, plantilla, status, extracto))
     return hallazgos

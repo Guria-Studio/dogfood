@@ -180,3 +180,24 @@ def test_una_sola_empresa_da_hallazgo_no_ejecutada():
     assert hallazgos[0].tipo == TipoHallazgo.regla
     assert hallazgos[0].gravedad == Gravedad.baja
     assert "no ejecutada" in hallazgos[0].titulo
+
+
+def test_422_de_validacion_no_es_fuga():
+    """Regresión (corrida 20261101-210205): un 422 `{"detail": [...]}` es un error de validación
+    de FastAPI, no datos de A; salía como 3 fugas críticas falsas."""
+    with respx.mock(assert_all_called=False) as m:
+        _inventario_de_a(m)
+        m.get(f"{API}/api/analisis/an-A/exportar").respond(
+            422, json={"detail": [{"loc": ["query", "formato"], "msg": "Field required"}]}
+        )
+        _probes_404(
+            m,
+            [
+                "/api/proyectos/proj-A",
+                "/api/datasets/ds-A",
+                "/api/plantillas/tpl-A",
+                "/api/trabajos/job-A/eventos",
+                "/api/proyectos/proj-audit",
+            ],
+        )
+        assert aislamiento.verificar(_ctx(["A", "B"])) == []
