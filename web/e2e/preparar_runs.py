@@ -5,7 +5,17 @@ from datetime import datetime
 from pathlib import Path
 
 from dogfood.almacen import Almacen
-from dogfood.dominio import Corrida, Ejecucion, MetricasEjecucion, Paso, Persona
+from dogfood.dominio import (
+    Corrida,
+    Ejecucion,
+    Evidencia,
+    Hallazgo,
+    MetricasEjecucion,
+    Paso,
+    Persona,
+)
+from dogfood.plan import CasoPrueba, PlanPruebas
+from dogfood.reporte import sugerencia
 
 # PNG de 1x1: basta para que la captura cargue.
 _PNG = bytes.fromhex(
@@ -47,7 +57,8 @@ def preparar(raiz: Path) -> None:
     a = Almacen(raiz)
     a.nueva_corrida(
         Corrida(id="c1", objetivo="predicts", ref="main", commit="abc1234", semilla=1,
-                inicio=datetime(2026, 1, 1), estado="completa", version_app="v1.0")
+                inicio=datetime(2026, 1, 1), estado="completa", version_app="v1.0",
+                parametros={"proyecto": "predicts"})
     )  # fmt: skip
     a.guardar_personas("c1", [_persona("p1", "Ana"), _persona("p2", "Bob")])
     for id, persona, esc, res, n in (
@@ -56,6 +67,40 @@ def preparar(raiz: Path) -> None:
         ("e3", "p1", "login-fallido", "fallo", 1),
     ):
         a.guardar_ejecucion("c1", _ejecucion(a, id, persona, esc, res, n))
+    _plan_y_hallazgos(a, raiz)
+
+
+def _caso(esc: str, pid: str, nombre: str, prioridad: str, ejecuciones: list[str]) -> CasoPrueba:
+    return CasoPrueba(
+        id=f"{esc}:{pid}", titulo=f"{nombre} hace {esc}", escenario_id=esc, persona_id=pid,
+        persona_nombre=nombre, objetivo=f"Lograr {esc}", criterio_exito="ve el resultado",
+        prioridad=prioridad, superficies=[], ejecuciones=ejecuciones,
+    )  # fmt: skip
+
+
+def _plan_y_hallazgos(a: Almacen, raiz: Path) -> None:
+    """Plan de 3 casos (1 pasa, 2 fallan) con un hallazgo y su sugerencia de arreglo."""
+    plan = PlanPruebas(
+        objetivo="predicts", semilla=1,
+        casos=[
+            _caso("demo", "p1", "Ana", "alta", ["e1"]),
+            _caso("login-fallido", "p2", "Bob", "alta", ["e2"]),
+            _caso("login-fallido", "p1", "Ana", "media", ["e3"]),
+        ],
+    )  # fmt: skip
+    (raiz / "c1" / "plan.json").write_text(plan.model_dump_json())
+    a.guardar_hallazgos("c1", [
+        Hallazgo(
+            tipo="logica", gravedad="alta", pantalla="/login", titulo="El login no avisa del error",
+            descripcion="Muestra una pantalla en blanco", ejecucion_id="e2", semilla=1,
+            commit="abc1234", esperado="Mensaje de error", obtenido="Pantalla en blanco",
+            evidencia=[Evidencia(tipo="log", extracto="POST /login 500")],
+        )
+    ])  # fmt: skip
+    sugerencia.guardar(raiz / "c1", {"c1-H1": sugerencia.Sugerencia(
+        causa="El formulario ignora el 500 del servidor", cambio="Mostrar el mensaje de error",
+        archivos=[sugerencia.ArchivoProbable(ruta="app/login.tsx", linea=42)],
+    )})  # fmt: skip
 
 
 if __name__ == "__main__":

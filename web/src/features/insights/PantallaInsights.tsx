@@ -24,7 +24,7 @@ const pct = (n: number, t: number) => (t ? Math.round((100 * n) / t) : 0)
 function Bloque({ titulo, children }: { titulo: string; children: ReactNode }) {
   return (
     <section className="mt-8">
-      <h2 className="mb-3 font-serif text-xl tracking-tight">{titulo}</h2>
+      <h2 className="mb-3 font-serif text-xl">{titulo}</h2>
       {children}
     </section>
   )
