@@ -34,6 +34,15 @@ class PredictsObjetivo:
     def logs(self, instancia: Instancia, desde: datetime) -> dict[str, str]:
         return entorno.logs(instancia, desde)
 
+    def reglas_diff(self) -> list[dict]:
+        """Patrones que suma predicts a `rea.normalizacion` (ver ese módulo)."""
+        return [
+            # «hace 3 minutos», «hace 2 h»: cambia con cada corrida
+            {"id": "hace", "regex": r"\bhace \d+ ?\w+", "reemplazo": "hace «tiempo»"},
+            # horas visibles (subida del CSV, último cálculo)
+            {"id": "hora", "regex": r"\b\d{1,2}:\d{2}(?::\d{2})?\b", "reemplazo": "«hora»"},
+        ]
+
     def rutas_esperadas(self) -> list[dict]:
         """Respuestas de red que no son hallazgo (`esperada`) o que son una carrera (`carrera`)."""
         return [
