@@ -30,6 +30,7 @@ import { Route as ProyectosProyectoDispositivosRouteImport } from './routes/proy
 import { Route as ProyectosProyectoFuentesRouteImport } from './routes/proyectos.$proyecto.fuentes'
 import { Route as ProyectosProyectoGithubRouteImport } from './routes/proyectos.$proyecto.github'
 import { Route as ProyectosProyectoInsightsRouteImport } from './routes/proyectos.$proyecto.insights'
+import { Route as ProyectosProyectoMapaRouteImport } from './routes/proyectos.$proyecto.mapa'
 import { Route as ProyectosProyectoRecorridosRouteImport } from './routes/proyectos.$proyecto.recorridos'
 import { Route as ProyectosProyectoVistaRouteImport } from './routes/proyectos.$proyecto.vista'
 import { Route as ProyectosProyectoAjustesSeccionRouteImport } from './routes/proyectos.$proyecto.ajustes.$seccion'
@@ -148,6 +149,11 @@ const ProyectosProyectoInsightsRoute =
     path: '/proyectos/$proyecto/insights',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProyectosProyectoMapaRoute = ProyectosProyectoMapaRouteImport.update({
+  id: '/proyectos/$proyecto/mapa',
+  path: '/proyectos/$proyecto/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProyectosProyectoRecorridosRoute =
   ProyectosProyectoRecorridosRouteImport.update({
     id: '/proyectos/$proyecto/recorridos',
@@ -216,6 +222,7 @@ export interface FileRoutesByFullPath {
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
   '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/mapa': typeof ProyectosProyectoMapaRoute
   '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
   '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
   '/corridas/$id/': typeof CorridasIdIndexRoute
@@ -247,6 +254,7 @@ export interface FileRoutesByTo {
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
   '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/mapa': typeof ProyectosProyectoMapaRoute
   '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
   '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
   '/corridas/$id': typeof CorridasIdIndexRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
   '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
   '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/mapa': typeof ProyectosProyectoMapaRoute
   '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
   '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
   '/corridas/$id/': typeof CorridasIdIndexRoute
@@ -312,6 +321,7 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
     | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/mapa'
     | '/proyectos/$proyecto/recorridos'
     | '/proyectos/$proyecto/vista'
     | '/corridas/$id/'
@@ -343,6 +353,7 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
     | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/mapa'
     | '/proyectos/$proyecto/recorridos'
     | '/proyectos/$proyecto/vista'
     | '/corridas/$id'
@@ -374,6 +385,7 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/fuentes'
     | '/proyectos/$proyecto/github'
     | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/mapa'
     | '/proyectos/$proyecto/recorridos'
     | '/proyectos/$proyecto/vista'
     | '/corridas/$id/'
@@ -406,6 +418,7 @@ export interface RootRouteChildren {
   ProyectosProyectoFuentesRoute: typeof ProyectosProyectoFuentesRoute
   ProyectosProyectoGithubRoute: typeof ProyectosProyectoGithubRoute
   ProyectosProyectoInsightsRoute: typeof ProyectosProyectoInsightsRoute
+  ProyectosProyectoMapaRoute: typeof ProyectosProyectoMapaRoute
   ProyectosProyectoRecorridosRoute: typeof ProyectosProyectoRecorridosRoute
   ProyectosProyectoVistaRoute: typeof ProyectosProyectoVistaRoute
   CorridasIdIndexRoute: typeof CorridasIdIndexRoute
@@ -567,6 +580,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosProyectoInsightsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyectos/$proyecto/mapa': {
+      id: '/proyectos/$proyecto/mapa'
+      path: '/proyectos/$proyecto/mapa'
+      fullPath: '/proyectos/$proyecto/mapa'
+      preLoaderRoute: typeof ProyectosProyectoMapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/proyectos/$proyecto/recorridos': {
       id: '/proyectos/$proyecto/recorridos'
       path: '/proyectos/$proyecto/recorridos'
@@ -646,6 +666,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProyectosProyectoFuentesRoute: ProyectosProyectoFuentesRoute,
   ProyectosProyectoGithubRoute: ProyectosProyectoGithubRoute,
   ProyectosProyectoInsightsRoute: ProyectosProyectoInsightsRoute,
+  ProyectosProyectoMapaRoute: ProyectosProyectoMapaRoute,
   ProyectosProyectoRecorridosRoute: ProyectosProyectoRecorridosRoute,
   ProyectosProyectoVistaRoute: ProyectosProyectoVistaRoute,
   CorridasIdIndexRoute: CorridasIdIndexRoute,

@@ -40,3 +40,17 @@ export const crearProyecto = (datos: Record<string, unknown>) => enviar('/api/pr
 export const generarPlan = (slug: string) => enviar(`/api/proyectos/${encodeURIComponent(slug)}/plan`)
 
 export const ETIQUETA_TIPO = { web: 'Web', flutter_web: 'Web', android: 'Android', ios: 'iOS' } as const
+
+/** Guarda la contraseña del usuario de prueba en el `.env` de secretos; la respuesta nunca la trae. */
+export const guardarSecreto = (slug: string, valor: string) =>
+  globalThis
+    .fetch(new URL(`/api/proyectos/${encodeURIComponent(slug)}/secreto`, base()), {
+      method: 'PUT',
+      headers: { 'X-Dogfood': '1', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ valor }),
+    })
+    .then(async (r) => {
+      const d = await r.json().catch(() => ({}))
+      if (!r.ok) throw new Error(typeof d.detail === 'string' ? d.detail : `error ${r.status}`)
+      return d
+    })

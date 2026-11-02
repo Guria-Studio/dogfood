@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { type CasoFila, hace, useCasos } from "./api";
 import { DetalleCaso } from "./DetalleCaso";
 import { generarPlan } from "@/features/proyectos/api";
+import { RevisarPlan } from "@/features/escenarios/RevisarPlan";
 
 export interface BusquedaCasos {
   estado?: string;
@@ -160,6 +161,7 @@ export function PantallaCasos() {
           </label>
         }
       />
+      <RevisarPlan slug={proyecto} />
       {lista.isPending ? (
         <Skeleton data-testid="cargando-casos" className="h-40 w-full" />
       ) : lista.isError ? (

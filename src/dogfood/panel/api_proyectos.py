@@ -7,9 +7,12 @@ from typing import Annotated
 import httpx
 from dotenv import dotenv_values
 from fastapi import Body, FastAPI, Header, HTTPException
+from fastapi.responses import FileResponse
 
 from dogfood import actividad, proyectos
+from dogfood.almacen import Almacen
 from dogfood.config import Config
+from dogfood.objetivos.web.acceso import VARIABLE, _ruta_secretos
 
 
 def _archivo_secreto(slug: str) -> Path:
@@ -99,6 +102,36 @@ def registrar_api_proyectos(app: FastAPI, raiz: Path, cfg: Config | None = None)
         campos = ", ".join(sorted(cambios))
         actividad.registrar(raiz, slug, "ajuste_cambiado", campos, autor or "panel")
         return p.model_dump(mode="json")
+
+    @app.put("/api/proyectos/{slug}/secreto")
+    def guardar_secreto(
+        slug: str,
+        cuerpo: Annotated[dict, Body()],
+        x_dogfood: str | None = Header(default=None),
+    ):
+        """Guarda la contraseña del usuario de prueba en el `.env` de secretos; nunca la devuelve."""
+        exigir(x_dogfood)
+        uno(slug)
+        valor = str(cuerpo.get("valor") or "")
+        if not valor or "\n" in valor:
+            raise HTTPException(400, "la contraseña no puede estar vacía ni tener saltos de línea")
+        ruta = _ruta_secretos(slug)
+        ruta.parent.mkdir(parents=True, exist_ok=True)
+        ruta.touch(mode=0o600)
+        previo = {k: v for k, v in dotenv_values(ruta).items() if k != VARIABLE and v}
+        previo[VARIABLE] = valor
+        ruta.write_text("".join(f"{k}={v}\n" for k, v in previo.items()))
+        return {"guardado": True, "variable": VARIABLE}
+
+    @app.get("/api/proyectos/{slug}/mapa/captura")
+    def captura(slug: str, path: str):
+        """Miniatura de una pantalla de la última exploración (solo las registradas en ella)."""
+        uno(slug)
+        m = Almacen(raiz).ultima_exploracion(slug) or {}
+        for pant in m.get("pantallas", []):
+            if pant.get("path") == path and pant.get("captura") and Path(pant["captura"]).is_file():
+                return FileResponse(pant["captura"])
+        raise HTTPException(404, "sin captura para esa pantalla")
 
     @app.post("/api/proyectos/{slug}/slack/probar")
     def probar_slack(slug: str, x_dogfood: str | None = Header(default=None)):

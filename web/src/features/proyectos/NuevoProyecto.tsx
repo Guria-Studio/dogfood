@@ -7,11 +7,14 @@ import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { crearProyecto } from './api'
+import { explorar } from '@/features/mapa/api'
+import { crearProyecto, guardarSecreto } from './api'
 
 const PASOS = ['Básico', 'Acceso', 'Contexto extra'] as const
 const TIPOS = [['web', 'Web'], ['android', 'Android'], ['ios', 'iOS']] as const
-type Modo = 'registro' | 'usuario' | 'ninguno'
+type Modo = 'registro' | 'usuario_prueba' | 'sin_login'
+const LOCAL = /^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|.*\.(local|test|internal|localhost|ts\.net)$)/
+const PRUEBA = /(staging|stage|stg|dev|qa|test|preview|sandbox)/
 
 export const slugDe = (s: string) =>
   s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40)
@@ -20,6 +23,16 @@ export function urlValida(s: string) {
   try {
     const u = new URL(s.trim())
     return (u.protocol === 'http:' || u.protocol === 'https:') && u.hostname !== ''
+  } catch {
+    return false
+  }
+}
+
+/** Una URL pública sin pinta de staging: dogfood no debería correr contra producción. */
+export function parecenProduccion(s: string) {
+  try {
+    const h = new URL(s.trim()).hostname.toLowerCase()
+    return h !== '' && !LOCAL.test(h) && !PRUEBA.test(h)
   } catch {
     return false
   }
@@ -36,6 +49,12 @@ export function NuevoProyecto() {
   const [usuario, setUsuario] = useState('')
   const [clave, setClave] = useState('')
   const [claveGuardada, setClaveGuardada] = useState(false)
+  const [entorno, setEntorno] = useState<'local' | 'staging'>('local')
+  const [levantar, setLevantar] = useState('')
+  const [bajar, setBajar] = useState('')
+  const [salud, setSalud] = useState('')
+  const [origenes, setOrigenes] = useState('')
+  const [creado, setCreado] = useState(false)
   const [prd, setPrd] = useState('')
   const [instrucciones, setInstrucciones] = useState('')
   const [repo, setRepo] = useState('')
@@ -55,25 +74,63 @@ export function NuevoProyecto() {
     setEnviando(true)
     setError('')
     try {
+      const web = tipo === 'web'
       await crearProyecto({
         slug,
         nombre: nombre.trim(),
         tipo,
-        objetivo: slug,
+        objetivo: web ? 'web' : slug,
         url: url.trim(),
-        acceso: modo === 'usuario' ? { usuario, secreto_ref: claveGuardada ? `${slug.toUpperCase().replace(/-/g, '_')}_PASSWORD` : '' } : {},
+        acceso: modo === 'usuario_prueba' ? { modo, usuario } : { modo },
         instrucciones,
         repo_codigo: repo.trim(),
         prd,
         origen: 'Panel',
+        ...(web && {
+          entornos: [{ nombre: entorno, url: url.trim(), predeterminado: true, tipo: entorno }],
+          levantar: levantar.trim(),
+          bajar: bajar.trim(),
+          salud: salud.trim(),
+          origenes_extra: origenes.split(/[\s,]+/).filter(Boolean),
+        }),
       })
+      if (modo === 'usuario_prueba' && clave) await guardarSecreto(slug, clave)
+      setClave('')
       await qc.invalidateQueries({ queryKey: ['proyectos'] })
-      await navegar({ to: '/proyectos/$proyecto/casos', params: { proyecto: slug } })
+      if (web) setCreado(true)
+      else await navegar({ to: '/proyectos/$proyecto/casos', params: { proyecto: slug } })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
-      setEnviando(false)
+    }
+    setEnviando(false)
+  }
+
+  async function exploraYMapa() {
+    setError('')
+    try {
+      await explorar(slug)
+      await navegar({ to: '/proyectos/$proyecto/mapa', params: { proyecto: slug } })
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
     }
   }
+
+  if (creado)
+    return (
+      <>
+        <EncabezadoPagina titulo={`Proyecto «${nombre.trim()}» creado`} subtitulo="Ahora dogfood puede explorar la app y proponerte escenarios." />
+        <Card>
+          <CardContent className="space-y-3 pt-6">
+            <p className="text-sm">La exploración recorre la app, arma el mapa de funcionalidades y deja escenarios en borrador para que los revises. Nada corre hasta que aceptes.</p>
+            {error && <p role="alert" className="text-sm text-danger">{error}</p>}
+            <div className="flex gap-2">
+              <Button onClick={exploraYMapa}>Explorar la app</Button>
+              <Button variant="ghost" onClick={() => navegar({ to: '/proyectos/$proyecto/casos', params: { proyecto: slug } })}>Ir a los casos</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    )
 
   return (
     <>
@@ -112,6 +169,24 @@ export function NuevoProyecto() {
                     {tipo === 'web' ? 'Escribe una URL válida, con http:// o https://.' : 'Escribe el objetivo.'}
                   </p>
                 )}
+                {tipo === 'web' && (
+                  <>
+                    <fieldset className="flex gap-4">
+                      <legend className="mb-1 text-sm font-medium">Entorno</legend>
+                      {([['local', 'Local'], ['staging', 'Staging']] as const).map(([v, t]) => (
+                        <label key={v} className="flex items-center gap-1">
+                          <input type="radio" name="entorno" checked={entorno === v} onChange={() => setEntorno(v)} />
+                          {t}
+                        </label>
+                      ))}
+                    </fieldset>
+                    {parecenProduccion(url) && (
+                      <p role="alert" className="rounded-md border border-danger bg-danger/10 p-2 text-sm font-medium text-danger">
+                        Esta URL parece de producción. dogfood crea cuentas y datos de prueba: usa un entorno local o de staging.
+                      </p>
+                    )}
+                  </>
+                )}
                 <label className="block text-sm font-medium">
                   Nombre
                   <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Mi app" />
@@ -122,14 +197,14 @@ export function NuevoProyecto() {
               <>
                 <fieldset className="space-y-2">
                   <legend className="mb-1 text-sm font-medium">¿Cómo inicia sesión la persona?</legend>
-                  {([['registro', 'Se registra sola (como predicts)'], ['usuario', 'Con un usuario de prueba'], ['ninguno', 'Sin login']] as const).map(([v, t]) => (
+                  {([['registro', 'Se registra sola (como predicts)'], ['usuario_prueba', 'Con un usuario de prueba'], ['sin_login', 'Sin login']] as const).map(([v, t]) => (
                     <label key={v} className="flex items-center gap-2">
                       <input type="radio" name="acceso" checked={modo === v} onChange={() => setModo(v)} />
                       {t}
                     </label>
                   ))}
                 </fieldset>
-                {modo === 'usuario' && (
+                {modo === 'usuario_prueba' && (
                   <div className="space-y-3">
                     <label className="block text-sm font-medium">
                       Usuario
@@ -139,7 +214,7 @@ export function NuevoProyecto() {
                       <p className="flex items-center gap-2 text-sm">
                         <Check aria-hidden="true" className="size-4 text-success" />
                         Contraseña guardada como secreto
-                        <Button variant="ghost" size="sm" onClick={() => setClaveGuardada(false)}>Cambiar</Button>
+                        <Button variant="ghost" size="sm" onClick={() => { setClaveGuardada(false); setClave('') }}>Cambiar</Button>
                       </p>
                     ) : (
                       <div className="flex items-end gap-2">
@@ -150,7 +225,7 @@ export function NuevoProyecto() {
                         <Button
                           variant="outline"
                           disabled={clave === ''}
-                          onClick={() => { setClaveGuardada(true); setClave('') }}
+                          onClick={() => setClaveGuardada(true)}
                         >
                           Guardar
                         </Button>
@@ -175,6 +250,26 @@ export function NuevoProyecto() {
                   Repo del código
                   <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="dueño/repo" />
                 </label>
+                {tipo === 'web' && (
+                  <>
+                    <label className="block text-sm font-medium">
+                      Levantar (comando)
+                      <Input value={levantar} onChange={(e) => setLevantar(e.target.value)} placeholder="docker compose up -d" />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Bajar (comando)
+                      <Input value={bajar} onChange={(e) => setBajar(e.target.value)} placeholder="docker compose down" />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Salud (URL o path)
+                      <Input value={salud} onChange={(e) => setSalud(e.target.value)} placeholder="/health" />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Orígenes extra (separados por coma)
+                      <Input value={origenes} onChange={(e) => setOrigenes(e.target.value)} placeholder="https://api.mi-app.com" />
+                    </label>
+                  </>
+                )}
               </>
             )}
             {error && <p role="alert" className="text-sm text-danger">{error}</p>}
