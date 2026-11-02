@@ -9,6 +9,7 @@ from contextlib import closing
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -25,12 +26,17 @@ class ErrorProyecto(ValueError):
 class Acceso(BaseModel):
     usuario: str = ""
     secreto_ref: str = ""
+    # Objetivo `web` (F13): cómo entra la persona. `registro` es lo que hacía siempre.
+    modo: Literal["registro", "usuario_prueba", "sin_login"] = "registro"
+    confirmacion: Literal["no", "mailpit", "manual"] = "no"  # solo en modo `registro`
+    mailpit_url: str = ""  # API de Mailpit si `confirmacion: mailpit`
 
 
 class Entorno(BaseModel):
     nombre: str
     url: str
     predeterminado: bool = False
+    tipo: Literal["local", "staging"] = "local"  # nunca producción
 
 
 class Comportamiento(BaseModel):
@@ -62,6 +68,13 @@ class Proyecto(BaseModel):
     repo_codigo: str = ""  # dueño/repo del código, para las sugerencias de arreglo
     diff_activo: bool = False  # `dogfood ci` corre también `dogfood diff` contra la rama base
     diff_bloquea: bool = False  # un 4xx/5xx nuevo en el diff hace fallar el check
+    # Objetivo `web`: cómo levantar la app (p. ej. `docker compose -f … up -d`) y cómo saber que
+    # está sana (una URL o un path; vacío = la raíz).
+    levantar: str = ""
+    bajar: str = ""
+    salud: str = ""
+    origenes_extra: list[str] = []  # orígenes que el navegador puede tocar además del de la URL
+    hosts_prohibidos: list[str] = []  # la corrida no arranca si la URL cae en uno (producción)
     creado: datetime | None = None
 
     @field_validator("objetivo")
@@ -79,6 +92,17 @@ class Proyecto(BaseModel):
         if sum(e.predeterminado for e in v) > 1:
             raise ValueError("solo un entorno puede ser el predeterminado")
         return v
+
+    def verificar_url(self, url: str) -> None:
+        """Frena con ErrorProyecto si el host de `url` es (o cuelga de) un host prohibido."""
+        host = (urlsplit(url).hostname or "").lower()
+        for prohibido in self.hosts_prohibidos:
+            p = prohibido.strip().lower()
+            if p and (host == p or host.endswith("." + p)):
+                raise ErrorProyecto(
+                    f"la URL {url} cae en hosts_prohibidos ({p}) del proyecto {self.slug!r}: "
+                    "dogfood nunca corre contra producción"
+                )
 
     def entorno(self, nombre: str | None = None) -> Entorno | None:
         for e in self.entornos:

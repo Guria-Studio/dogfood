@@ -40,7 +40,7 @@ def entorno(monkeypatch):
     corridos = []
     monkeypatch.setattr(Config, "cargar", classmethod(lambda cls, *a, **k: cfg))
     for modulo in ("dogfood.comandos.ci", "dogfood.corrida"):
-        monkeypatch.setattr(f"{modulo}.cargar_objetivo", lambda n: FalsoObjetivo())
+        monkeypatch.setattr(f"{modulo}.cargar_objetivo", lambda n, *a, **k: FalsoObjetivo())
     monkeypatch.setattr("dogfood.corrida.cliente_para", lambda *a, **k: object())
 
     monkeypatch.setattr("dogfood.corrida.opinion.contar_uso_ia", lambda i: None)

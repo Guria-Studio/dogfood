@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 6
+VERSION_ESQUEMA = 7
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -108,6 +108,16 @@ CREATE TABLE programaciones (
 );
 """
 
+# F13.1.T1: escenarios de un proyecto `web` (borrador, aceptado o descartado; F13.2.T1 los propone).
+# `datos` es el Escenario en JSON. Los campos nuevos de `proyectos.datos` (levantar, bajar, salud,
+# origenes_extra, hosts_prohibidos, entornos[].tipo) toman su valor por defecto al leerse.
+MIGRACION_V7 = """
+CREATE TABLE escenarios_proyecto (
+    proyecto TEXT NOT NULL, id TEXT NOT NULL, estado TEXT NOT NULL DEFAULT 'borrador',
+    datos TEXT NOT NULL, creado TEXT NOT NULL, PRIMARY KEY (proyecto, id)
+);
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
 MIGRACIONES = {
     1: ESQUEMA_V1,
@@ -116,6 +126,7 @@ MIGRACIONES = {
     4: MIGRACION_V4,
     5: MIGRACION_V5,
     6: MIGRACION_V6,
+    7: MIGRACION_V7,
 }
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
