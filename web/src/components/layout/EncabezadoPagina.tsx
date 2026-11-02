@@ -26,7 +26,7 @@ export function EncabezadoPagina({ titulo, subtitulo, ayuda, acciones }: Props) 
     <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
         <div className="flex items-center gap-1">
-          <h1 className="font-serif text-3xl tracking-tight md:text-4xl">{titulo}</h1>
+          <h1 className="font-serif text-3xl md:text-4xl">{titulo}</h1>
           {ayuda && (
             <Tooltip>
               <TooltipTrigger asChild>
