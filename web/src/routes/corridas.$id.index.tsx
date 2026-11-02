@@ -15,6 +15,6 @@ export const Route = createFileRoute('/corridas/$id/')({
   },
 })
 
-function validarPestana(s: Record<string, unknown>): { pestana?: 'casos' } {
-  return s.pestana === 'casos' ? { pestana: 'casos' } : {}
+function validarPestana(s: Record<string, unknown>): { pestana?: 'lista' } {
+  return s.pestana === 'casos' ? { pestana: 'lista' } : {}
 }

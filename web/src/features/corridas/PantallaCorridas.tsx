@@ -2,11 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import { cliente } from '@/api/cliente'
-import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
-import { NuevaCorrida } from '@/features/acciones/NuevaCorrida'
-import { Kpis } from './Kpis'
 import { FILTROS, type Filtros, TablaEjecuciones } from './TablaEjecuciones'
 
+/** Ejecuciones con sus filtros (la sección de abajo de la página de corridas). */
 export function PantallaCorridas() {
   const filtros: Filtros = useSearch({ strict: false })
   const navigate = useNavigate()
@@ -20,8 +18,6 @@ export function PantallaCorridas() {
 
   return (
     <>
-      <EncabezadoPagina titulo="Corridas" ayuda="corridas" acciones={<NuevaCorrida />} subtitulo="Cómo les fue a las personas en cada recorrido." />
-      <Kpis />
       <h2 className="mb-3 text-lg font-semibold tracking-tight">Ejecuciones</h2>
       <div className="mb-4 flex flex-wrap gap-3">
         {FILTROS.map((nombre) => (

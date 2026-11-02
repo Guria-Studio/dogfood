@@ -31,7 +31,7 @@ export function BadgeEstado({ estado }: { estado: Caso['estado'] }) {
   )
 }
 
-function Filtro(props: { nombre: string; valor: string; opciones: [string, string][]; cambiar: (v: string) => void }) {
+export function Filtro(props: { nombre: string; valor: string; opciones: [string, string][]; cambiar: (v: string) => void }) {
   return (
     <label className="flex flex-col gap-1 text-xs font-medium text-muted-foreground">
       {props.nombre}
@@ -52,12 +52,8 @@ function Filtro(props: { nombre: string; valor: string; opciones: [string, strin
   )
 }
 
-/** Casos de prueba de la corrida: un caso por persona × escenario, con el estado de su ejecución. */
-export function TablaCasos({ corridaId }: { corridaId: string }) {
-  const navigate = useNavigate()
-  const [estado, setEstado] = useState('')
-  const [prioridad, setPrioridad] = useState('')
-  const plan = useQuery({
+export function usePlan(corridaId: string) {
+  return useQuery({
     queryKey: ['plan', corridaId],
     queryFn: async () => {
       const { data, error } = await cliente.GET('/api/corridas/{corrida_id}/plan', {
@@ -68,72 +64,81 @@ export function TablaCasos({ corridaId }: { corridaId: string }) {
     },
     refetchInterval: (q) => (q.state.data?.some((c) => c.estado === 'en_curso' || c.estado === 'pendiente') ? 5000 : false),
   })
+}
+
+export const OPCIONES_ESTADO = Object.entries(ESTADOS).map(([v, e]) => [v, e.texto]) as [string, string][]
+export const OPCIONES_PRIORIDAD: [string, string][] = [['alta', 'Alta'], ['media', 'Media']]
+
+/** La tabla de casos (la vista Lista). */
+export function ListaCasos({ casos }: { casos: Caso[] }) {
+  const navigate = useNavigate()
+  const abrir = (c: Caso) => c.ejecucion_id && navigate({ to: '/ejecuciones/$id', params: { id: c.ejecucion_id } })
+  if (casos.length === 0) return <Vacio icono={ClipboardList} titulo="Ningún caso con esos filtros" />
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          {['Caso', 'Estado', 'Prioridad', 'Persona', 'Duración'].map((c) => (
+            <TableHead key={c}>{c}</TableHead>
+          ))}
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {casos.map((c) => (
+          <TableRow
+            key={c.id}
+            data-caso={c.id}
+            onClick={() => abrir(c)}
+            className={c.ejecucion_id ? 'cursor-pointer' : undefined}
+          >
+            <TableCell>
+              {c.ejecucion_id ? (
+                <Link
+                  to="/ejecuciones/$id"
+                  params={{ id: c.ejecucion_id }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="font-medium hover:underline"
+                >
+                  {c.titulo}
+                </Link>
+              ) : (
+                <span className="font-medium">{c.titulo}</span>
+              )}
+              <div className="text-xs text-muted-foreground">{c.criterio_exito}</div>
+            </TableCell>
+            <TableCell>
+              <BadgeEstado estado={c.estado} />
+            </TableCell>
+            <TableCell>
+              <Badge variant={c.prioridad === 'alta' ? 'danger' : 'neutral'}>{c.prioridad}</Badge>
+            </TableCell>
+            <TableCell>{c.persona_nombre}</TableCell>
+            <TableCell className="tabular-nums">{c.duracion_s == null ? '—' : duracion(c.duracion_s)}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  )
+}
+
+/** Casos de prueba de la corrida: un caso por persona × escenario, con el estado de su ejecución. */
+export function TablaCasos({ corridaId }: { corridaId: string }) {
+  const [estado, setEstado] = useState('')
+  const [prioridad, setPrioridad] = useState('')
+  const plan = usePlan(corridaId)
 
   if (plan.isPending) return <Skeleton data-testid="cargando-casos" className="h-40 w-full" />
   if (plan.isError)
     return <Vacio icono={TriangleAlert} titulo="Sin plan de pruebas" texto="Esta corrida no guardó su plan (es anterior a los casos de prueba)." />
 
   const casos = plan.data.filter((c) => (!estado || c.estado === estado) && (!prioridad || c.prioridad === prioridad))
-  const abrir = (c: Caso) => c.ejecucion_id && navigate({ to: '/ejecuciones/$id', params: { id: c.ejecucion_id } })
-
   return (
     <>
       <div className="mb-4 flex flex-wrap gap-3">
-        <Filtro
-          nombre="Estado"
-          valor={estado}
-          cambiar={setEstado}
-          opciones={Object.entries(ESTADOS).map(([v, e]) => [v, e.texto])}
-        />
-        <Filtro nombre="Prioridad" valor={prioridad} cambiar={setPrioridad} opciones={[['alta', 'Alta'], ['media', 'Media']]} />
+        <Filtro nombre="Estado" valor={estado} cambiar={setEstado} opciones={OPCIONES_ESTADO} />
+        <Filtro nombre="Prioridad" valor={prioridad} cambiar={setPrioridad} opciones={OPCIONES_PRIORIDAD} />
       </div>
-      {casos.length === 0 ? (
-        <Vacio icono={ClipboardList} titulo="Ningún caso con esos filtros" />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {['Caso', 'Estado', 'Prioridad', 'Persona', 'Duración'].map((c) => (
-                <TableHead key={c}>{c}</TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {casos.map((c) => (
-              <TableRow
-                key={c.id}
-                data-caso={c.id}
-                onClick={() => abrir(c)}
-                className={c.ejecucion_id ? 'cursor-pointer' : undefined}
-              >
-                <TableCell>
-                  {c.ejecucion_id ? (
-                    <Link
-                      to="/ejecuciones/$id"
-                      params={{ id: c.ejecucion_id }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="font-medium hover:underline"
-                    >
-                      {c.titulo}
-                    </Link>
-                  ) : (
-                    <span className="font-medium">{c.titulo}</span>
-                  )}
-                  <div className="text-xs text-muted-foreground">{c.criterio_exito}</div>
-                </TableCell>
-                <TableCell>
-                  <BadgeEstado estado={c.estado} />
-                </TableCell>
-                <TableCell>
-                  <Badge variant={c.prioridad === 'alta' ? 'danger' : 'neutral'}>{c.prioridad}</Badge>
-                </TableCell>
-                <TableCell>{c.persona_nombre}</TableCell>
-                <TableCell className="tabular-nums">{c.duracion_s == null ? '—' : duracion(c.duracion_s)}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
+      <ListaCasos casos={casos} />
     </>
   )
 }
