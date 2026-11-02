@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 7
+VERSION_ESQUEMA = 8
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -118,6 +118,16 @@ CREATE TABLE escenarios_proyecto (
 );
 """
 
+# F13.2.T1: prioridad editable de los escenarios propuestos y exploraciones (el mapa en `datos`).
+MIGRACION_V8 = """
+ALTER TABLE escenarios_proyecto ADD COLUMN prioridad TEXT NOT NULL DEFAULT 'media';
+CREATE TABLE exploraciones (
+    id TEXT PRIMARY KEY, proyecto TEXT NOT NULL, creado TEXT NOT NULL,
+    costo_usd REAL NOT NULL DEFAULT 0, datos TEXT NOT NULL
+);
+CREATE INDEX ix_exploraciones_proyecto ON exploraciones (proyecto, creado);
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
 MIGRACIONES = {
     1: ESQUEMA_V1,
@@ -127,6 +137,7 @@ MIGRACIONES = {
     5: MIGRACION_V5,
     6: MIGRACION_V6,
     7: MIGRACION_V7,
+    8: MIGRACION_V8,
 }
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
@@ -357,6 +368,77 @@ class Almacen:
                 (proyecto,),
             ).fetchall()
         return [dict(f) for f in filas]
+
+    def guardar_exploracion(self, d: dict) -> None:
+        """`d`: `id`, `proyecto`, `creado`, `costo_usd`, más el mapa y las pantallas."""
+        with closing(self._con()) as con, con:
+            con.execute(
+                "INSERT OR REPLACE INTO exploraciones (id, proyecto, creado, costo_usd, datos)"
+                " VALUES (?, ?, ?, ?, ?)",
+                (
+                    d["id"],
+                    d["proyecto"],
+                    d["creado"],
+                    d["costo_usd"],
+                    json.dumps(d, ensure_ascii=False),
+                ),
+            )
+
+    def ultima_exploracion(self, proyecto: str) -> dict | None:
+        with closing(self._con()) as con:
+            r = con.execute(
+                "SELECT datos FROM exploraciones WHERE proyecto = ? ORDER BY creado DESC LIMIT 1",
+                (proyecto,),
+            ).fetchone()
+        return json.loads(r["datos"]) if r else None
+
+    def guardar_borradores(self, proyecto: str, propuestos: list[tuple[dict, str]]) -> None:
+        """`(escenario, prioridad)`: entra como borrador; si ya existe, solo se refresca el borrador
+        (lo aceptado o descartado no se toca)."""
+        ahora = datetime.now().astimezone().isoformat()
+        with closing(self._con()) as con, con:
+            con.executemany(
+                "INSERT INTO escenarios_proyecto (proyecto, id, estado, datos, creado, prioridad)"
+                " VALUES (?, ?, 'borrador', ?, ?, ?) ON CONFLICT (proyecto, id) DO UPDATE SET"
+                " datos = excluded.datos, prioridad = excluded.prioridad WHERE estado = 'borrador'",
+                [
+                    (proyecto, e["id"], json.dumps(e, ensure_ascii=False), ahora, prio)
+                    for e, prio in propuestos
+                ],
+            )
+
+    def escenarios_proyecto(self, proyecto: str, id: str | None = None) -> list[dict]:
+        """Cada uno: el escenario más `estado`, `prioridad` y `creado`."""
+        sql = "SELECT * FROM escenarios_proyecto WHERE proyecto = ?"
+        args: tuple = (proyecto,)
+        if id is not None:
+            sql, args = sql + " AND id = ?", (proyecto, id)
+        with closing(self._con()) as con:
+            filas = con.execute(sql + " ORDER BY creado, id", args).fetchall()
+        return [
+            json.loads(f["datos"])
+            | {"estado": f["estado"], "prioridad": f["prioridad"], "creado": f["creado"]}
+            for f in filas
+        ]
+
+    def actualizar_escenario(
+        self, proyecto: str, id: str, datos: dict, estado: str, prioridad: str
+    ) -> None:
+        with closing(self._con()) as con, con:
+            con.execute(
+                "UPDATE escenarios_proyecto SET datos = ?, estado = ?, prioridad = ?"
+                " WHERE proyecto = ? AND id = ?",
+                (json.dumps(datos, ensure_ascii=False), estado, prioridad, proyecto, id),
+            )
+
+    def borrar_escenario(self, proyecto: str, id: str) -> bool:
+        with closing(self._con()) as con, con:
+            return (
+                con.execute(
+                    "DELETE FROM escenarios_proyecto WHERE proyecto = ? AND id = ?", (proyecto, id)
+                ).rowcount
+                > 0
+            )
 
     # --- lectura ---
     def listar_corridas(self) -> list[ResumenCorrida]:
