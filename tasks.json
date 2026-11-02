@@ -39,6 +39,10 @@
     {
       "id": 10,
       "name": "F10 — Corridas confiables y estilo TestSprite"
+    },
+    {
+      "id": 11,
+      "name": "F11 — UX estilo TestSprite"
     }
   ],
   "tasks": [
@@ -1888,6 +1892,201 @@
         "src/dogfood/deteccion/tecnicos.py"
       ],
       "specRef": "f10-confiable-testsprite.md#F10.9.T1",
+      "comments": []
+    },
+    {
+      "id": "F11.1.T1",
+      "phase": 11,
+      "title": "Sistema de diseño y navegación en dos niveles",
+      "description": "1. Tema claro cálido como predeterminado (tokens en `web/src/styles.css` según la referencia de arriba), con la serif de títulos y un componente `EncabezadoPagina({titulo, subtitulo, acciones})` usado en todas las páginas.\n2. Barra global (`web/src/components/layout/BarraGlobal.tsx`) y barra de proyecto (`BarraProyecto.tsx`), con rutas anidadas en TanStack Router: `/` (Inicio), `/proyectos`, `/proyectos/$proyecto/{casos,corridas,insights,actividad,fuentes,github,ajustes/general,ajustes/entorno,ajustes/comportamiento,ajustes/notificaciones}`, `/suites`, `/programaciones`, `/ayuda`. Las rutas viejas (`/corridas/$id`, `/ejecuciones/$id`, `/recorridos`, `/dispositivos`, `/vista`) redirigen a la nueva ubicación o siguen existiendo dentro del proyecto.\n3. Encabezado con migas, «Compartir» (copia el link público de `dogfood.knaimero.app`) y «Copiar link».\n4. Componentes compartidos:\n   - `PestanasEstado`: pestañas con conteo e ícono por estado;\n   - `BadgeEstado`: Pasó, Falló, Bloqueado, Corriendo, Planeado y No concluyente;\n   - `Prioridad`: barras alta, media y baja;\n   - `Avatar` de persona con sus iniciales;\n   - `Vacio` ilustrado: reutiliza el de F9.4 y suma ilustraciones SVG lineales simples;\n   - `Paginacion`;\n   - `BarraApilada`.\n\nDone when: `bash scripts/build-web.sh`, `npx tsc --noEmit` y `npm run lint` pasan, los tests de `web/` siguen verdes y estos nuevos pasan en `web/src/components/layout/layout.test.tsx`:\n- dentro de `/proyectos/predicts/casos` se ven las dos barras y las migas «predicts › Casos de prueba»;\n- «← Volver» lleva a `/proyectos`;\n- las rutas viejas redirigen;\n- `PestanasEstado` muestra los conteos y cambia el filtro en la URL (`?estado=fallo`).",
+      "model": "claude/claude-opus-5-5",
+      "reason": "Define el lenguaje visual y la estructura de navegación que heredan todas las demás tareas.",
+      "status": "backlog",
+      "dependencies": [
+        "F10.2.T4"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.1.T1",
+      "comments": []
+    },
+    {
+      "id": "F11.1.T2",
+      "phase": 11,
+      "title": "Proyectos: modelo, API y ajustes persistidos",
+      "description": "Hoy los objetivos viven en código (`src/dogfood/objetivos/`). Un **proyecto** es un objetivo más su configuración editable.\n\n1. `src/dogfood/proyectos.py` con estas funciones:\n   - `listar()`;\n   - `obtener(slug)`;\n   - `crear(datos)`;\n   - `actualizar(slug, cambios)`;\n   - `borrar(slug)`.\n\n   Guarda en la base sqlite del almacén (tabla `proyectos`, con migración en `almacen.py`) estos campos:\n   - slug y nombre;\n   - tipo: `web`, `android`, `ios` o `flutter_web`;\n   - objetivo: el nombre en `objetivos/`;\n   - URL;\n   - acceso: usuario de prueba y referencia a un secreto (nunca el valor, que va en `~/.config/dogfood/secretos/<slug>.env`);\n   - instrucciones extra;\n   - entornos (nombre, URL, predeterminado);\n   - comportamiento: iniciar sesión una vez por corrida, viewport, concurrencia;\n   - notificaciones: Slack, issues de GitHub y repo;\n   - repo del código, para las sugerencias de F10.2.T2;\n   - fecha de creación.\n\n   Al arrancar, si no existe, crea el proyecto `predicts` a partir de su objetivo actual.\n2. API (en `src/dogfood/panel/api_proyectos.py`, registrada con una línea en `app.py`):\n   - `GET /api/proyectos`, con los últimos resultados de cada uno: pasaron, fallaron, última actividad;\n   - `POST /api/proyectos`;\n   - `GET /api/proyectos/{slug}`;\n   - `PATCH /api/proyectos/{slug}`;\n   - `DELETE /api/proyectos/{slug}`, que pide confirmación con el slug en el cuerpo.\n\n   Las de escritura exigen `X-Dogfood: 1`.\n3. La corrida usa los ajustes del proyecto: instrucciones extra en el prompt de la persona, viewport, concurrencia y entorno. `dogfood run --target` acepta el slug de un proyecto.\n\nDone when: estos tests pasan en `tests/test_proyectos.py` y `tests/test_panel_proyectos.py`:\n- crear, leer, actualizar y borrar funcionan, y el proyecto `predicts` se siembra solo;\n- el secreto nunca aparece en la respuesta de la API ni en la base (solo la referencia);\n- `DELETE` sin la confirmación da 400, y sin `X-Dogfood` da 403;\n- una corrida con `--target predicts` toma la concurrencia y las instrucciones extra del proyecto (con un objetivo falso);\n- la lista trae los conteos de la última corrida.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Modelo de datos y CRUD con reglas claras.",
+      "status": "backlog",
+      "dependencies": [
+        "F10.2.T4"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/proyectos.py",
+        "src/dogfood/almacen.py",
+        "src/dogfood/panel/api_proyectos.py",
+        "src/dogfood/panel/app.py",
+        "src/dogfood/corrida.py",
+        "src/dogfood/cli.py",
+        "tests/test_proyectos.py",
+        "tests/test_panel_proyectos.py"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.1.T2",
+      "comments": []
+    },
+    {
+      "id": "F11.2.T1",
+      "phase": 11,
+      "title": "Casos de prueba: lista agrupada y panel lateral",
+      "description": "Página `/proyectos/$proyecto/casos`. Los casos son los de `plan.py` de F10.2.T1, con su último resultado.\n\n1. API `GET /api/proyectos/{slug}/casos?estado=&q=&prioridad=` con los casos agrupados por caso de uso (el escenario). Cada caso trae:\n   - ID estable `TC###`, nombre y caso de uso;\n   - persona: nombre, idioma, destreza e iniciales;\n   - prioridad;\n   - último estado, con la fecha;\n   - resumen de la falla en una línea (de `motivo_juez` o del hallazgo principal);\n   - link a la última ejecución.\n\n   Además trae los conteos por estado. Y `GET /api/proyectos/{slug}/casos/{tc}`, con objetivo, criterio de éxito, pasos de la última ejecución, ajustes, historial de ejecuciones, opinión de la persona y verificaciones del oráculo.\n2. Web, con la UX de la referencia:\n   - encabezado serif y buscador;\n   - `PestanasEstado`;\n   - grupos colapsables por caso de uso, con `BarraApilada`;\n   - filas con ID, badge, «· hace X», nombre, falla en rojo, persona como avatar y prioridad;\n   - clic → **sheet** a la derecha con `?caso=TC017`. A la izquierda, las secciones Básico (prioridad y persona), Plan (objetivo y pasos) y Ajustes. A la derecha, las pestañas:",
+      "model": "claude/claude-opus-5-5",
+      "reason": "La pantalla central del producto; mucho detalle de UX.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.1.T1",
+        "F11.1.T2"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "src/dogfood/panel/api_casos.py",
+        "src/dogfood/panel/app.py",
+        "tests/test_panel_casos.py",
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.2.T1",
+      "comments": []
+    },
+    {
+      "id": "F11.2.T2",
+      "phase": 11,
+      "title": "Corridas: lista y detalle con mosaico de agentes",
+      "description": "Página `/proyectos/$proyecto/corridas`, con la tabla de corridas: estado, entorno, casos que pasaron sobre el total, costo, duración y fecha, más el buscador.\n\nEl detalle de una corrida tiene dos vistas:\n- Vista **Acciones del agente**: un mosaico de tarjetas por caso, agrupado por estado (Corriendo, Pasaron, Fallaron, Bloqueados), con su conteo y la tasa de éxito arriba. Cada tarjeta muestra:\n  - la última captura, o el video si existe;\n  - el nombre del caso y la persona;\n  - el diagnóstico de una línea si falló.\n\n  Mientras corre, la tarjeta tiene la marca **EN VIVO** y se actualiza con el websocket `/ws` de la vista. Los celulares reales aparecen con su marco de teléfono. Tiene buscador y filtros por estado y prioridad.\n- Vista **Lista**: la misma información en una tabla.\n\nLos botones «Nueva corrida», «Cancelar» y «Repetir caso» (de F10.2.T3) y «Reporte» (de F10.2.T4) se mueven aquí.\n\nDone when: estos tests pasan en `web/src/features/corridas/mosaico.test.tsx`:\n- el mosaico agrupa por estado con sus conteos;\n- un evento de websocket falso pasa una tarjeta de En vivo a Falló;\n- el filtro por estado funciona;\n- la lista y el mosaico muestran los mismos casos.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Pantallas con datos existentes y patrón definido.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.2.T1"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "web/",
+        "src/dogfood/panel/api.py"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.2.T2",
+      "comments": []
+    },
+    {
+      "id": "F11.2.T3",
+      "phase": 11,
+      "title": "Insights del proyecto",
+      "description": "Página `/proyectos/$proyecto/insights`, con su API `GET /api/proyectos/{slug}/insights` en `src/dogfood/panel/api_insights.py`. Tiene cuatro bloques:\n\n1. **Tarjeta de acciones**:\n   - «N casos fallaron en la última corrida», con **Copiar prompt de arreglo** para toda la corrida (agrupa las causas);\n   - «Instalar la acción de GitHub», que lleva a la página de GitHub del proyecto.\n2. **Última corrida**: 4 KPIs.\n   - Tasa de éxito, con «N de M casos».\n   - Issues abiertos: los hallazgos sin resolver por huella.\n   - Arreglados: huellas que estaban y ya no aparecen.\n   - Regresiones: casos que pasaban y ahora fallan, con el commit o ref en que volvieron.\n\n   Debajo, una línea de tendencia de las últimas corridas. Si hay una sola, el aviso «La tendencia necesita una segunda corrida».\n3. **Issues para arreglar, agrupados por causa**: la huella del hallazgo, con título, ruta o archivo, «N casos», chips de los casos afectados (clic → sheet del caso) y gravedad, ordenados por la cantidad de casos.\n4. **Lo que dogfood suma**:\n   - fricción por pantalla, con un top 5 y las citas de las personas;\n   - números verificados por el oráculo (correctos contra equivocados);\n   - costo por corrida.\n\n   Al final, **cobertura por caso de uso**: dona de casos por caso de uso, dona de pasaron y fallaron, y una tabla con Caso de uso, Últimos resultados, Casos, Pasaron, Fallaron, Bloqueados, % y Última corrida, con las pestañas Todos, Cubiertos, Planeados y Brecha.\n\nDone when: estos tests pasan en `tests/test_panel_insights.py` (dos corridas de prueba en las que un caso pasa y luego falla, y una huella desaparece) y `web/src/features/insights/insights.test.tsx`:\n- la regresión se cuenta y muestra la ref;\n- la huella que desapareció cuenta como arreglada;\n- los issues se agrupan por huella con sus casos;\n- el prompt de la corrida incluye todas las causas;\n- con una sola corrida aparece el aviso de tendencia.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Agregados sobre datos existentes con reglas claras.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.2.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/panel/api_insights.py",
+        "src/dogfood/panel/app.py",
+        "tests/test_panel_insights.py",
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.2.T3",
+      "comments": []
+    },
+    {
+      "id": "F11.3.T1",
+      "phase": 11,
+      "title": "Inicio, lista de proyectos y asistente de proyecto nuevo",
+      "description": "1. **Inicio** (`/`):\n   - tarjeta de bienvenida con una ilustración simple y los botones «Ver proyectos» y «Ver ayuda»;",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Formularios y tablas con un patrón ya definido.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.1.T1",
+        "F11.1.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.3.T1",
+      "comments": []
+    },
+    {
+      "id": "F11.3.T2",
+      "phase": 11,
+      "title": "Ajustes del proyecto, notificaciones, fuentes, actividad y GitHub",
+      "description": "Cada página sigue la UX de la referencia: título serif, tarjetas con secciones y «Guardar cambios» deshabilitado hasta que algo cambie.\n\n- Página **General**: nombre, tipo (solo lectura, con la nota «no se puede cambiar después de crear»), **instrucciones extra** (con el ejemplo «Enfócate en el checkout; prueba casos borde; evita acciones destructivas») y una **zona de peligro** para borrar el proyecto escribiendo su nombre.\n- Página **Entorno**: lista de entornos (nombre, URL, predeterminado, usuario de prueba o «Sin cuenta de prueba») para agregar, editar y marcar el predeterminado.\n- Página **Comportamiento**: «Iniciar sesión una vez por corrida» (interruptor), viewport (1920×1080 por defecto, más los tamaños de celular) y «Casos al mismo tiempo». Cada uno con su explicación en gris.\n- Página **Notificaciones e issues**: tarjetas para Slack (webhook guardado como secreto, con «Probar»), Issues de GitHub (repo, publicar sí o no, etiqueta) y Linear o Jira («Próximamente»).\n- Página **Fuentes**: lo que el agente lee para entender la app (PRD, docs de `docs/ops`, el repo, las exploraciones), con un buscador y el estado vacío «Sin exploraciones todavía».\n- Página **Registro de actividad**: una línea de tiempo con los eventos del proyecto (corrida lanzada, terminada o cancelada, issue publicado, ajuste cambiado), cada uno con su autor y fecha. Los eventos salen de una tabla `actividad` nueva, con su API.\n- Página **Acción de GitHub**: guía en 2 pasos (agregar `.github/workflows/dogfood.yml`, mostrado con el botón «Copiar», y elegir el disparador: PR o push) y una vista previa del comentario que dogfood deja en el PR. Agrega el comando `dogfood ci --target <slug> --ref <sha>`, que corre los casos de prioridad alta y sale con código 1 si alguno falla. El comentario en el PR va solo si el proyecto lo tiene activado.\n\nDone when: estos tests pasan en `tests/test_actividad.py`, `tests/test_cli_ci.py` y `web/src/features/ajustes/ajustes.test.tsx`:\n- guardar ajustes los persiste y registra la actividad;\n- «Guardar cambios» está deshabilitado sin cambios;\n- borrar exige escribir el nombre;\n- el webhook de Slack nunca vuelve en la API;\n- `dogfood ci` con un caso fallido (objetivo falso) sale con 1, y con todo verde sale con 0.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Varias páginas de formulario más un comando simple.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.3.T1"
+      ],
+      "estimateHours": 5.0,
+      "files": [
+        "src/dogfood/actividad.py",
+        "src/dogfood/almacen.py",
+        "src/dogfood/panel/api_proyectos.py",
+        "src/dogfood/comandos/ci.py",
+        "src/dogfood/cli.py",
+        "tests/test_actividad.py",
+        "tests/test_cli_ci.py",
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.3.T2",
+      "comments": []
+    },
+    {
+      "id": "F11.3.T3",
+      "phase": 11,
+      "title": "Suites y programaciones",
+      "description": "- Página **Suites** (`/suites`): una colección de casos de uno o varios proyectos (humo, regresión, previa a release). Tiene:\n  - una tabla con nombre, última ejecución, cantidad de casos y estado de la última corrida: Pasó, Advertencia, Falló, Bloqueado o En curso;\n  - «Nueva suite», con un selector de casos;\n  - «Correr suite».\n- Página **Programaciones** (`/programaciones`): correr una suite cada hora, a diario, cada semana o con una expresión cron, con aviso a Slack al terminar. El programador es un timer de `systemd --user` por programación, creado y borrado desde la API, con el comando `dogfood suite run <id>`. Sin programaciones, la página muestra la explicación con su ilustración y tres beneficios: corridas sin pedirlas, calidad en el tiempo y regresiones encontradas de noche.\n\nDone when: estos tests pasan en `tests/test_suites.py` (con el creador de timers falseado) y `web/src/features/suites/suites.test.tsx`:\n- crear una suite con casos de dos proyectos y correrla lanza las corridas de ambos;\n- crear una programación genera el timer con el horario correcto y borrarla lo quita;\n- el estado «Advertencia» aparece con resultados mixtos.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "CRUD y un programador acotado.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.3.T2"
+      ],
+      "estimateHours": 4.0,
+      "files": [
+        "src/dogfood/suites.py",
+        "src/dogfood/almacen.py",
+        "src/dogfood/panel/api_suites.py",
+        "src/dogfood/panel/app.py",
+        "src/dogfood/comandos/suite.py",
+        "src/dogfood/cli.py",
+        "tests/test_suites.py",
+        "web/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.3.T3",
+      "comments": []
+    },
+    {
+      "id": "F11.9.T1",
+      "phase": 11,
+      "title": "E2E, revisión visual contra la referencia y redeploy",
+      "description": "1. Tests e2e de Playwright (`web/e2e/f11.spec.ts`), contra el panel con datos de prueba, que recorren:\n   - Inicio → Proyectos → proyecto nuevo (los 3 pasos) → Casos de prueba;\n   - filtrar fallidos → abrir el sheet → Error, Causa y Arreglo → copiar el prompt;\n   - Corridas → mosaico;\n   - Insights;\n   - Ajustes → guardar.\n2. Capturas en tema claro de cada página principal, en `docs/capturas/f11/`. Compáralas con la referencia de este spec: espaciados, tipografía serif en títulos, pestañas con conteo, filas agrupadas y sheet. Corrige lo que no se parezca.\n3. Redeploy: `bash scripts/build-web.sh` y `systemctl --user restart dogfood-panel`. Verifica que `http://127.0.0.1:7470/proyectos/predicts/casos` responde 200 y que `https://dogfood.knaimero.app` sigue redirigiendo al login de Access.\n4. Actualiza la ayuda (`docs/ayuda/`) con las pantallas nuevas: proyectos, casos, insights, suites y GitHub.\n\nDone when: el e2e pasa, las capturas están en el repo, `uv run pytest` y los tests de `web/` siguen verdes, el panel publicado sirve la versión nueva y la ayuda describe las pantallas nuevas.",
+      "model": "claude/claude-sonnet-5-5",
+      "reason": "Verificación y ajustes finos.",
+      "status": "backlog",
+      "dependencies": [
+        "F11.2.T3",
+        "F11.3.T3"
+      ],
+      "estimateHours": 3.0,
+      "files": [
+        "web/",
+        "docs/capturas/f11/",
+        "docs/ayuda/"
+      ],
+      "specRef": "f11-ux-testsprite.md#F11.9.T1",
       "comments": []
     }
   ]
