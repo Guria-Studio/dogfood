@@ -1,0 +1,95 @@
+{
+ "steps": [
+  {
+   "step_index": 0,
+   "step_id": "scenario_start",
+   "action": "goto_start",
+   "status": "completed",
+   "error": null,
+   "artifacts": {
+    "dom": {
+     "state": "captured",
+     "value": {
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bytes": 59,
+      "text": "<html><body><p>Inicio</p><script>x=1</script></body></html>"
+     }
+    },
+    "screenshot": {
+     "state": "captured",
+     "value": {
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "bytes": 16,
+      "media_type": "image/png",
+      "data_base64": "iVBORw0KGgoAAAAAAAAAAA=="
+     }
+    }
+   }
+  },
+  {
+   "step_index": 1,
+   "step_id": "p001-1",
+   "action": "click",
+   "status": "completed",
+   "error": null,
+   "artifacts": {
+    "dom": {
+     "state": "captured",
+     "value": {
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bytes": 58,
+      "text": "<html><body><p>Subir</p><script>x=1</script></body></html>"
+     }
+    },
+    "screenshot": {
+     "state": "captured",
+     "value": {
+      "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+      "bytes": 16,
+      "media_type": "image/png",
+      "data_base64": "iVBORw0KGgoAAAAAAAAAAA=="
+     }
+    }
+   }
+  }
+ ],
+ "events": {
+  "retained": 2,
+  "dropped": 0,
+  "items": [
+   {
+    "sequence": 1,
+    "kind": "request",
+    "status": null,
+    "step_index": 1,
+    "transaction_id": "r1",
+    "method": "GET",
+    "url": {
+     "url": "http://127.0.0.1:8080/api/x/aaaaaaaa-1111-2222-3333-444444444444",
+     "origin": "http://127.0.0.1:8080",
+     "query_parameter_names": [],
+     "redacted": false
+    },
+    "resource_type": "fetch"
+   },
+   {
+    "sequence": 2,
+    "kind": "response",
+    "status": 200,
+    "step_index": 1,
+    "transaction_id": "r1",
+    "method": "GET",
+    "url": {
+     "url": "http://127.0.0.1:8080/api/x/aaaaaaaa-1111-2222-3333-444444444444",
+     "origin": "http://127.0.0.1:8080",
+     "query_parameter_names": [],
+     "redacted": false
+    },
+    "resource_type": "fetch"
+   }
+  ]
+ },
+ "completeness": {
+  "status": "complete"
+ }
+}
