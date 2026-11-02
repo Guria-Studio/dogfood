@@ -2,6 +2,7 @@
 
 import logging
 
+import httpx
 from browser_use.llm import ChatOpenAI
 from pydantic import BaseModel
 
@@ -114,5 +115,12 @@ async def completar_json[T: BaseModel](
     """Salida estructurada `json_schema` por la API (el motor de `cfg.motores` no aplica aquí)."""
     cfg = cfg or Config.cargar()
     backend = BackendApi(_modelo(cfg, rol), cfg, contador, rol=rol)
-    salida, _, _ = await backend.completar_json(prompt, esquema)
+    try:
+        salida, _, _ = await backend.completar_json(prompt, esquema)
+    except httpx.HTTPStatusError as exc:
+        if exc.response.status_code < 500 and exc.response.status_code != 429:
+            raise
+        # el modelo del rol cayó (503/429): un solo intento con el respaldo
+        respaldo = BackendApi("ag/gemini-3.8-flash", cfg, contador, rol=rol)
+        salida, _, _ = await respaldo.completar_json(prompt, esquema)
     return salida

@@ -9,7 +9,7 @@ import logging
 from collections.abc import Awaitable, Callable, Sequence
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from dogfood.backends.api import BackendApi
 from dogfood.backends.base import BackendLlm, UsoBackend
@@ -37,9 +37,8 @@ def transitorio(exc: BaseException) -> bool:
     if isinstance(exc, httpx.HTTPStatusError):
         c = exc.response.status_code
         return c == 429 or c >= 500
-    return isinstance(
-        exc, httpx.TransportError | TimeoutError
-    )  # httpx.TimeoutException ⊂ Transport
+    # httpx.TimeoutException ⊂ Transport; una salida que no es JSON válido suele salir bien al reintentar
+    return isinstance(exc, httpx.TransportError | TimeoutError | ValidationError)
 
 
 async def _dormir(s: float) -> None:  # los tests lo reemplazan

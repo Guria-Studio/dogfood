@@ -1,0 +1,37 @@
+{
+ "comparison_kind": "browser_scenario",
+ "overall_status": "changed",
+ "alignment": {
+  "status": "aligned",
+  "aligned_steps": 3,
+  "before_only": [],
+  "after_only": [],
+  "failures": []
+ },
+ "steps": [
+  {
+   "step_id": "scenario_start",
+   "status": "unchanged",
+   "artifact_diffs": []
+  },
+  {
+   "step_id": "p001-1",
+   "status": "unchanged",
+   "artifact_diffs": []
+  },
+  {
+   "step_id": "p002-1",
+   "status": "changed",
+   "artifact_diffs": [
+    {
+     "artifact": "dom",
+     "status": "changed"
+    },
+    {
+     "artifact": "screenshot",
+     "status": "changed"
+    }
+   ]
+  }
+ ]
+}

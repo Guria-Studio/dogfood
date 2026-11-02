@@ -92,5 +92,10 @@ class BackendApi:
             costo_usd=costo,
             costo_equivalente_usd=costo,
         )
-        salida = esquema.model_validate_json(datos["choices"][0]["message"]["content"])
+        texto = datos["choices"][0]["message"]["content"].strip()
+        if texto.startswith(
+            "```"
+        ):  # gemini envuelve el JSON en ```json ... ``` aun con json_schema
+            texto = texto.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+        salida = esquema.model_validate_json(texto)
         return salida, uso, None

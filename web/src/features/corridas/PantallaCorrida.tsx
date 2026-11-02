@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { TablaCasos } from '@/features/plan/TablaCasos'
+import { Mosaico } from './Mosaico'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { BadgeResultado, duracion, fecha, usd } from './comun'
 
@@ -24,8 +24,11 @@ function Tarjeta({ titulo, valor }: { titulo: string; valor: string | number }) 
   )
 }
 
+export type Pestana = 'acciones' | 'lista' | 'resumen'
+
 export function PantallaCorrida({ id }: { id: string }) {
-  const { pestana } = useSearch({ strict: false }) as { pestana?: string }
+  const busqueda = useSearch({ strict: false }) as { pestana?: Pestana }
+  const pestana = busqueda.pestana ?? 'acciones'
   const navigate = useNavigate()
   const corrida = useQuery({
     queryKey: ['corrida', id],
@@ -73,17 +76,19 @@ export function PantallaCorrida({ id }: { id: string }) {
     <>
       {cabecera}
       <Tabs
-        value={pestana === 'casos' ? 'casos' : 'resumen'}
-        onValueChange={(v) =>
-          navigate({ to: '.', search: v === 'casos' ? { pestana: 'casos' } : {} })
-        }
+        value={pestana}
+        onValueChange={(v) => navigate({ to: '.', search: { pestana: v as Pestana } })}
       >
         <TabsList className="mb-4">
+          <TabsTrigger value="acciones">Acciones del agente</TabsTrigger>
+          <TabsTrigger value="lista">Lista</TabsTrigger>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
-          <TabsTrigger value="casos">Casos de prueba</TabsTrigger>
         </TabsList>
-        <TabsContent value="casos">
-          <TablaCasos corridaId={id} />
+        <TabsContent value="acciones">
+          <Mosaico corridaId={id} vista="acciones" />
+        </TabsContent>
+        <TabsContent value="lista">
+          <Mosaico corridaId={id} vista="lista" />
         </TabsContent>
         <TabsContent value="resumen">
       <p className="mb-4 text-sm text-muted-foreground">

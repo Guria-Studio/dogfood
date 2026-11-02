@@ -66,7 +66,7 @@ describe('pulido', () => {
     ejecuciones = Array.from({ length: 25 }, (_, i) => fila(i + 1, 'c1', 'aprobado', 0.1))
     montar()
     const user = userEvent.setup()
-    const tabla = await screen.findByRole('table')
+    const tabla = (await screen.findAllByRole('table')).at(-1)!
     const cuerpo = () => within(tabla).getAllByRole('row').slice(1)
     expect(cuerpo()).toHaveLength(20)
     expect(screen.getByText(/página 1 de 2/)).toBeInTheDocument()
