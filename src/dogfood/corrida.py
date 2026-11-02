@@ -13,7 +13,7 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-from dogfood import contrato, deteccion, frames
+from dogfood import contrato, deteccion, frames, proyectos
 from dogfood import escenarios as esc
 from dogfood import plan as plan_pruebas
 from dogfood.agente import bucle, navegador
@@ -103,6 +103,7 @@ class Opciones:
     vista: bool = False
     vista_puerto: int | None = None  # por defecto, cfg.vista.puerto
     espera_vista_s: float = ESPERA_VISTA_S  # deja ver el resultado final
+    entorno: str | None = None  # de un proyecto; por defecto, su entorno predeterminado
 
 
 def _clave(e: Escenario) -> str:
@@ -280,8 +281,11 @@ async def _arrancar_vista(cfg: Config, puerto: int | None) -> tuple[BusVivo, asy
 
 async def correr(op: Opciones) -> Corrida:
     cfg = op.cfg or Config.cargar()
-    objetivo = op.objetivo_obj or cargar_objetivo(op.objetivo)
     almacen = Almacen(op.raiz)
+    # `--target` acepta el slug de un proyecto: sus ajustes mandan sobre los de la config.
+    proyecto = proyectos.obtener(op.objetivo, op.raiz)
+    objetivo = op.objetivo_obj or cargar_objetivo(proyecto.objetivo if proyecto else op.objetivo)
+    entorno = proyecto.entorno(op.entorno) if proyecto else None
     semilla = op.semilla if op.semilla is not None else secrets.randbelow(2**31)
     inicio = datetime.now().astimezone()
     corrida = Corrida(
@@ -293,6 +297,10 @@ async def correr(op: Opciones) -> Corrida:
         inicio=inicio,
         estado="en_curso",
     )
+    if proyecto:
+        corrida.parametros["proyecto"] = proyecto.slug
+        if entorno:
+            corrida.parametros["entorno"] = entorno.nombre
     almacen.nueva_corrida(corrida)
     contador = ContadorUso(cfg)
     instancia: Instancia | None = None
@@ -305,6 +313,8 @@ async def correr(op: Opciones) -> Corrida:
             bus, tarea_vista = await _arrancar_vista(cfg, op.vista_puerto)
         instancia = objetivo.preparar(op.ref, corrida)
         corrida.commit = instancia.commit
+        if entorno and entorno.url:
+            instancia.base_url = entorno.url
         instancia.parametros.setdefault("umbral_cobertura", cfg.flutter.umbral_cobertura)
         corrida.version_app = instancia.parametros.get("version_app") or instancia.commit
 
@@ -317,6 +327,19 @@ async def correr(op: Opciones) -> Corrida:
         }
 
         personas = generar_personas(op.personas, semilla, op.idiomas)
+        if proyecto:
+            movil = proyecto.comportamiento.viewport == "movil"
+            personas = [
+                p.model_copy(
+                    update={
+                        "instrucciones": proyecto.instrucciones,
+                        "estilo": [*p.estilo, "movil"]
+                        if movil and "movil" not in p.estilo
+                        else p.estilo,
+                    }
+                )
+                for p in personas
+            ]
         almacen.guardar_personas(corrida.id, personas)
         base = esc.asignar(personas, todos, semilla)
         for aviso in base.avisos:
@@ -349,7 +372,11 @@ async def correr(op: Opciones) -> Corrida:
         confirmar = op.confirmar or (
             cuentas.confirmar_registro if objetivo.nombre == "predicts" else None
         )
-        sem = asyncio.Semaphore(op.concurrencia or cfg.concurrencia)
+        sem = asyncio.Semaphore(
+            op.concurrencia
+            or (proyecto and proyecto.comportamiento.concurrencia)
+            or cfg.concurrencia
+        )
         resultados: dict[int, Ejecucion] = {}
 
         async def esperar_memoria() -> None:
