@@ -19,6 +19,7 @@ from urllib.parse import urljoin, urlsplit
 import httpx
 
 from dogfood.dominio import ContextoDeteccion, Corrida, Escenario, Hallazgo, Instancia
+from dogfood.objetivos.web import acceso
 
 log = logging.getLogger(__name__)
 
@@ -60,7 +61,30 @@ class WebObjetivo:
 
     @classmethod
     def desde_proyecto(cls, p, **kw) -> "WebObjetivo":
+        acceso.forzar_concurrencia(p)  # cuenta compartida: de a una persona
         return cls(p, **kw)
+
+    def preparar_escenario(self, escenario, persona, instancia) -> dict:
+        """Entrada de la persona según `acceso.modo`; la contraseña va como dato sensible."""
+        p = self.proyecto
+        if p is None:
+            return {}
+        acceso.aplicar(p, persona)
+        extra: dict = {}
+        if datos := acceso.datos_sensibles(p):
+            extra["sensitive_data"] = datos
+        if p.acceso.modo == "registro" and p.acceso.confirmacion == "mailpit":
+
+            def confirmar_email() -> str:
+                """Confirma el email de la persona leyendo el correo de confirmación."""
+                link = acceso.link_de_confirmacion(p.acceso.mailpit_url, persona.email)
+                if not link or not self.url_permitida(link, instancia):
+                    return "No llegó un link de confirmación válido."
+                httpx.get(link, timeout=15, follow_redirects=True)
+                return "Email confirmado."
+
+            extra["herramientas_extra"] = [confirmar_email]
+        return extra
 
     def _url(self) -> str:
         p = self.proyecto
@@ -75,6 +99,7 @@ class WebObjetivo:
         if not url:
             raise ValueError(f"el proyecto {p.slug!r} no tiene URL")
         p.verificar_url(url)  # antes de levantar nada
+        acceso.validar(p)
         if p.levantar:
             self.runner(_sh(p.levantar), check=True)
         self._esperar_salud(urljoin(url, p.salud) if p.salud else url)
