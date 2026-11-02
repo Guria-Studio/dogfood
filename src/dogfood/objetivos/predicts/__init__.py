@@ -1,11 +1,20 @@
+import os
 from collections.abc import Callable
 from datetime import datetime
 from importlib import import_module
 from importlib.util import find_spec
 from pathlib import Path
 
-from dogfood.dominio import ContextoDeteccion, Corrida, Escenario, Hallazgo, Instancia
-from dogfood.objetivos.predicts import aislamiento, entorno, oraculo, pantallas, reglas
+from dogfood.dominio import ContextoDeteccion, Corrida, Escenario, Hallazgo, Instancia, Persona
+from dogfood.objetivos.predicts import (
+    aislamiento,
+    cliente,
+    cuentas,
+    entorno,
+    oraculo,
+    pantallas,
+    reglas,
+)
 
 
 class PredictsObjetivo:
@@ -33,6 +42,21 @@ class PredictsObjetivo:
 
     def logs(self, instancia: Instancia, desde: datetime) -> dict[str, str]:
         return entorno.logs(instancia, desde)
+
+    # Ganchos opcionales de la corrida (ver `objetivos.base.GanchosOpcionales`).
+    def confirmar_registro(self, persona: Persona, instancia: Instancia) -> str | None:
+        return cuentas.confirmar_registro(instancia, persona)
+
+    def preparar_escenario(self, escenario: Escenario, persona: Persona, instancia: Instancia):
+        if escenario.id == "recuperar-contrasena":
+            return {"herramientas_extra": cuentas.herramientas_extra(instancia, persona)}
+        return {}
+
+    def cliente_api(self, instancia: Instancia, persona: Persona) -> cliente.PredictsCliente:
+        return cliente.cliente_para(instancia, persona)
+
+    def repo(self) -> Path:
+        return Path(os.environ.get("DOGFOOD_REPO_OBJETIVO", "/mnt/storage/project/predicts"))
 
     def reglas_diff(self) -> list[dict]:
         """Patrones que suma predicts a `rea.normalizacion` (ver ese módulo)."""

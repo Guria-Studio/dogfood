@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 import secrets
 import socket
 import time
@@ -50,7 +49,6 @@ from dogfood.nodos.cliente import ClienteNodo, a_ejecucion_ios
 from dogfood.nodos.protocolo import ResultadoTrabajo, Trabajo
 from dogfood.objetivos import cargar_objetivo
 from dogfood.objetivos.base import Objetivo
-from dogfood.objetivos.predicts import cuentas
 from dogfood.personas.generador import generar as generar_personas
 from dogfood.reporte import consistencia, issues, opinion, slack, sugerencia
 from dogfood.vista.servidor import iniciar_vista
@@ -239,10 +237,9 @@ def _dataset(e: Escenario, semilla: int, almacen: Almacen, corrida_id: str) -> D
     return ds.model_copy(update={"id": ds_id, "ruta_csv": ruta, "defectos": list(d.defectos)})
 
 
-async def _sugerencias(hallazgos, corrida, cfg: Config, secretos: list[str]):
-    """Sugerencia de cada hallazgo publicable, con id `<corrida>-H<n>`. El repo del objetivo sale de
-    DOGFOOD_REPO_OBJETIVO (por defecto, el de predicts en este server)."""
-    repo = Path(os.environ.get("DOGFOOD_REPO_OBJETIVO", "/mnt/storage/project/predicts"))
+async def _sugerencias(hallazgos, corrida, cfg: Config, secretos: list[str], repo: Path | None):
+    """Sugerencia de cada hallazgo publicable, con id `<corrida>-H<n>`; `repo` es el código de la app
+    (gancho `repo()` del objetivo), si lo hay."""
     umbral = Gravedad(cfg.umbral_publicar)
     salida = {}
     for n, h in enumerate(hallazgos, 1):
@@ -284,7 +281,11 @@ async def correr(op: Opciones) -> Corrida:
     almacen = Almacen(op.raiz)
     # `--target` acepta el slug de un proyecto: sus ajustes mandan sobre los de la config.
     proyecto = proyectos.obtener(op.objetivo, op.raiz)
-    objetivo = op.objetivo_obj or cargar_objetivo(proyecto.objetivo if proyecto else op.objetivo)
+    objetivo = op.objetivo_obj or (
+        cargar_objetivo(proyecto.objetivo, proyecto, op.raiz)
+        if proyecto
+        else cargar_objetivo(op.objetivo)
+    )
     entorno = proyecto.entorno(op.entorno) if proyecto else None
     semilla = op.semilla if op.semilla is not None else secrets.randbelow(2**31)
     inicio = datetime.now().astimezone()
@@ -315,6 +316,8 @@ async def correr(op: Opciones) -> Corrida:
         corrida.commit = instancia.commit
         if entorno and entorno.url:
             instancia.base_url = entorno.url
+        if proyecto:  # antes de lanzar personas: nunca contra producción
+            proyecto.verificar_url(instancia.base_url)
         instancia.parametros.setdefault("umbral_cobertura", cfg.flutter.umbral_cobertura)
         corrida.version_app = instancia.parametros.get("version_app") or instancia.commit
 
@@ -369,9 +372,12 @@ async def correr(op: Opciones) -> Corrida:
         async def juez(prompt, esquema):
             return await completar_json("juez", prompt, esquema, cfg, contador)
 
+        # Ganchos opcionales del objetivo (objetivos.base.GanchosOpcionales).
+        confirmar_registro = getattr(objetivo, "confirmar_registro", None)
         confirmar = op.confirmar or (
-            cuentas.confirmar_registro if objetivo.nombre == "predicts" else None
+            (lambda i, p: confirmar_registro(p, i)) if confirmar_registro else None
         )
+        preparar_escenario = getattr(objetivo, "preparar_escenario", lambda *a: {})
         sem = asyncio.Semaphore(
             op.concurrencia
             or (proyecto and proyecto.comportamiento.concurrencia)
@@ -392,9 +398,7 @@ async def correr(op: Opciones) -> Corrida:
                 return
             await esperar_memoria()
             ds = datasets[_clave(escenario)] if escenario.datos else None
-            extra = {}
-            if objetivo.nombre == "predicts" and escenario.id == "recuperar-contrasena":
-                extra["herramientas_extra"] = cuentas.herramientas_extra(instancia, persona)
+            extra = dict(preparar_escenario(escenario, persona, instancia) or {})
             carpeta = almacen.dir_ejecucion(corrida.id, f"{corrida.id}-E{n}")
             carpeta.mkdir(parents=True, exist_ok=True)  # el plan la ve «en curso»
             driver = op.driver or escenario.driver
@@ -498,16 +502,13 @@ async def correr(op: Opciones) -> Corrida:
         for servicio, texto in logs.items():
             (almacen.dir_corrida(corrida.id) / "logs" / f"{servicio}.log").write_text(texto)
 
-        from dogfood.objetivos.predicts.cliente import (
-            cliente_para as cliente_api_para,
-        )  # ponytail: solo predicts
-
+        cliente_api = getattr(objetivo, "cliente_api", None)
         ctx = ContextoDeteccion(
             corrida=corrida,
             instancia=instancia,
             ejecuciones=ejecuciones,
             datasets=datasets,
-            cliente_api=lambda persona: cliente_api_para(instancia, persona),
+            cliente_api=lambda persona: cliente_api(instancia, persona) if cliente_api else None,
             logs=logs,
         )
         hallazgos = deteccion.ejecutar_detectores(ctx)
@@ -527,12 +528,15 @@ async def correr(op: Opciones) -> Corrida:
 
         uso_ia = None
         with paso("contar_uso_ia"):
-            uso_ia = opinion.contar_uso_ia(instancia)
+            uso_ia = getattr(objetivo, "contar_uso_ia", opinion.contar_uso_ia)(instancia)
         secretos = [p.contrasena for p in personas]
         publicados: list[issues.ResultadoIssue] = []
         sugerencias: dict[str, sugerencia.Sugerencia] = {}
         with paso("sugerencias"):
-            sugerencias = await _sugerencias(hallazgos, corrida, cfg, secretos)
+            repo = getattr(objetivo, "repo", None)
+            sugerencias = await _sugerencias(
+                hallazgos, corrida, cfg, secretos, repo() if repo else None
+            )
             sugerencia.guardar(almacen.dir_corrida(corrida.id), sugerencias)
         with paso("publicar"):
             publicados = issues.publicar(
@@ -580,6 +584,10 @@ async def correr(op: Opciones) -> Corrida:
         for r in publicados:
             if r.issue_url:
                 print(f"Issue: {r.issue_url}")
+    except proyectos.ErrorProyecto as exc:
+        log.error("la corrida %s no arrancó: %s", corrida.id, exc)
+        corrida.parametros["motivo"] = str(exc)
+        estado = "error"
     except ErrorMemoria:
         log.error("memoria libre bajo el mínimo por %s s; aborto la corrida", ESPERA_MEMORIA_S)
         corrida.parametros["motivo"] = "memoria"
