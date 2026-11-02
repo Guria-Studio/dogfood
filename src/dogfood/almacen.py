@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 3
+VERSION_ESQUEMA = 4
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -74,8 +74,17 @@ INSERT INTO proyectos (slug, creado, datos)
 ALTER TABLE corridas ADD COLUMN proyecto TEXT;
 """
 
+# F11.3.T2: registro de actividad de cada proyecto.
+MIGRACION_V4 = """
+CREATE TABLE actividad (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, proyecto TEXT NOT NULL, tipo TEXT NOT NULL,
+    detalle TEXT NOT NULL DEFAULT '', autor TEXT NOT NULL DEFAULT 'panel', fecha TEXT NOT NULL
+);
+CREATE INDEX ix_actividad_proyecto ON actividad (proyecto, id);
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
-MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3}
+MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3, 4: MIGRACION_V4}
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
 
