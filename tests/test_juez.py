@@ -101,3 +101,30 @@ async def test_bucle_con_juez_caido_es_no_concluyente(tmp_path, monkeypatch):
     )
     assert e.resultado == "no_concluyente"
     assert e.motivo_juez == "juez no disponible"
+
+
+async def test_backend_api_acepta_json_con_cercas(monkeypatch):
+    from dogfood.backends.api import BackendApi
+
+    class R:
+        def raise_for_status(self): ...
+        def json(self):
+            return {
+                "choices": [
+                    {"message": {"content": '```json\n{"exito": true, "motivo": "ok"}\n```'}}
+                ]
+            }
+
+    class C:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a): ...
+        async def post(self, *a, **k):
+            return R()
+
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **k: C())
+    cfg = Config.cargar()
+    monkeypatch.setattr(Config, "secreto", lambda self, n: "http://x", raising=False)
+    v, _, _ = await BackendApi("m", cfg, None).completar_json("p", Veredicto)
+    assert v.exito
