@@ -28,6 +28,7 @@ const pedidos: string[] = []
 
 beforeEach(() => {
   pedidos.length = 0
+  vi.stubGlobal('WebSocket', class { close() {} })
   vi.stubGlobal('fetch', async (entrada: Request | string) => {
     const url = new URL(typeof entrada === 'string' ? entrada : entrada.url, 'http://x')
     pedidos.push(url.pathname + url.search)
@@ -110,6 +111,7 @@ describe('corridas', () => {
 
   it('la corrida muestra el costo con dos decimales y la tabla de motores', async () => {
     await montar(() => <PantallaCorrida id="c1" />)
+    await userEvent.click(await screen.findByRole('tab', { name: 'Resumen' }))
     expect(await screen.findByText('$1.50')).toBeInTheDocument()
     expect(screen.getByText('Comparación de motores')).toBeInTheDocument()
     expect(screen.getByText('claude_code')).toBeInTheDocument()

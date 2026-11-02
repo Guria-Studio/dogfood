@@ -1,5 +1,7 @@
 """API JSON del panel: los mismos datos que arman las plantillas, tipados para el frontend."""
 
+import sqlite3
+from contextlib import closing
 from datetime import datetime
 from pathlib import Path
 
@@ -7,6 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from dogfood import proyectos
 from dogfood.config import Config
 from dogfood.dominio import EventoConsola, EventoRed, Gravedad, TipoHallazgo
 from dogfood.drivers import adb_red
@@ -94,6 +97,17 @@ class DetalleEjecucion(BaseModel):
     video: str | None
     trace: str | None
     logcat: str
+
+
+class FilaCorrida(BaseModel):
+    id: str
+    estado: str
+    entorno: str  # el ref de la corrida
+    pasaron: int
+    total: int
+    costo_usd: float
+    duracion_s: float | None
+    inicio: str
 
 
 class Dispositivo(BaseModel):
@@ -207,6 +221,38 @@ def registrar_api(app: FastAPI, raiz: Path, cfg: Config | None = None) -> None:
     @app.get("/api/etiquetas", response_model=dict[str, str])
     def api_etiquetas():
         return consultas.ETIQUETAS
+
+    @app.get("/api/proyectos/{slug}/corridas", response_model=list[FilaCorrida])
+    def api_corridas_proyecto(slug: str, q: str = ""):
+        p = proyectos.obtener(slug, raiz)
+        if p is None:
+            raise HTTPException(404, f"el proyecto {slug!r} no existe")
+        with closing(sqlite3.connect(raiz / "dogfood.db")) as con:
+            con.row_factory = sqlite3.Row
+            ids = con.execute(
+                "SELECT id FROM corridas WHERE proyecto = ? OR (proyecto IS NULL AND objetivo = ?)"
+                " ORDER BY inicio DESC",
+                (p.slug, p.objetivo),
+            ).fetchall()
+        filas = []
+        for (cid,) in ids:
+            r = consultas.corrida(raiz, cid)
+            if r is None:
+                continue
+            seg = (
+                (datetime.fromisoformat(r.fin) - datetime.fromisoformat(r.inicio)).total_seconds()
+                if r.fin
+                else None
+            )
+            filas.append(
+                FilaCorrida(
+                    id=r.id, estado=r.estado, entorno=r.ref,
+                    pasaron=r.por_resultado.get("aprobado", 0), total=r.ejecuciones,
+                    costo_usd=r.costo_usd, duracion_s=seg or None, inicio=r.inicio,
+                )
+            )  # fmt: skip
+        n = q.strip().lower()
+        return [f for f in filas if not n or n in f"{f.id} {f.estado} {f.entorno}".lower()]
 
     @app.get("/api/corridas/{corrida_id}", response_model=ResumenYComparacion)
     def api_corrida(corrida_id: str):
