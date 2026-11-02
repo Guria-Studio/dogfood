@@ -1,9 +1,14 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { DetalleEjecucion } from '@/features/ejecucion/DetalleEjecucion'
+import { PROYECTO_POR_DEFECTO } from '@/components/layout/pantallas'
 
-export const Route = createFileRoute('/ejecuciones/$id')({ component: Pantalla })
-
-function Pantalla() {
-  return <DetalleEjecucion id={Route.useParams().id} />
-}
+/** Ruta vieja: ahora vive dentro del proyecto. */
+export const Route = createFileRoute('/ejecuciones/$id')({
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/proyectos/$proyecto/ejecuciones/$id',
+      params: { proyecto: PROYECTO_POR_DEFECTO, id: params.id },
+      replace: true,
+    })
+  },
+})

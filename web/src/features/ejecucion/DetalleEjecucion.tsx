@@ -5,7 +5,7 @@ import type { ReactNode } from 'react'
 
 import { cliente } from '@/api/cliente'
 import type { components } from '@/api/schema'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Vacio } from '@/components/layout/Vacio'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -218,15 +218,15 @@ export function DetalleEjecucion({ id }: { id: string }) {
   const titulo = d ? `${d.ejecucion.escenario_id} terminó en ${d.ejecucion.resultado}` : ''
   return (
     <>
-      <PageHeader
+      <EncabezadoPagina
         titulo={`Ejecución ${id}`}
         ayuda="ejecucion"
-        descripcion={d ? `${d.persona.nombre} en ${d.ejecucion.escenario_id}` : undefined}
+        subtitulo={d ? `${d.persona.nombre} en ${d.ejecucion.escenario_id}` : undefined}
         acciones={d && (<div className="flex gap-2"><RepetirCaso ejecucionId={id} /><CrearIssue ejecucionId={id} titulo={titulo} /></div>)}
       />
       {q.isPending && <Skeleton className="h-64 w-full" />}
       {q.isError && (
-        <Vacio error icono={TriangleAlert} titulo={`No se pudo cargar la ejecución ${id}`} texto="Puede que la ejecución no exista o que el panel no esté corriendo." accion={<Button asChild variant="outline"><Link to="/">Volver a corridas</Link></Button>} />
+        <Vacio error icono={TriangleAlert} titulo={`No se pudo cargar la ejecución ${id}`} texto="Puede que la ejecución no exista o que el panel no esté corriendo." accion={<Button asChild variant="outline"><Link from="/proyectos/$proyecto/ejecuciones/$id" to="../../corridas">Volver a corridas</Link></Button>} />
       )}
       {d && <Contenido d={d} />}
     </>

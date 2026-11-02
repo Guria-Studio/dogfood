@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useNavigate, useSearch } from '@tanstack/react-router'
 
 import { cliente } from '@/api/cliente'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { NuevaCorrida } from '@/features/acciones/NuevaCorrida'
 import { Kpis } from './Kpis'
 import { FILTROS, type Filtros, TablaEjecuciones } from './TablaEjecuciones'
@@ -16,11 +16,11 @@ export function PantallaCorridas() {
   })
 
   const cambiar = (nombre: string, valor: string) =>
-    navigate({ to: '/', search: { ...filtros, [nombre]: valor || undefined } })
+    navigate({ to: '.', search: { ...filtros, [nombre]: valor || undefined } })
 
   return (
     <>
-      <PageHeader titulo="Corridas" ayuda="corridas" acciones={<NuevaCorrida />} descripcion="Cómo les fue a las personas en cada recorrido." />
+      <EncabezadoPagina titulo="Corridas" ayuda="corridas" acciones={<NuevaCorrida />} subtitulo="Cómo les fue a las personas en cada recorrido." />
       <Kpis />
       <h2 className="mb-3 text-lg font-semibold tracking-tight">Ejecuciones</h2>
       <div className="mb-4 flex flex-wrap gap-3">

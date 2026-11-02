@@ -39,7 +39,7 @@ beforeEach(() => {
 })
 afterEach(() => vi.unstubAllGlobals())
 
-function montar(inicial = '/') {
+function montar(inicial = '/proyectos/predicts/corridas') {
   const router = createRouter({ routeTree, history: createMemoryHistory({ initialEntries: [inicial] }) })
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
@@ -100,6 +100,6 @@ describe('pulido', () => {
   it('una ruta inexistente muestra la página 404', async () => {
     montar('/no-existe')
     expect(await screen.findByText('Página no encontrada')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Ir a corridas' })).toHaveAttribute('href', '/')
+    expect(screen.getByRole('link', { name: 'Ir al inicio' })).toHaveAttribute('href', '/')
   })
 })

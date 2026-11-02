@@ -12,14 +12,30 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as CasosRouteImport } from './routes/casos'
 import { Route as DispositivosRouteImport } from './routes/dispositivos'
+import { Route as ProgramacionesRouteImport } from './routes/programaciones'
 import { Route as RecorridosRouteImport } from './routes/recorridos'
+import { Route as SuitesRouteImport } from './routes/suites'
 import { Route as VistaRouteImport } from './routes/vista'
 import { Route as AyudaIndexRouteImport } from './routes/ayuda.index'
 import { Route as AyudaSlugRouteImport } from './routes/ayuda.$slug'
-import { Route as CorridasIdRouteImport } from './routes/corridas.$id'
 import { Route as EjecucionesIdRouteImport } from './routes/ejecuciones.$id'
 import { Route as LanzamientosIdRouteImport } from './routes/lanzamientos.$id'
+import { Route as ProyectosIndexRouteImport } from './routes/proyectos.index'
+import { Route as CorridasIdIndexRouteImport } from './routes/corridas.$id.index'
 import { Route as CorridasIdReporteRouteImport } from './routes/corridas.$id.reporte'
+import { Route as ProyectosProyectoIndexRouteImport } from './routes/proyectos.$proyecto.index'
+import { Route as ProyectosProyectoActividadRouteImport } from './routes/proyectos.$proyecto.actividad'
+import { Route as ProyectosProyectoCasosRouteImport } from './routes/proyectos.$proyecto.casos'
+import { Route as ProyectosProyectoDispositivosRouteImport } from './routes/proyectos.$proyecto.dispositivos'
+import { Route as ProyectosProyectoFuentesRouteImport } from './routes/proyectos.$proyecto.fuentes'
+import { Route as ProyectosProyectoGithubRouteImport } from './routes/proyectos.$proyecto.github'
+import { Route as ProyectosProyectoInsightsRouteImport } from './routes/proyectos.$proyecto.insights'
+import { Route as ProyectosProyectoRecorridosRouteImport } from './routes/proyectos.$proyecto.recorridos'
+import { Route as ProyectosProyectoVistaRouteImport } from './routes/proyectos.$proyecto.vista'
+import { Route as ProyectosProyectoAjustesSeccionRouteImport } from './routes/proyectos.$proyecto.ajustes.$seccion'
+import { Route as ProyectosProyectoCorridasIndexRouteImport } from './routes/proyectos.$proyecto.corridas.index'
+import { Route as ProyectosProyectoCorridasIdRouteImport } from './routes/proyectos.$proyecto.corridas.$id'
+import { Route as ProyectosProyectoEjecucionesIdRouteImport } from './routes/proyectos.$proyecto.ejecuciones.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -36,9 +52,19 @@ const DispositivosRoute = DispositivosRouteImport.update({
   path: '/dispositivos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProgramacionesRoute = ProgramacionesRouteImport.update({
+  id: '/programaciones',
+  path: '/programaciones',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RecorridosRoute = RecorridosRouteImport.update({
   id: '/recorridos',
   path: '/recorridos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SuitesRoute = SuitesRouteImport.update({
+  id: '/suites',
+  path: '/suites',
   getParentRoute: () => rootRouteImport,
 } as any)
 const VistaRoute = VistaRouteImport.update({
@@ -56,11 +82,6 @@ const AyudaSlugRoute = AyudaSlugRouteImport.update({
   path: '/ayuda/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CorridasIdRoute = CorridasIdRouteImport.update({
-  id: '/corridas/$id',
-  path: '/corridas/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const EjecucionesIdRoute = EjecucionesIdRouteImport.update({
   id: '/ejecuciones/$id',
   path: '/ejecuciones/$id',
@@ -71,51 +92,183 @@ const LanzamientosIdRoute = LanzamientosIdRouteImport.update({
   path: '/lanzamientos/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CorridasIdReporteRoute = CorridasIdReporteRouteImport.update({
-  id: '/reporte',
-  path: '/reporte',
-  getParentRoute: () => CorridasIdRoute,
+const ProyectosIndexRoute = ProyectosIndexRouteImport.update({
+  id: '/proyectos/',
+  path: '/proyectos/',
+  getParentRoute: () => rootRouteImport,
 } as any)
+const CorridasIdIndexRoute = CorridasIdIndexRouteImport.update({
+  id: '/corridas/$id/',
+  path: '/corridas/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorridasIdReporteRoute = CorridasIdReporteRouteImport.update({
+  id: '/corridas/$id/reporte',
+  path: '/corridas/$id/reporte',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosProyectoIndexRoute = ProyectosProyectoIndexRouteImport.update({
+  id: '/proyectos/$proyecto/',
+  path: '/proyectos/$proyecto/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosProyectoActividadRoute =
+  ProyectosProyectoActividadRouteImport.update({
+    id: '/proyectos/$proyecto/actividad',
+    path: '/proyectos/$proyecto/actividad',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoCasosRoute = ProyectosProyectoCasosRouteImport.update({
+  id: '/proyectos/$proyecto/casos',
+  path: '/proyectos/$proyecto/casos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosProyectoDispositivosRoute =
+  ProyectosProyectoDispositivosRouteImport.update({
+    id: '/proyectos/$proyecto/dispositivos',
+    path: '/proyectos/$proyecto/dispositivos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoFuentesRoute =
+  ProyectosProyectoFuentesRouteImport.update({
+    id: '/proyectos/$proyecto/fuentes',
+    path: '/proyectos/$proyecto/fuentes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoGithubRoute = ProyectosProyectoGithubRouteImport.update({
+  id: '/proyectos/$proyecto/github',
+  path: '/proyectos/$proyecto/github',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosProyectoInsightsRoute =
+  ProyectosProyectoInsightsRouteImport.update({
+    id: '/proyectos/$proyecto/insights',
+    path: '/proyectos/$proyecto/insights',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoRecorridosRoute =
+  ProyectosProyectoRecorridosRouteImport.update({
+    id: '/proyectos/$proyecto/recorridos',
+    path: '/proyectos/$proyecto/recorridos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoVistaRoute = ProyectosProyectoVistaRouteImport.update({
+  id: '/proyectos/$proyecto/vista',
+  path: '/proyectos/$proyecto/vista',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProyectosProyectoAjustesSeccionRoute =
+  ProyectosProyectoAjustesSeccionRouteImport.update({
+    id: '/proyectos/$proyecto/ajustes/$seccion',
+    path: '/proyectos/$proyecto/ajustes/$seccion',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoCorridasIndexRoute =
+  ProyectosProyectoCorridasIndexRouteImport.update({
+    id: '/proyectos/$proyecto/corridas/',
+    path: '/proyectos/$proyecto/corridas/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoCorridasIdRoute =
+  ProyectosProyectoCorridasIdRouteImport.update({
+    id: '/proyectos/$proyecto/corridas/$id',
+    path: '/proyectos/$proyecto/corridas/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoEjecucionesIdRoute =
+  ProyectosProyectoEjecucionesIdRouteImport.update({
+    id: '/proyectos/$proyecto/ejecuciones/$id',
+    path: '/proyectos/$proyecto/ejecuciones/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
+  '/programaciones': typeof ProgramacionesRoute
   '/recorridos': typeof RecorridosRoute
+  '/suites': typeof SuitesRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
+  '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
+  '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
+  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
+  '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
+  '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
+  '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
+  '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
+  '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
+  '/corridas/$id/': typeof CorridasIdIndexRoute
+  '/proyectos/$proyecto/': typeof ProyectosProyectoIndexRoute
+  '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
+  '/programaciones': typeof ProgramacionesRoute
   '/recorridos': typeof RecorridosRoute
+  '/suites': typeof SuitesRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda': typeof AyudaIndexRoute
+  '/proyectos': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
+  '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
+  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
+  '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
+  '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
+  '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
+  '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
+  '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
+  '/corridas/$id': typeof CorridasIdIndexRoute
+  '/proyectos/$proyecto': typeof ProyectosProyectoIndexRoute
+  '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/corridas': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/casos': typeof CasosRoute
   '/dispositivos': typeof DispositivosRoute
+  '/programaciones': typeof ProgramacionesRoute
   '/recorridos': typeof RecorridosRoute
+  '/suites': typeof SuitesRoute
   '/vista': typeof VistaRoute
   '/ayuda/$slug': typeof AyudaSlugRoute
-  '/corridas/$id': typeof CorridasIdRouteWithChildren
   '/ejecuciones/$id': typeof EjecucionesIdRoute
   '/lanzamientos/$id': typeof LanzamientosIdRoute
   '/ayuda/': typeof AyudaIndexRoute
+  '/proyectos/': typeof ProyectosIndexRoute
   '/corridas/$id/reporte': typeof CorridasIdReporteRoute
+  '/proyectos/$proyecto/actividad': typeof ProyectosProyectoActividadRoute
+  '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosRoute
+  '/proyectos/$proyecto/dispositivos': typeof ProyectosProyectoDispositivosRoute
+  '/proyectos/$proyecto/fuentes': typeof ProyectosProyectoFuentesRoute
+  '/proyectos/$proyecto/github': typeof ProyectosProyectoGithubRoute
+  '/proyectos/$proyecto/insights': typeof ProyectosProyectoInsightsRoute
+  '/proyectos/$proyecto/recorridos': typeof ProyectosProyectoRecorridosRoute
+  '/proyectos/$proyecto/vista': typeof ProyectosProyectoVistaRoute
+  '/corridas/$id/': typeof CorridasIdIndexRoute
+  '/proyectos/$proyecto/': typeof ProyectosProyectoIndexRoute
+  '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
+  '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
+  '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -123,53 +276,118 @@ export interface FileRouteTypes {
     | '/'
     | '/casos'
     | '/dispositivos'
+    | '/programaciones'
     | '/recorridos'
+    | '/suites'
     | '/vista'
     | '/ayuda/$slug'
-    | '/corridas/$id'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda/'
+    | '/proyectos/'
     | '/corridas/$id/reporte'
+    | '/proyectos/$proyecto/actividad'
+    | '/proyectos/$proyecto/casos'
+    | '/proyectos/$proyecto/dispositivos'
+    | '/proyectos/$proyecto/fuentes'
+    | '/proyectos/$proyecto/github'
+    | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/recorridos'
+    | '/proyectos/$proyecto/vista'
+    | '/corridas/$id/'
+    | '/proyectos/$proyecto/'
+    | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/corridas/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/casos'
     | '/dispositivos'
+    | '/programaciones'
     | '/recorridos'
+    | '/suites'
     | '/vista'
     | '/ayuda/$slug'
-    | '/corridas/$id'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda'
+    | '/proyectos'
     | '/corridas/$id/reporte'
+    | '/proyectos/$proyecto/actividad'
+    | '/proyectos/$proyecto/casos'
+    | '/proyectos/$proyecto/dispositivos'
+    | '/proyectos/$proyecto/fuentes'
+    | '/proyectos/$proyecto/github'
+    | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/recorridos'
+    | '/proyectos/$proyecto/vista'
+    | '/corridas/$id'
+    | '/proyectos/$proyecto'
+    | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/corridas'
   id:
     | '__root__'
     | '/'
     | '/casos'
     | '/dispositivos'
+    | '/programaciones'
     | '/recorridos'
+    | '/suites'
     | '/vista'
     | '/ayuda/$slug'
-    | '/corridas/$id'
     | '/ejecuciones/$id'
     | '/lanzamientos/$id'
     | '/ayuda/'
+    | '/proyectos/'
     | '/corridas/$id/reporte'
+    | '/proyectos/$proyecto/actividad'
+    | '/proyectos/$proyecto/casos'
+    | '/proyectos/$proyecto/dispositivos'
+    | '/proyectos/$proyecto/fuentes'
+    | '/proyectos/$proyecto/github'
+    | '/proyectos/$proyecto/insights'
+    | '/proyectos/$proyecto/recorridos'
+    | '/proyectos/$proyecto/vista'
+    | '/corridas/$id/'
+    | '/proyectos/$proyecto/'
+    | '/proyectos/$proyecto/ajustes/$seccion'
+    | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/ejecuciones/$id'
+    | '/proyectos/$proyecto/corridas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   CasosRoute: typeof CasosRoute
   DispositivosRoute: typeof DispositivosRoute
+  ProgramacionesRoute: typeof ProgramacionesRoute
   RecorridosRoute: typeof RecorridosRoute
+  SuitesRoute: typeof SuitesRoute
   VistaRoute: typeof VistaRoute
   AyudaSlugRoute: typeof AyudaSlugRoute
-  CorridasIdRoute: typeof CorridasIdRouteWithChildren
   EjecucionesIdRoute: typeof EjecucionesIdRoute
   LanzamientosIdRoute: typeof LanzamientosIdRoute
   AyudaIndexRoute: typeof AyudaIndexRoute
+  ProyectosIndexRoute: typeof ProyectosIndexRoute
+  CorridasIdReporteRoute: typeof CorridasIdReporteRoute
+  ProyectosProyectoActividadRoute: typeof ProyectosProyectoActividadRoute
+  ProyectosProyectoCasosRoute: typeof ProyectosProyectoCasosRoute
+  ProyectosProyectoDispositivosRoute: typeof ProyectosProyectoDispositivosRoute
+  ProyectosProyectoFuentesRoute: typeof ProyectosProyectoFuentesRoute
+  ProyectosProyectoGithubRoute: typeof ProyectosProyectoGithubRoute
+  ProyectosProyectoInsightsRoute: typeof ProyectosProyectoInsightsRoute
+  ProyectosProyectoRecorridosRoute: typeof ProyectosProyectoRecorridosRoute
+  ProyectosProyectoVistaRoute: typeof ProyectosProyectoVistaRoute
+  CorridasIdIndexRoute: typeof CorridasIdIndexRoute
+  ProyectosProyectoIndexRoute: typeof ProyectosProyectoIndexRoute
+  ProyectosProyectoAjustesSeccionRoute: typeof ProyectosProyectoAjustesSeccionRoute
+  ProyectosProyectoCorridasIdRoute: typeof ProyectosProyectoCorridasIdRoute
+  ProyectosProyectoEjecucionesIdRoute: typeof ProyectosProyectoEjecucionesIdRoute
+  ProyectosProyectoCorridasIndexRoute: typeof ProyectosProyectoCorridasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -195,11 +413,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DispositivosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/programaciones': {
+      id: '/programaciones'
+      path: '/programaciones'
+      fullPath: '/programaciones'
+      preLoaderRoute: typeof ProgramacionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/recorridos': {
       id: '/recorridos'
       path: '/recorridos'
       fullPath: '/recorridos'
       preLoaderRoute: typeof RecorridosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/suites': {
+      id: '/suites'
+      path: '/suites'
+      fullPath: '/suites'
+      preLoaderRoute: typeof SuitesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/vista': {
@@ -223,13 +455,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AyudaSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/corridas/$id': {
-      id: '/corridas/$id'
-      path: '/corridas/$id'
-      fullPath: '/corridas/$id'
-      preLoaderRoute: typeof CorridasIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/ejecuciones/$id': {
       id: '/ejecuciones/$id'
       path: '/ejecuciones/$id'
@@ -244,39 +469,149 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LanzamientosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyectos/': {
+      id: '/proyectos/'
+      path: '/proyectos'
+      fullPath: '/proyectos/'
+      preLoaderRoute: typeof ProyectosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corridas/$id/': {
+      id: '/corridas/$id/'
+      path: '/corridas/$id'
+      fullPath: '/corridas/$id/'
+      preLoaderRoute: typeof CorridasIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/corridas/$id/reporte': {
       id: '/corridas/$id/reporte'
-      path: '/reporte'
+      path: '/corridas/$id/reporte'
       fullPath: '/corridas/$id/reporte'
       preLoaderRoute: typeof CorridasIdReporteRouteImport
-      parentRoute: typeof CorridasIdRoute
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/': {
+      id: '/proyectos/$proyecto/'
+      path: '/proyectos/$proyecto'
+      fullPath: '/proyectos/$proyecto/'
+      preLoaderRoute: typeof ProyectosProyectoIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/actividad': {
+      id: '/proyectos/$proyecto/actividad'
+      path: '/proyectos/$proyecto/actividad'
+      fullPath: '/proyectos/$proyecto/actividad'
+      preLoaderRoute: typeof ProyectosProyectoActividadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/casos': {
+      id: '/proyectos/$proyecto/casos'
+      path: '/proyectos/$proyecto/casos'
+      fullPath: '/proyectos/$proyecto/casos'
+      preLoaderRoute: typeof ProyectosProyectoCasosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/dispositivos': {
+      id: '/proyectos/$proyecto/dispositivos'
+      path: '/proyectos/$proyecto/dispositivos'
+      fullPath: '/proyectos/$proyecto/dispositivos'
+      preLoaderRoute: typeof ProyectosProyectoDispositivosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/fuentes': {
+      id: '/proyectos/$proyecto/fuentes'
+      path: '/proyectos/$proyecto/fuentes'
+      fullPath: '/proyectos/$proyecto/fuentes'
+      preLoaderRoute: typeof ProyectosProyectoFuentesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/github': {
+      id: '/proyectos/$proyecto/github'
+      path: '/proyectos/$proyecto/github'
+      fullPath: '/proyectos/$proyecto/github'
+      preLoaderRoute: typeof ProyectosProyectoGithubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/insights': {
+      id: '/proyectos/$proyecto/insights'
+      path: '/proyectos/$proyecto/insights'
+      fullPath: '/proyectos/$proyecto/insights'
+      preLoaderRoute: typeof ProyectosProyectoInsightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/recorridos': {
+      id: '/proyectos/$proyecto/recorridos'
+      path: '/proyectos/$proyecto/recorridos'
+      fullPath: '/proyectos/$proyecto/recorridos'
+      preLoaderRoute: typeof ProyectosProyectoRecorridosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/vista': {
+      id: '/proyectos/$proyecto/vista'
+      path: '/proyectos/$proyecto/vista'
+      fullPath: '/proyectos/$proyecto/vista'
+      preLoaderRoute: typeof ProyectosProyectoVistaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/ajustes/$seccion': {
+      id: '/proyectos/$proyecto/ajustes/$seccion'
+      path: '/proyectos/$proyecto/ajustes/$seccion'
+      fullPath: '/proyectos/$proyecto/ajustes/$seccion'
+      preLoaderRoute: typeof ProyectosProyectoAjustesSeccionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/corridas/': {
+      id: '/proyectos/$proyecto/corridas/'
+      path: '/proyectos/$proyecto/corridas'
+      fullPath: '/proyectos/$proyecto/corridas/'
+      preLoaderRoute: typeof ProyectosProyectoCorridasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/corridas/$id': {
+      id: '/proyectos/$proyecto/corridas/$id'
+      path: '/proyectos/$proyecto/corridas/$id'
+      fullPath: '/proyectos/$proyecto/corridas/$id'
+      preLoaderRoute: typeof ProyectosProyectoCorridasIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/ejecuciones/$id': {
+      id: '/proyectos/$proyecto/ejecuciones/$id'
+      path: '/proyectos/$proyecto/ejecuciones/$id'
+      fullPath: '/proyectos/$proyecto/ejecuciones/$id'
+      preLoaderRoute: typeof ProyectosProyectoEjecucionesIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
   }
 }
-
-interface CorridasIdRouteChildren {
-  CorridasIdReporteRoute: typeof CorridasIdReporteRoute
-}
-
-const CorridasIdRouteChildren: CorridasIdRouteChildren = {
-  CorridasIdReporteRoute: CorridasIdReporteRoute,
-}
-
-const CorridasIdRouteWithChildren = CorridasIdRoute._addFileChildren(
-  CorridasIdRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   CasosRoute: CasosRoute,
   DispositivosRoute: DispositivosRoute,
+  ProgramacionesRoute: ProgramacionesRoute,
   RecorridosRoute: RecorridosRoute,
+  SuitesRoute: SuitesRoute,
   VistaRoute: VistaRoute,
   AyudaSlugRoute: AyudaSlugRoute,
-  CorridasIdRoute: CorridasIdRouteWithChildren,
   EjecucionesIdRoute: EjecucionesIdRoute,
   LanzamientosIdRoute: LanzamientosIdRoute,
   AyudaIndexRoute: AyudaIndexRoute,
+  ProyectosIndexRoute: ProyectosIndexRoute,
+  CorridasIdReporteRoute: CorridasIdReporteRoute,
+  ProyectosProyectoActividadRoute: ProyectosProyectoActividadRoute,
+  ProyectosProyectoCasosRoute: ProyectosProyectoCasosRoute,
+  ProyectosProyectoDispositivosRoute: ProyectosProyectoDispositivosRoute,
+  ProyectosProyectoFuentesRoute: ProyectosProyectoFuentesRoute,
+  ProyectosProyectoGithubRoute: ProyectosProyectoGithubRoute,
+  ProyectosProyectoInsightsRoute: ProyectosProyectoInsightsRoute,
+  ProyectosProyectoRecorridosRoute: ProyectosProyectoRecorridosRoute,
+  ProyectosProyectoVistaRoute: ProyectosProyectoVistaRoute,
+  CorridasIdIndexRoute: CorridasIdIndexRoute,
+  ProyectosProyectoIndexRoute: ProyectosProyectoIndexRoute,
+  ProyectosProyectoAjustesSeccionRoute: ProyectosProyectoAjustesSeccionRoute,
+  ProyectosProyectoCorridasIdRoute: ProyectosProyectoCorridasIdRoute,
+  ProyectosProyectoEjecucionesIdRoute: ProyectosProyectoEjecucionesIdRoute,
+  ProyectosProyectoCorridasIndexRoute: ProyectosProyectoCorridasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

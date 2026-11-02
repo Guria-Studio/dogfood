@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
-import { VistaVivo } from '@/features/vivo/VistaVivo'
+import { PROYECTO_POR_DEFECTO } from '@/components/layout/pantallas'
 
+/** Ruta vieja: ahora vive dentro del proyecto. */
 export const Route = createFileRoute('/vista')({
-  component: () => (
-    <>
-      <PageHeader titulo="Vista en vivo" ayuda="vista" />
-      <VistaVivo />
-    </>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: '/proyectos/$proyecto/vista', params: { proyecto: PROYECTO_POR_DEFECTO }, replace: true })
+  },
 })

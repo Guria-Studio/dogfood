@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import '@fontsource/instrument-serif/400.css';
 @plugin '@tailwindcss/typography';
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -18,41 +19,44 @@
 }
 
 :root {
-  --background: 0 0% 98%;
-  --foreground: 222 20% 11%;
+  /* Tema claro cálido (referencia TestSprite): fondo hueso #FAFAF7, tarjetas blancas,
+     borde #E8E6E1, texto casi negro, botón primario negro, verde de marca y rojo apagado. */
+  --background: 60 23% 97%;
+  --foreground: 40 8% 10%;
   --card: 0 0% 100%;
-  --card-foreground: 222 20% 11%;
+  --card-foreground: 40 8% 10%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222 20% 11%;
-  /* Color de marca de dogfood (verde azulado del logo). */
-  --primary: 173 68% 24%;
-  --primary-foreground: 166 40% 98%;
-  --secondary: 220 14% 94%;
-  --secondary-foreground: 222 20% 15%;
-  --muted: 220 14% 95%;
-  --muted-foreground: 220 9% 38%;
-  --accent: 168 32% 92%;
-  --accent-foreground: 173 68% 17%;
-  --destructive: 4 68% 45%;
+  --popover-foreground: 40 8% 10%;
+  --primary: 40 8% 10%;
+  --primary-foreground: 60 23% 97%;
+  --secondary: 45 14% 93%;
+  --secondary-foreground: 40 8% 12%;
+  --muted: 45 14% 94%;
+  --muted-foreground: 40 5% 40%;
+  --accent: 45 16% 92%;
+  --accent-foreground: 40 8% 12%;
+  --destructive: 4 52% 46%;
   --destructive-foreground: 0 0% 100%;
-  --border: 220 13% 88%;
-  --input: 220 13% 80%;
-  --ring: 173 68% 30%;
-  --radius: 0.5rem;
+  --border: 43 13% 90%;
+  --input: 43 12% 84%;
+  /* Verde de marca: foco, acentos y éxito. */
+  --ring: 152 48% 32%;
+  --brand: 152 48% 32%;
+  --radius: 0.625rem;
 
-  --success: 152 60% 27%;
-  --success-soft: 145 45% 92%;
-  --warning: 30 90% 32%;
-  --warning-soft: 42 92% 90%;
-  --danger: 4 68% 42%;
-  --danger-soft: 4 85% 95%;
-  --info: 205 70% 34%;
-  --info-soft: 205 75% 94%;
+  --success: 152 52% 28%;
+  --success-soft: 140 35% 93%;
+  --warning: 32 80% 33%;
+  --warning-soft: 42 80% 91%;
+  --danger: 4 52% 44%;
+  --danger-soft: 6 60% 95%;
+  --info: 210 55% 38%;
+  --info-soft: 210 55% 95%;
 
-  --sidebar: 0 0% 100%;
-  --sidebar-accent: 168 32% 92%;
-  --chart-exito: 152 60% 32%;
-  --chart-costo: 32 92% 44%;
+  --sidebar: 50 20% 95.5%;
+  --sidebar-accent: 45 16% 90%;
+  --chart-exito: 152 48% 34%;
+  --chart-costo: 32 85% 45%;
 }
 
 .dark {
@@ -87,12 +91,14 @@
 
   --sidebar: 222 20% 10%;
   --sidebar-accent: 173 30% 18%;
+  --brand: 168 56% 46%;
   --chart-exito: 145 55% 55%;
   --chart-costo: 40 92% 62%;
 }
 
 @theme inline {
   --font-sans: 'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Instrument Serif', 'Newsreader', Georgia, serif;
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: hsl(var(--background));
@@ -114,6 +120,7 @@
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
+  --color-brand: hsl(var(--brand));
 
   --color-success: hsl(var(--success));
   --color-success-soft: hsl(var(--success-soft));

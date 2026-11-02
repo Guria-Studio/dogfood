@@ -16,17 +16,17 @@ export type SlugPantalla =
 
 interface Props {
   titulo: string
-  descripcion?: string
+  subtitulo?: string
   ayuda?: SlugPantalla
   acciones?: ReactNode
 }
 
-export function PageHeader({ titulo, descripcion, ayuda, acciones }: Props) {
+export function EncabezadoPagina({ titulo, subtitulo, ayuda, acciones }: Props) {
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
       <div>
         <div className="flex items-center gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">{titulo}</h1>
+          <h1 className="font-serif text-3xl tracking-tight md:text-4xl">{titulo}</h1>
           {ayuda && (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -44,7 +44,7 @@ export function PageHeader({ titulo, descripcion, ayuda, acciones }: Props) {
             </Tooltip>
           )}
         </div>
-        {descripcion && <p className="mt-1 text-sm text-muted-foreground">{descripcion}</p>}
+        {subtitulo && <p className="mt-1.5 text-sm text-muted-foreground">{subtitulo}</p>}
       </div>
       {acciones && <div className="flex items-center gap-2">{acciones}</div>}
     </header>

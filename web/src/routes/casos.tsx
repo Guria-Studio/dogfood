@@ -1,5 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { PantallaCasos } from '@/features/plan/PantallaCasos'
+import { PROYECTO_POR_DEFECTO } from '@/components/layout/pantallas'
 
-export const Route = createFileRoute('/casos')({ component: PantallaCasos })
+/** Ruta vieja: ahora vive dentro del proyecto. */
+export const Route = createFileRoute('/casos')({
+  beforeLoad: () => {
+    throw redirect({ to: '/proyectos/$proyecto/casos', params: { proyecto: PROYECTO_POR_DEFECTO }, replace: true })
+  },
+})

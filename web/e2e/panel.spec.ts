@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test('corridas: filtrar y abrir una ejecución, pasos con teclado, diálogo de issue', async ({ page }) => {
-  await page.goto('/')
+  await page.goto('/proyectos/predicts/corridas')
   await expect(page.getByRole('heading', { name: 'Corridas', level: 1 })).toBeVisible()
   await expect(page.getByRole('row', { name: /Bob/ })).toBeVisible()
 
@@ -10,7 +10,7 @@ test('corridas: filtrar y abrir una ejecución, pasos con teclado, diálogo de i
   await expect(page.getByRole('row', { name: /Ana/ })).toBeVisible()
   await expect(page.getByRole('row', { name: /Bob/ })).toHaveCount(0)
 
-  await page.goto('/')
+  await page.goto('/proyectos/predicts/corridas')
   await page.getByRole('row', { name: /Bob/ }).click()
   await expect(page).toHaveURL(/\/ejecuciones\/e2$/)
   await expect(page.getByRole('heading', { name: 'Ejecución e2' })).toBeVisible()

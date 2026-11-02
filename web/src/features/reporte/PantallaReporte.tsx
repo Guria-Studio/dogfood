@@ -85,7 +85,7 @@ export function PantallaReporte({ id }: { id: string }) {
     <article data-reporte-listo className="mx-auto max-w-3xl space-y-8 print:max-w-none">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Reporte de la corrida {id}</h1>
+          <h1 className="font-serif text-4xl tracking-tight">Reporte de la corrida {id}</h1>
           <p className="text-sm text-muted-foreground">
             {r.objetivo}@{r.ref} · versión {r.version} · {fecha(r.inicio)}
           </p>
