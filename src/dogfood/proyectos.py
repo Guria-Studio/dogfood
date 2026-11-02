@@ -60,6 +60,8 @@ class Proyecto(BaseModel):
     comportamiento: Comportamiento = Comportamiento()
     notificaciones: Notificaciones = Notificaciones()
     repo_codigo: str = ""  # dueño/repo del código, para las sugerencias de arreglo
+    diff_activo: bool = False  # `dogfood ci` corre también `dogfood diff` contra la rama base
+    diff_bloquea: bool = False  # un 4xx/5xx nuevo en el diff hace fallar el check
     creado: datetime | None = None
 
     @field_validator("objetivo")

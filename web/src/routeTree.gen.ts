@@ -37,6 +37,8 @@ import { Route as ProyectosProyectoCasosIndexRouteImport } from './routes/proyec
 import { Route as ProyectosProyectoCasosTcRouteImport } from './routes/proyectos.$proyecto.casos.$tc'
 import { Route as ProyectosProyectoCorridasIndexRouteImport } from './routes/proyectos.$proyecto.corridas.index'
 import { Route as ProyectosProyectoCorridasIdRouteImport } from './routes/proyectos.$proyecto.corridas.$id'
+import { Route as ProyectosProyectoDiffsIndexRouteImport } from './routes/proyectos.$proyecto.diffs.index'
+import { Route as ProyectosProyectoDiffsIdRouteImport } from './routes/proyectos.$proyecto.diffs.$id'
 import { Route as ProyectosProyectoEjecucionesIdRouteImport } from './routes/proyectos.$proyecto.ejecuciones.$id'
 
 const IndexRoute = IndexRouteImport.update({
@@ -189,6 +191,18 @@ const ProyectosProyectoCorridasIdRoute =
     path: '/proyectos/$proyecto/corridas/$id',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ProyectosProyectoDiffsIndexRoute =
+  ProyectosProyectoDiffsIndexRouteImport.update({
+    id: '/proyectos/$proyecto/diffs/',
+    path: '/proyectos/$proyecto/diffs/',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ProyectosProyectoDiffsIdRoute =
+  ProyectosProyectoDiffsIdRouteImport.update({
+    id: '/proyectos/$proyecto/diffs/$id',
+    path: '/proyectos/$proyecto/diffs/$id',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ProyectosProyectoEjecucionesIdRoute =
   ProyectosProyectoEjecucionesIdRouteImport.update({
     id: '/proyectos/$proyecto/ejecuciones/$id',
@@ -223,9 +237,11 @@ export interface FileRoutesByFullPath {
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
   '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/diffs/$id': typeof ProyectosProyectoDiffsIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
   '/proyectos/$proyecto/casos/': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
+  '/proyectos/$proyecto/diffs/': typeof ProyectosProyectoDiffsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -254,9 +270,11 @@ export interface FileRoutesByTo {
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
   '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/diffs/$id': typeof ProyectosProyectoDiffsIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
   '/proyectos/$proyecto/casos': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas': typeof ProyectosProyectoCorridasIndexRoute
+  '/proyectos/$proyecto/diffs': typeof ProyectosProyectoDiffsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -286,9 +304,11 @@ export interface FileRoutesById {
   '/proyectos/$proyecto/ajustes/$seccion': typeof ProyectosProyectoAjustesSeccionRoute
   '/proyectos/$proyecto/casos/$tc': typeof ProyectosProyectoCasosTcRoute
   '/proyectos/$proyecto/corridas/$id': typeof ProyectosProyectoCorridasIdRoute
+  '/proyectos/$proyecto/diffs/$id': typeof ProyectosProyectoDiffsIdRoute
   '/proyectos/$proyecto/ejecuciones/$id': typeof ProyectosProyectoEjecucionesIdRoute
   '/proyectos/$proyecto/casos/': typeof ProyectosProyectoCasosIndexRoute
   '/proyectos/$proyecto/corridas/': typeof ProyectosProyectoCorridasIndexRoute
+  '/proyectos/$proyecto/diffs/': typeof ProyectosProyectoDiffsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -319,9 +339,11 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/ajustes/$seccion'
     | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/diffs/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
     | '/proyectos/$proyecto/casos/'
     | '/proyectos/$proyecto/corridas/'
+    | '/proyectos/$proyecto/diffs/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -350,9 +372,11 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/ajustes/$seccion'
     | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/diffs/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
     | '/proyectos/$proyecto/casos'
     | '/proyectos/$proyecto/corridas'
+    | '/proyectos/$proyecto/diffs'
   id:
     | '__root__'
     | '/'
@@ -381,9 +405,11 @@ export interface FileRouteTypes {
     | '/proyectos/$proyecto/ajustes/$seccion'
     | '/proyectos/$proyecto/casos/$tc'
     | '/proyectos/$proyecto/corridas/$id'
+    | '/proyectos/$proyecto/diffs/$id'
     | '/proyectos/$proyecto/ejecuciones/$id'
     | '/proyectos/$proyecto/casos/'
     | '/proyectos/$proyecto/corridas/'
+    | '/proyectos/$proyecto/diffs/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -413,9 +439,11 @@ export interface RootRouteChildren {
   ProyectosProyectoAjustesSeccionRoute: typeof ProyectosProyectoAjustesSeccionRoute
   ProyectosProyectoCasosTcRoute: typeof ProyectosProyectoCasosTcRoute
   ProyectosProyectoCorridasIdRoute: typeof ProyectosProyectoCorridasIdRoute
+  ProyectosProyectoDiffsIdRoute: typeof ProyectosProyectoDiffsIdRoute
   ProyectosProyectoEjecucionesIdRoute: typeof ProyectosProyectoEjecucionesIdRoute
   ProyectosProyectoCasosIndexRoute: typeof ProyectosProyectoCasosIndexRoute
   ProyectosProyectoCorridasIndexRoute: typeof ProyectosProyectoCorridasIndexRoute
+  ProyectosProyectoDiffsIndexRoute: typeof ProyectosProyectoDiffsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -616,6 +644,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProyectosProyectoCorridasIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/proyectos/$proyecto/diffs/': {
+      id: '/proyectos/$proyecto/diffs/'
+      path: '/proyectos/$proyecto/diffs'
+      fullPath: '/proyectos/$proyecto/diffs/'
+      preLoaderRoute: typeof ProyectosProyectoDiffsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/proyectos/$proyecto/diffs/$id': {
+      id: '/proyectos/$proyecto/diffs/$id'
+      path: '/proyectos/$proyecto/diffs/$id'
+      fullPath: '/proyectos/$proyecto/diffs/$id'
+      preLoaderRoute: typeof ProyectosProyectoDiffsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/proyectos/$proyecto/ejecuciones/$id': {
       id: '/proyectos/$proyecto/ejecuciones/$id'
       path: '/proyectos/$proyecto/ejecuciones/$id'
@@ -653,9 +695,11 @@ const rootRouteChildren: RootRouteChildren = {
   ProyectosProyectoAjustesSeccionRoute: ProyectosProyectoAjustesSeccionRoute,
   ProyectosProyectoCasosTcRoute: ProyectosProyectoCasosTcRoute,
   ProyectosProyectoCorridasIdRoute: ProyectosProyectoCorridasIdRoute,
+  ProyectosProyectoDiffsIdRoute: ProyectosProyectoDiffsIdRoute,
   ProyectosProyectoEjecucionesIdRoute: ProyectosProyectoEjecucionesIdRoute,
   ProyectosProyectoCasosIndexRoute: ProyectosProyectoCasosIndexRoute,
   ProyectosProyectoCorridasIndexRoute: ProyectosProyectoCorridasIndexRoute,
+  ProyectosProyectoDiffsIndexRoute: ProyectosProyectoDiffsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
