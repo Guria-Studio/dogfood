@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearch } from '@tanstack/react-router'
 import { SearchX } from 'lucide-react'
 
 import { cliente } from '@/api/cliente'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Vacio } from '@/components/layout/Vacio'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -42,7 +42,7 @@ export function PantallaCorrida({ id }: { id: string }) {
     queryFn: async () => (await cliente.GET('/api/etiquetas')).data ?? {},
   })
 
-  const cabecera = <PageHeader
+  const cabecera = <EncabezadoPagina
       titulo={`Corrida ${id}`}
       ayuda="corrida"
       acciones={<Button asChild variant="outline"><Link to="/corridas/$id/reporte" params={{ id }}>Reporte</Link></Button>}
@@ -51,7 +51,7 @@ export function PantallaCorrida({ id }: { id: string }) {
     return (
       <>
         {cabecera}
-        <Vacio error icono={SearchX} titulo="No se encontró la corrida" texto={`No hay datos de la corrida ${id}.`} accion={<Button asChild variant="outline"><Link to="/">Volver a corridas</Link></Button>} />
+        <Vacio error icono={SearchX} titulo="No se encontró la corrida" texto={`No hay datos de la corrida ${id}.`} accion={<Button asChild variant="outline"><Link to="..">Volver a corridas</Link></Button>} />
       </>
     )
   if (corrida.isPending)
@@ -75,7 +75,7 @@ export function PantallaCorrida({ id }: { id: string }) {
       <Tabs
         value={pestana === 'casos' ? 'casos' : 'resumen'}
         onValueChange={(v) =>
-          navigate({ to: '/corridas/$id', params: { id }, search: v === 'casos' ? { pestana: 'casos' } : {} })
+          navigate({ to: '.', search: v === 'casos' ? { pestana: 'casos' } : {} })
         }
       >
         <TabsList className="mb-4">

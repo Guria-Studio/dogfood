@@ -14,7 +14,7 @@ export function NoEncontrada() {
       accion={
         <>
           <Button asChild>
-            <Link to="/">Ir a corridas</Link>
+            <Link to="/">Ir al inicio</Link>
           </Button>
           <Button asChild variant="outline">
             <Link to="/ayuda">Abrir la ayuda</Link>

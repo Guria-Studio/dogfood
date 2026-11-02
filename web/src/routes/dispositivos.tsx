@@ -1,13 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
-import { Dispositivos } from '@/features/vivo/Dispositivos'
+import { PROYECTO_POR_DEFECTO } from '@/components/layout/pantallas'
 
+/** Ruta vieja: ahora vive dentro del proyecto. */
 export const Route = createFileRoute('/dispositivos')({
-  component: () => (
-    <>
-      <PageHeader titulo="Dispositivos" ayuda="dispositivos" />
-      <Dispositivos />
-    </>
-  ),
+  beforeLoad: () => {
+    throw redirect({ to: '/proyectos/$proyecto/dispositivos', params: { proyecto: PROYECTO_POR_DEFECTO }, replace: true })
+  },
 })

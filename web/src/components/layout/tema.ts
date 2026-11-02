@@ -6,9 +6,8 @@ const EVENTO = 'dogfood:tema'
 
 function leerTema(): Tema {
   const guardado = localStorage.getItem(CLAVE)
-  if (guardado === 'claro' || guardado === 'oscuro') return guardado
-  const oscuro = window.matchMedia?.('(prefers-color-scheme: dark)').matches
-  return oscuro ? 'oscuro' : 'claro'
+  // El claro cálido es el predeterminado; el oscuro solo si se eligió.
+  return guardado === 'oscuro' ? 'oscuro' : 'claro'
 }
 
 function aplicar(tema: Tema) {

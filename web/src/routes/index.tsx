@@ -1,9 +1,27 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { FolderKanban } from 'lucide-react'
 
-import { PantallaCorridas } from '@/features/corridas/PantallaCorridas'
-import { validarFiltros } from '@/features/corridas/TablaEjecuciones'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
+import { PROYECTOS } from '@/components/layout/pantallas'
+import { Button } from '@/components/ui/button'
+import { Kpis } from '@/features/corridas/Kpis'
 
 export const Route = createFileRoute('/')({
-  validateSearch: validarFiltros,
-  component: PantallaCorridas,
+  component: () => (
+    <>
+      <EncabezadoPagina
+        titulo="Inicio"
+        subtitulo="Cómo les va a tus personas en todos los proyectos."
+        acciones={
+          <Button asChild variant="outline">
+            <Link to="/proyectos">
+              <FolderKanban aria-hidden="true" />
+              Ver proyectos ({PROYECTOS.length})
+            </Link>
+          </Button>
+        }
+      />
+      <Kpis />
+    </>
+  ),
 })

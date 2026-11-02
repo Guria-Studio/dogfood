@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Portada } from '@/features/ayuda/Portada'
 
 export const Route = createFileRoute('/ayuda/')({
@@ -10,7 +10,7 @@ export const Route = createFileRoute('/ayuda/')({
     const { pantalla } = Route.useSearch()
     return (
       <>
-        <PageHeader titulo="Ayuda" descripcion="Guías, referencia y cómo funciona dogfood." />
+        <EncabezadoPagina titulo="Ayuda" subtitulo="Guías, referencia y cómo funciona dogfood." />
         <Portada pantalla={pantalla} />
       </>
     )

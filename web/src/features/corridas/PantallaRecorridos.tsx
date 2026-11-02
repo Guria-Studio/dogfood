@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ListChecks, TriangleAlert } from 'lucide-react'
 
 import { cliente } from '@/api/cliente'
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Vacio } from '@/components/layout/Vacio'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -101,7 +101,7 @@ export function PantallaRecorridos() {
 
   return (
     <>
-      <PageHeader titulo="Recorridos" ayuda="recorridos" />
+      <EncabezadoPagina titulo="Recorridos" ayuda="recorridos" />
       {cuerpo}
     </>
   )

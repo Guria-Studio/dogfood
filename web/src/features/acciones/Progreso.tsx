@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 
-import { PageHeader } from '@/components/layout/PageHeader'
+import { EncabezadoPagina } from '@/components/layout/EncabezadoPagina'
 import { Button } from '@/components/ui/button'
 import { toast } from '@/components/ui/sonner'
 import { cancelar, estado } from './api'
@@ -24,7 +24,7 @@ export function Progreso({ id }: { id: string }) {
 
   return (
     <>
-      <PageHeader
+      <EncabezadoPagina
         titulo={`Corrida lanzada ${id}`}
         acciones={
           e?.estado === 'activa' && (
