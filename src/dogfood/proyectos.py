@@ -26,6 +26,10 @@ class ErrorProyecto(ValueError):
 class Acceso(BaseModel):
     usuario: str = ""
     secreto_ref: str = ""
+    # Objetivo `web` (F13): cómo entra la persona. `registro` es lo que hacía siempre.
+    modo: Literal["registro", "usuario_prueba", "sin_login"] = "registro"
+    confirmacion: Literal["no", "mailpit", "manual"] = "no"  # solo en modo `registro`
+    mailpit_url: str = ""  # API de Mailpit si `confirmacion: mailpit`
 
 
 class Entorno(BaseModel):

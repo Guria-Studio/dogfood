@@ -65,6 +65,8 @@ def tarea(escenario: Escenario, persona: Persona, ruta_csv: str | None) -> str:
         if ruta_csv
         else ""
     )
+    if not persona.email:  # `sin_login`: la app no tiene cuentas
+        return f"{escenario.objetivo}{csv}"
     return (
         f"{escenario.objetivo}\n\n"
         f"Para registrarte o entrar usa el email {persona.email} "

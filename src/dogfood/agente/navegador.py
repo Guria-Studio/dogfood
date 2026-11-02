@@ -105,6 +105,7 @@ async def ejecutar(
     bus: BusVivo = BUS_NULO,
     corrida_id: str = "",
     cfg: Config | None = None,
+    sensitive_data: dict[str, str] | None = None,
 ) -> Ejecucion:
     """`juez(prompt, Veredicto)` es `llm.completar_json` con el rol `juez` ya aplicado.
 
@@ -347,6 +348,7 @@ async def ejecutar(
             available_file_paths=[ruta_csv] if ruta_csv else None,
             initial_actions=[{"navigate": {"url": instancia.base_url, "new_tab": False}}],
             use_judge=False,
+            sensitive_data=sensitive_data,
             enable_signal_handler=False,
             file_system_path=str(Path(perfil.name) / "fs"),
         )
