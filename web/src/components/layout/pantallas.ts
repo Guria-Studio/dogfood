@@ -6,6 +6,7 @@ import {
   Eye,
   FolderGit2,
   FolderKanban,
+  GitCompareArrows,
   Workflow,
   History,
   House,
@@ -68,7 +69,13 @@ export const GRUPOS_PROYECTO: { titulo: string; secciones: SeccionProyecto[] }[]
       { seg: 'recorridos', texto: 'Recorridos', icono: ListChecks },
     ],
   },
-  { titulo: 'Análisis', secciones: [{ seg: 'insights', texto: 'Insights', icono: ChartColumn }] },
+  {
+    titulo: 'Análisis',
+    secciones: [
+      { seg: 'insights', texto: 'Insights', icono: ChartColumn },
+      { seg: 'diffs', texto: 'Cambios entre versiones', icono: GitCompareArrows },
+    ],
+  },
   { titulo: 'Actividad', secciones: [{ seg: 'actividad', texto: 'Registro', icono: Logs }] },
   {
     titulo: 'Dispositivos',

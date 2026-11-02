@@ -17,6 +17,7 @@ export function migasDe(ruta: string): Miga[] {
       return [proyecto, { texto: 'Corridas', to: `${base}/corridas` }, { texto: `Corrida ${d}` }]
     if (c === 'ejecuciones' && d)
       return [proyecto, { texto: 'Corridas', to: `${base}/corridas` }, { texto: `Ejecución ${d}` }]
+    if (c === 'diffs' && d) return [proyecto, { texto: 'Cambios entre versiones', to: `${base}/diffs` }, { texto: d }]
     if (c === 'ajustes') return [proyecto, { texto: 'Ajustes' }, { texto: SECCIONES.find((s) => s.seg === `ajustes/${d}`)?.texto ?? d }]
     const s = SECCIONES.find((s) => s.seg === c)
     return s ? [proyecto, { texto: s.texto }] : [proyecto, { texto: 'No encontrada' }]
