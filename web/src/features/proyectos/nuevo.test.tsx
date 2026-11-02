@@ -74,15 +74,17 @@ describe('asistente de proyecto nuevo', () => {
     expect(document.body.innerHTML).not.toContain('secreto-123')
   })
 
-  it('al terminar crea el proyecto y navega a sus casos', async () => {
+  it('un proyecto no web, al terminar, navega a sus casos', async () => {
     const router = montar('/proyectos/nuevo')
-    await basico()
+    await userEvent.click(await screen.findByLabelText('Android'))
+    await userEvent.type(screen.getByLabelText('Objetivo (paquete o bundle id)'), 'com.mi.app')
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Mi app')
     await userEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
     await userEvent.click(screen.getByRole('button', { name: 'Siguiente' }))
     await userEvent.click(screen.getByRole('button', { name: 'Crear proyecto' }))
     await waitFor(() => expect(router.state.location.pathname).toBe('/proyectos/mi-app/casos'))
     expect(enviados[0].url).toBe('/api/proyectos')
-    expect(JSON.parse(enviados[0].cuerpo)).toMatchObject({ slug: 'mi-app', tipo: 'web', url: 'https://mi-app.com' })
+    expect(JSON.parse(enviados[0].cuerpo)).toMatchObject({ slug: 'mi-app', tipo: 'android' })
   })
 })
 

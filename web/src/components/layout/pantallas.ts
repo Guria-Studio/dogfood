@@ -6,6 +6,7 @@ import {
   Eye,
   FolderGit2,
   FolderKanban,
+  Compass,
   Workflow,
   History,
   House,
@@ -57,6 +58,7 @@ export const GRUPOS_PROYECTO: { titulo: string; secciones: SeccionProyecto[] }[]
     titulo: 'Configuración',
     secciones: [
       { seg: 'fuentes', texto: 'Fuentes', icono: FolderGit2 },
+      { seg: 'mapa', texto: 'Mapa', icono: Compass },
       { seg: 'github', texto: 'Acción de GitHub', icono: Workflow },
     ],
   },
