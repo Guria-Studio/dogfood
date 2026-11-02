@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from dogfood.dominio import Corrida, Ejecucion, Hallazgo, Persona, UsoLlm
 
-VERSION_ESQUEMA = 5
+VERSION_ESQUEMA = 6
 
 # Esquema del MVP (v1); los cambios posteriores van como migraciones en MIGRACIONES.
 ESQUEMA_V1 = """
@@ -93,8 +93,30 @@ CREATE TABLE diffs (
 CREATE INDEX ix_diffs_proyecto ON diffs (proyecto, creado);
 """
 
+# F11.3.T3: suites (casos de uno o varios proyectos), sus corridas y sus programaciones.
+MIGRACION_V6 = """
+CREATE TABLE suites (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT NOT NULL, casos TEXT NOT NULL, creado TEXT NOT NULL
+);
+CREATE TABLE suite_corridas (
+    suite_id INTEGER NOT NULL, inicio TEXT NOT NULL, objetivo TEXT NOT NULL, semilla INTEGER NOT NULL
+);
+CREATE TABLE programaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, suite_id INTEGER NOT NULL, frecuencia TEXT NOT NULL,
+    hora TEXT NOT NULL DEFAULT '', dia TEXT NOT NULL DEFAULT '', cron TEXT NOT NULL DEFAULT '',
+    slack INTEGER NOT NULL DEFAULT 0, calendario TEXT NOT NULL, creado TEXT NOT NULL
+);
+"""
+
 # Script que lleva la base de la versión `n - 1` a la `n`.
-MIGRACIONES = {1: ESQUEMA_V1, 2: MIGRACION_V2, 3: MIGRACION_V3, 4: MIGRACION_V4, 5: MIGRACION_V5}
+MIGRACIONES = {
+    1: ESQUEMA_V1,
+    2: MIGRACION_V2,
+    3: MIGRACION_V3,
+    4: MIGRACION_V4,
+    5: MIGRACION_V5,
+    6: MIGRACION_V6,
+}
 
 SUBCARPETAS = ("datos", "ejecuciones", "logs")
 
