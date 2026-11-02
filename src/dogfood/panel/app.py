@@ -7,6 +7,7 @@ from dogfood.panel import detalle, dispositivos
 from dogfood.panel.acciones import Lanzador, registrar_acciones
 from dogfood.panel.api import registrar_api
 from dogfood.panel.api_casos import registrar_api_casos
+from dogfood.panel.api_insights import registrar_api_insights
 from dogfood.panel.api_plan import registrar_api_plan
 from dogfood.panel.api_proyectos import registrar_api_proyectos
 from dogfood.panel.ayuda import registrar_ayuda
@@ -26,6 +27,7 @@ def crear_app_panel(
     registrar_api_plan(app, Path(raiz), cfg)
     registrar_api_proyectos(app, Path(raiz), cfg)
     registrar_api_casos(app, Path(raiz), cfg)
+    registrar_api_insights(app, Path(raiz), cfg)
     registrar_pdf(app, Path(raiz), cfg)
     registrar_acciones(app, Path(raiz), cfg, lanzador)
     registrar_ayuda(app, Path(__file__).parents[3])
