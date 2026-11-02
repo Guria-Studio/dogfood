@@ -73,6 +73,7 @@ class Proyecto(BaseModel):
     salud: str = ""
     origenes_extra: list[str] = []  # orígenes que el navegador puede tocar además del de la URL
     hosts_prohibidos: list[str] = []  # la corrida no arranca si la URL cae en uno (producción)
+    prd: str = ""  # texto del PRD (Markdown): `dogfood explorar` lo cruza con lo que ve
     creado: datetime | None = None
 
     @field_validator("objetivo")
