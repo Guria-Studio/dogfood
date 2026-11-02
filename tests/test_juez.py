@@ -128,3 +128,9 @@ async def test_backend_api_acepta_json_con_cercas(monkeypatch):
     monkeypatch.setattr(Config, "secreto", lambda self, n: "http://x", raising=False)
     v, _, _ = await BackendApi("m", cfg, None).completar_json("p", Veredicto)
     assert v.exito
+
+
+def test_salida_no_json_es_transitoria():
+    with pytest.raises(Exception) as e:
+        Veredicto.model_validate_json("exito: false\nmotivo: x")
+    assert modulo.transitorio(e.value)
